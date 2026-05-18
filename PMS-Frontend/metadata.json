@@ -1,0 +1,6 @@
+{
+  "name": "Chronos Project Management",
+  "description": "An enterprise-grade internal timesheet and project management system with robust RBAC and a comprehensive Super Admin dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
