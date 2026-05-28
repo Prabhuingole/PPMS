@@ -4,6 +4,7 @@ from typing import List
 import os
 import uuid
 import shutil
+from datetime import datetime
 
 from app.database.session import get_db
 from app.models.document import ProjectDocument
@@ -12,6 +13,9 @@ from app.models.user import User
 from app.schemas.document import ProjectDocumentResponse
 from app.core.deps import get_current_user
 from app.core.s3 import storage
+from fastapi import BackgroundTasks, Request
+from app.core.websockets import manager
+from app.core.audit import create_audit_log
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -20,11 +24,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @router.post("/upload", response_model=ProjectDocumentResponse)
 async def upload_document(
+    request: Request,
     project_id: int = Form(...),
     doc_type: str = Form(...),
     display_name: str = Form(None),
     preparation_date: str = Form(None),
     file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -34,7 +40,7 @@ async def upload_document(
         raise HTTPException(status_code=404, detail="Project not found")
     
     # Check if user is member or superadmin
-    if current_user.role != "superadmin":
+    if current_user.role not in ["superadmin", "admin"]:
         is_member = any(m.id == current_user.id for m in project.members)
         if not is_member:
             raise HTTPException(status_code=403, detail="Not authorized to upload to this project")
@@ -67,6 +73,19 @@ async def upload_document(
     db.commit()
     db.refresh(new_doc)
     
+    create_audit_log(
+        db=db,
+        action="DOCUMENT_UPLOADED",
+        entity_type="project",
+        entity_id=project_id,
+        user=current_user,
+        new_values={"document_name": new_doc.display_name, "document_type": new_doc.doc_type},
+        request=request
+    )
+    
+    if background_tasks:
+        background_tasks.add_task(manager.broadcast, {"event": "DOCUMENTS_UPDATED"})
+    
     return new_doc
 
 @router.get("/project/{project_id}", response_model=List[ProjectDocumentResponse])
@@ -80,7 +99,7 @@ def get_project_documents(
         raise HTTPException(status_code=404, detail="Project not found")
         
     # Check access
-    if current_user.role != "superadmin":
+    if current_user.role not in ["superadmin", "admin"]:
         is_member = any(m.id == current_user.id for m in project.members)
         if not is_member:
             raise HTTPException(status_code=403, detail="Not authorized to view documents for this project")
@@ -92,6 +111,8 @@ from fastapi.responses import FileResponse
 @router.get("/download/{document_id}")
 def download_document(
     document_id: int,
+    request: Request,
+    inline: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -101,12 +122,72 @@ def download_document(
         
     # Check access to project
     project = db.query(Project).filter(Project.id == doc.project_id).first()
-    if current_user.role != "superadmin":
+    if current_user.role not in ["superadmin", "admin"]:
         is_member = any(m.id == current_user.id for m in project.members)
         if not is_member:
             raise HTTPException(status_code=403, detail="Not authorized to download this document")
             
     from fastapi.responses import RedirectResponse
     
-    download_url = storage.get_download_url(doc.file_path, doc.filename)
+    download_url = storage.get_download_url(doc.file_path, doc.filename, inline=inline)
+    
+    create_audit_log(
+        db=db,
+        action="DOCUMENT_DOWNLOADED",
+        entity_type="project",
+        entity_id=doc.project_id,
+        user=current_user,
+        new_values={"document_name": doc.display_name},
+        request=request
+    )
+    
+    if inline:
+        return {"url": download_url, "filename": doc.filename}
+        
     return RedirectResponse(url=download_url)
+
+@router.delete("/{document_id}")
+def delete_document(
+    document_id: int,
+    request: Request,
+    background_tasks: BackgroundTasks = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    doc = db.query(ProjectDocument).filter(ProjectDocument.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    # Check access to project
+    project = db.query(Project).filter(Project.id == doc.project_id).first()
+    if current_user.role not in ["superadmin", "admin"]:
+        is_member = any(m.id == current_user.id for m in project.members)
+        if not is_member:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this document")
+            
+    # Try deleting from storage
+    try:
+        storage.delete_file(doc.file_path)
+    except Exception as e:
+        print(f"Error deleting file from storage: {e}")
+        
+    old_values = {"document_name": doc.display_name, "document_type": doc.doc_type}
+    project_id = doc.project_id
+        
+    db.delete(doc)
+    db.commit()
+    
+    create_audit_log(
+        db=db,
+        action="DOCUMENT_DELETED",
+        entity_type="project",
+        entity_id=project_id,
+        user=current_user,
+        old_values=old_values,
+        request=request
+    )
+    
+    if background_tasks:
+        background_tasks.add_task(manager.broadcast, {"event": "DOCUMENTS_UPDATED"})
+        
+    return {"message": "Document deleted successfully"}

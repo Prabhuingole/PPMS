@@ -25,6 +25,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
+    } else if (error.response?.status === 403) {
+      const detail = error.response?.data?.detail;
+      if (typeof detail === 'string' && detail.toLowerCase().includes('deactivated')) {
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

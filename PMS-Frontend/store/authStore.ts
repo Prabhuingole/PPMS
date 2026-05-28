@@ -6,6 +6,8 @@ interface AuthStore extends AuthState {
   _hasHydrated: boolean;
   setHasHydrated: (state: boolean) => void;
   setAuth: (user: User, token: string) => void;
+  setMfaRequired: (email: string) => void;
+  clearMfaState: () => void;
   updateUser: (user: Partial<User>) => void;
   logout: () => void;
 }
@@ -16,29 +18,52 @@ const dummyStorage: StateStorage = {
   removeItem: () => {},
 };
 
+const customStorage: StateStorage = {
+  getItem: (name) => {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(name) || window.sessionStorage.getItem(name);
+  },
+  setItem: (name, value) => {
+    if (typeof window === 'undefined') return;
+    if (window.localStorage.getItem('rememberMe') === 'true') {
+      window.localStorage.setItem(name, value);
+    } else {
+      window.sessionStorage.setItem(name, value);
+    }
+  },
+  removeItem: (name) => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.removeItem(name);
+    window.sessionStorage.removeItem(name);
+  },
+};
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       user: null,
       token: null,
       isAuthenticated: false,
+      mfaEmail: null,
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
+      setAuth: (user, token) => set({ user, token, isAuthenticated: true, mfaEmail: null }),
+      setMfaRequired: (email) => set({ mfaEmail: email }),
+      clearMfaState: () => set({ mfaEmail: null }),
       updateUser: (updatedUser) => set((state) => ({ 
         user: state.user ? { ...state.user, ...updatedUser } : null 
       })),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      logout: () => set({ user: null, token: null, isAuthenticated: false, mfaEmail: null }),
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => {
         try {
-          if (typeof window !== 'undefined' && window.localStorage) {
-            return window.localStorage;
+          if (typeof window !== 'undefined') {
+            return customStorage;
           }
         } catch (e) {
-          console.warn('localStorage is blocked, falling back to dummy storage', e);
+          console.warn('Storage is blocked, falling back to dummy storage', e);
         }
         return dummyStorage;
       }),

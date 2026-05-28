@@ -87,4 +87,7 @@ export {
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
+  PopoverPrimitive,
 }
+
+export const PopoverClose = PopoverPrimitive.Close

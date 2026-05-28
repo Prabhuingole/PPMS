@@ -12,9 +12,18 @@ from app.models.timesheet import Timesheet
 from app.models.reporting_manager import ReportingManager
 from app.models.document import ProjectDocument
 from app.models.template import DocumentTemplate
+from app.models.notification import Notification
+from app.models.session import UserSession
+from app.models.audit_log import AuditLog
+from app.models.note import NoteWorkspace, NotePage, NoteChecklistItem
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.routes import auth, employee_management, reporting_manager, project_management, documents, templates
+from app.routes import auth, employee_management, reporting_manager, project_management, documents, templates, timesheets, notifications, audit_logs, notes, admin_management
+from fastapi import WebSocket, WebSocketDisconnect, Request
+from app.core.websockets import manager
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.limiter import limiter
 
 # Initialize Database Tables
 Base.metadata.create_all(bind=engine)
@@ -55,24 +64,31 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Sambhav PMS API", version="1.0.0", lifespan=lifespan)
 
+# Add Rate Limiter Exception Handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # 2. CORS Setup - Allows your Next.js frontend to access this API
-# NOTE: Covers all dev port combos: frontend may be on 3000 or 3001,
-#       and both localhost + 127.0.0.1 are included (Edge uses 127.0.0.1)
+origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "http://localhost:3002",
-        "http://127.0.0.1:3002",
-    ],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
 )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    return response
 
 # 3. Authentication & Management Routes
 app.include_router(auth.router)
@@ -81,11 +97,27 @@ app.include_router(reporting_manager.router)
 app.include_router(project_management.router)
 app.include_router(documents.router)
 app.include_router(templates.router)
+app.include_router(timesheets.router)
+app.include_router(notifications.router)
+app.include_router(audit_logs.router)
+app.include_router(notes.router)
+app.include_router(admin_management.router)
 
 # 4. Health Check
 @app.get("/health")
 def health_check():
     return {"status": "online", "system": "Sambhav API"}
+
+# 5. WebSocket Endpoint
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Keep connection open and listen for client messages (if any) or disconnects
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 if __name__ == "__main__":
     import socket

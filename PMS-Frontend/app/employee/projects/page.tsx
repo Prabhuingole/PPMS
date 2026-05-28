@@ -25,13 +25,16 @@ import { useAuthStore } from '@/store/authStore';
 import { Project } from '@/types';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 
 export default function EmployeeProjectsPage() {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const { token, user } = useAuthStore();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useWebSocketEvent('PROJECTS_UPDATED', () => setRefreshTrigger(prev => prev + 1));
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -53,7 +56,7 @@ export default function EmployeeProjectsPage() {
     if (token) {
       fetchProjects();
     }
-  }, [token]);
+  }, [token, refreshTrigger]);
 
   const filteredProjects = projects.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -74,33 +77,15 @@ export default function EmployeeProjectsPage() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-           <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Engagement Stream</h2>
-           <p className="text-slate-500 font-medium text-sm">Your active connections within the Chronos ecosystem</p>
+           <h2 className="text-2xl font-bold tracking-tight text-slate-900">My Projects</h2>
+           <p className="text-slate-500 font-medium text-sm mt-1">Overview of the projects you are assigned to.</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center flex-wrap gap-3">
            <Link href="/employee/templates">
-              <Button variant="outline" className="h-10 rounded-xl border-slate-200 px-5 font-black text-[10px] uppercase tracking-widest text-indigo-600 bg-white hover:bg-indigo-50 transition-all shadow-sm">
+              <Button variant="outline" className="h-10 rounded-xl border-slate-200 px-5 font-semibold text-sm text-indigo-600 bg-white hover:bg-indigo-50 transition-all shadow-sm">
                  <BookOpen className="mr-2 h-4 w-4" /> View Master Templates
               </Button>
            </Link>
-           <div className="flex items-center space-x-2 bg-slate-100 p-1 rounded-xl shrink-0">
-              <Button 
-               variant="ghost" 
-               size="sm" 
-               className={cn("rounded-lg h-9 w-9 p-0 shadow-sm", viewMode === 'grid' ? "bg-white text-indigo-600" : "text-slate-400")}
-               onClick={() => setViewMode('grid')}
-              >
-                 <LayoutGrid className="h-4 w-4" />
-              </Button>
-              <Button 
-               variant="ghost" 
-               size="sm" 
-               className={cn("rounded-lg h-9 w-9 p-0 shadow-sm", viewMode === 'table' ? "bg-white text-indigo-600" : "text-slate-400")}
-               onClick={() => setViewMode('table')}
-              >
-                 <TableIcon className="h-4 w-4" />
-              </Button>
-           </div>
         </div>
       </div>
 
@@ -108,15 +93,12 @@ export default function EmployeeProjectsPage() {
          <div className="relative w-full sm:w-96">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
-              placeholder="Search project hashes..." 
-              className="h-12 pl-11 rounded-2xl bg-white border-slate-200 outline-none focus:border-indigo-400 transition-all text-xs font-bold" 
+              placeholder="Search projects by name, code or client..." 
+              className="h-11 pl-11 rounded-xl bg-white border-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium shadow-sm" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
          </div>
-         <Button variant="outline" className="h-12 rounded-2xl border-slate-200 px-6 font-bold text-xs uppercase tracking-widest text-slate-500 bg-white shadow-sm">
-            <Filter className="mr-2 h-4 w-4" /> Refine Stream
-         </Button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -128,7 +110,7 @@ export default function EmployeeProjectsPage() {
             exit={{ opacity: 0 }}
             className={cn(
               "grid gap-6",
-              viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" : "grid-cols-1"
+              "grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
             )}
           >
             {filteredProjects.map((project, i) => (
@@ -138,82 +120,85 @@ export default function EmployeeProjectsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
               >
-                <Card className="flex flex-col h-full border-slate-200 rounded-3xl hover:shadow-2xl hover:shadow-slate-200/50 transition-all cursor-pointer overflow-hidden group bg-white">
-                  <CardHeader className="pb-4">
-                     <div className="flex justify-between items-start mb-6">
-                        <div className="flex flex-col">
-                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{project.code}</span>
-                           <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-tight mt-1 truncate max-w-[200px]">{project.name}</h3>
+                <Card className="flex flex-col h-full border-slate-200 shadow-sm hover:shadow-md transition-all cursor-pointer overflow-hidden bg-white rounded-2xl group">
+                  <CardHeader className="pb-3 border-b border-slate-100">
+                     <div className="flex justify-between items-start mb-2 gap-4">
+                        <div className="flex flex-col min-w-0">
+                           <span className="text-xs font-semibold text-indigo-600 mb-1">{project.code}</span>
+                           <h3 className="text-lg font-bold text-slate-900 leading-tight truncate group-hover:text-indigo-700 transition-colors">{project.name}</h3>
+                           <p className="text-sm text-slate-500 mt-0.5 truncate">{project.client_name || 'Internal Project'}</p>
                         </div>
-                        <Badge className={cn(
-                          "text-[9px] font-black uppercase tracking-widest border-none px-3 py-1 rounded-lg",
-                          project.status === 'active' ? "bg-indigo-100 text-indigo-700" : 
-                          project.status === 'completed' ? "bg-emerald-100 text-emerald-700" :
-                          project.status === 'planning' ? "bg-amber-100 text-amber-700" :
-                          "bg-slate-100 text-slate-500"
-                        )}>
-                          {project.status}
-                        </Badge>
-                     </div>
-                     <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400">
-                        <Briefcase className="h-3 w-3" />
-                        <span className="uppercase tracking-widest">{project.client_name || 'N/A'}</span>
                      </div>
                   </CardHeader>
 
-                  <CardContent className="flex-1 pt-4 space-y-6">
-                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 group-hover:bg-indigo-50/50 transition-colors">
-                        <div className="flex items-center justify-between space-x-3">
-                           <div className="flex items-center space-x-2">
-                              <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center font-black text-[10px] text-slate-900">
-                                 {project.reporting_manager?.full_name.split(' ').map(n=>n[0]).join('') || 'RM'}
-                              </div>
-                              <div className="flex flex-col overflow-hidden">
-                                 <span className="text-[10px] font-black text-slate-800 truncate">{project.reporting_manager?.full_name || 'Not Assigned'}</span>
-                                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Reporting Manager</span>
-                              </div>
-                           </div>
-                           <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-300 hover:text-indigo-600">
-                              <ExternalLink className="h-3 w-3" />
-                           </Button>
+                  <CardContent className="flex-1 pt-5 space-y-6">
+                     <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className={cn(
+                          "px-2.5 py-0.5 rounded-full font-semibold text-xs border-0",
+                          project.status === 'active' ? "bg-emerald-100 text-emerald-700" : 
+                          project.status === 'completed' ? "bg-blue-100 text-blue-700" :
+                          project.status === 'planning' ? "bg-amber-100 text-amber-700" :
+                          "bg-slate-100 text-slate-600"
+                        )}>
+                          {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                        </Badge>
+                        <div className="flex items-center text-xs text-slate-500 font-medium">
+                           <Calendar className="h-3.5 w-3.5 mr-1.5" /> 
+                           {project.start_date ? format(new Date(project.start_date), 'MMM d, yyyy') : 'No Date'}
                         </div>
                      </div>
 
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                           <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Start Date</span>
-                           <div className="text-[10px] font-black text-slate-800 flex items-center justify-center p-1.5 bg-slate-100 border border-slate-200 rounded-lg">
-                              <Calendar className="h-3 w-3 mr-1 text-slate-400" /> 
-                              {project.start_date ? format(new Date(project.start_date), 'dd MMM yyyy') : 'N/A'}
-                           </div>
+                     <div className="flex items-center space-x-3 bg-slate-50/80 p-3 rounded-xl border border-slate-100">
+                        <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center font-bold text-sm text-indigo-700 shrink-0">
+                           {project.reporting_manager?.full_name.charAt(0) || 'R'}
                         </div>
-                        <div className="space-y-1">
-                           <span className="text-[9px] font-black uppercase text-slate-400 tracking-tighter">Deadline</span>
-                           <div className="text-[10px] font-black text-slate-800 flex items-center justify-center p-1.5 bg-slate-100 border border-slate-200 rounded-lg">
-                              <Calendar className="h-3 w-3 mr-1 text-slate-400" /> 
-                              {project.end_date ? format(new Date(project.end_date), 'dd MMM yyyy') : 'Ongoing'}
+                        <div className="flex flex-col min-w-0">
+                           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Reporting Manager</span>
+                           <span className="text-sm font-semibold text-slate-800 truncate">{project.reporting_manager?.full_name || 'Not Assigned'}</span>
+                        </div>
+                     </div>
+
+                     <div className="space-y-2.5">
+                        <div className="flex justify-between items-end">
+                           <div className="flex flex-col">
+                             <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Tracked Hours</span>
+                             <span className="text-base font-bold text-slate-800">
+                               {project.total_hours_worked || 0} <span className="text-sm font-medium text-slate-500">/ {project.total_hours || 0} h</span>
+                             </span>
                            </div>
+                           {((project.total_hours_remaining ?? 0) < 0) ? (
+                             <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">Over by {(project.total_hours_remaining || 0) * -1}h</span>
+                           ) : (
+                             <span className="text-xs font-semibold text-emerald-600">{project.total_hours_remaining || 0}h left</span>
+                           )}
+                        </div>
+                        <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                           <div 
+                             className={cn("h-full rounded-full transition-all duration-500", ((project.total_hours_remaining ?? 0) < 0) ? "bg-red-500" : "bg-indigo-500")}
+                             style={{ width: `${Math.min(100, ((project.total_hours_worked || 0) / (project.total_hours || 1)) * 100)}%` }}
+                           />
                         </div>
                      </div>
                   </CardContent>
 
-                  <CardFooter className="p-6 border-t border-slate-50 mt-4 flex justify-between items-center bg-slate-50/20">
+                  <CardFooter className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
                      <Link href={`/employee/projects/${project.id}`}>
                         <Button 
-                          className="h-10 px-6 rounded-xl text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 hover:scale-105 transition-all shadow-lg shadow-indigo-100"
+                          variant="ghost"
+                          className="h-9 px-4 text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors"
                         >
                           Explore Project
                         </Button>
                      </Link>
-                     <div className="flex -space-x-1.5">
-                        {project.members.slice(0, 3).map((member, idx) => (
-                          <div key={member.id} className="h-6 w-6 rounded-full bg-slate-200 border-2 border-white text-[8px] flex items-center justify-center font-black" title={member.full_name}>
+                     <div className="flex -space-x-2">
+                        {project.members.slice(0, 4).map((member) => (
+                          <div key={member.id} className="h-7 w-7 rounded-full bg-white border-2 border-slate-50 flex items-center justify-center font-bold text-xs text-slate-600 shadow-sm" title={member.full_name}>
                              {member.full_name[0]}
                           </div>
                         ))}
-                        {project.members.length > 3 && (
-                          <div className="h-6 w-6 rounded-full bg-slate-100 border-2 border-white text-[8px] flex items-center justify-center font-black text-slate-500">
-                             +{project.members.length - 3}
+                        {project.members.length > 4 && (
+                          <div className="h-7 w-7 rounded-full bg-slate-100 border-2 border-slate-50 flex items-center justify-center font-bold text-xs text-slate-500 shadow-sm">
+                             +{project.members.length - 4}
                           </div>
                         )}
                      </div>
@@ -234,9 +219,7 @@ export default function EmployeeProjectsPage() {
             </div>
             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">No Projects Found</h3>
             <p className="text-slate-400 text-sm font-medium mt-2">You haven't been assigned to any streams yet.</p>
-            <Button variant="outline" className="mt-8 h-12 rounded-2xl border-slate-200 px-8 font-black text-[10px] uppercase tracking-widest text-indigo-600 bg-white hover:bg-indigo-600 hover:text-white transition-all shadow-lg shadow-indigo-100">
-               Request Assignment
-            </Button>
+
           </motion.div>
         )}
       </AnimatePresence>

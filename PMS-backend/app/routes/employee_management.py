@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
 import math
 
@@ -10,48 +11,74 @@ from app.schemas.user import (
     EmployeeCreateResponse, EmployeeList
 )
 from app.core.security import get_password_hash
-from app.core.deps import get_superadmin
+from app.core.deps import check_roles
+from app.core.audit import create_audit_log
+from fastapi import BackgroundTasks
+from app.core.websockets import manager
+import secrets
+import string
+from app.core.email import send_temporary_password_email
 
 router = APIRouter(prefix="/employees", tags=["employee-management"])
 
 @router.post("/", response_model=EmployeeCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_employee(
     payload: EmployeeCreate, 
+    background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
-    # Check if email, username or employee_id already exists
-    if db.query(User).filter(User.email == payload.email).first():
+    # Check if email or employee_id already exists
+    if db.query(User).filter(func.lower(User.email) == func.lower(payload.email)).first():
         raise HTTPException(status_code=400, detail="Email already registered")
-    if db.query(User).filter(User.username == payload.username).first():
-        raise HTTPException(status_code=400, detail="Username already taken")
     if db.query(User).filter(User.employee_id == payload.employee_id).first():
         raise HTTPException(status_code=400, detail="Employee ID already exists")
 
-    # Generate password: {username}@sam
-    temp_password = f"{payload.username}@sam"
+    # Generate secure random temporary password
+    alphabet = string.ascii_letters + string.digits + "@#*!?"
+    temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
     hashed_password = get_password_hash(temp_password)
 
     new_user = User(
         employee_id=payload.employee_id,
         full_name=payload.full_name,
-        username=payload.username,
         email=payload.email,
         mobile_number=payload.mobile_number,
         role=payload.role,
         designation=payload.designation,
         joining_date=payload.joining_date,
         hashed_password=hashed_password,
+        must_change_password=True,
         is_active=True
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    
+    # Dispatch welcome email asynchronously
+    background_tasks.add_task(
+        send_temporary_password_email,
+        to_email=payload.email,
+        employee_name=payload.full_name,
+        temp_password=temp_password
+    )
+    
+    create_audit_log(
+        db=db,
+        action="EMPLOYEE_CREATED",
+        entity_type="employee",
+        entity_id=new_user.id,
+        user=admin,
+        new_values={"full_name": new_user.full_name, "email": new_user.email, "role": new_user.role},
+        request=request
+    )
+    
+    background_tasks.add_task(manager.broadcast, {"event": "EMPLOYEES_UPDATED"})
 
-    # Return response with temp_password
     user_data = EmployeeResponse.model_validate(new_user).model_dump()
-    return EmployeeCreateResponse(**user_data, temp_password=temp_password)
+    return EmployeeCreateResponse(**user_data)
 
 @router.get("/", response_model=EmployeeList)
 def get_employees(
@@ -61,9 +88,9 @@ def get_employees(
     user_type: Optional[str] = None,
     status_filter: Optional[bool] = None,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
-    query = db.query(User).filter(User.role != UserRole.SUPERADMIN)
+    query = db.query(User).filter(User.role.notin_([UserRole.SUPERADMIN, UserRole.ADMIN]))
 
     # Filters
     if user_type:
@@ -77,13 +104,12 @@ def get_employees(
         query = query.filter(
             (User.full_name.ilike(search_filter)) |
             (User.employee_id.ilike(search_filter)) |
-            (User.email.ilike(search_filter)) |
-            (User.username.ilike(search_filter))
+            (User.email.ilike(search_filter))
         )
 
     total = query.count()
     pages = math.ceil(total / limit)
-    items = query.offset((page - 1) * limit).limit(limit).all()
+    items = query.order_by(User.updated_at.desc()).offset((page - 1) * limit).limit(limit).all()
 
     return {
         "items": items,
@@ -96,7 +122,7 @@ def get_employees(
 def get_employee_details(
     employee_id_pk: int, 
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
@@ -107,12 +133,21 @@ def get_employee_details(
 def update_employee(
     employee_id_pk: int, 
     payload: EmployeeUpdate, 
+    background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
         raise HTTPException(status_code=404, detail="Employee not found")
+
+    old_values = {
+        "full_name": user.full_name,
+        "designation": user.designation,
+        "role": user.role,
+        "mobile_number": user.mobile_number
+    }
 
     update_data = payload.dict(exclude_unset=True)
     for key, value in update_data.items():
@@ -120,34 +155,87 @@ def update_employee(
 
     db.commit()
     db.refresh(user)
+    
+    create_audit_log(
+        db=db,
+        action="EMPLOYEE_UPDATED",
+        entity_type="employee",
+        entity_id=user.id,
+        user=admin,
+        old_values=old_values,
+        new_values={"full_name": user.full_name, "designation": user.designation, "role": user.role, "mobile_number": user.mobile_number},
+        request=request
+    )
+    
+    background_tasks.add_task(manager.broadcast, {"event": "EMPLOYEES_UPDATED"})
     return user
 
 @router.delete("/{employee_id_pk}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_employee(
     employee_id_pk: int, 
+    background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
         raise HTTPException(status_code=404, detail="Employee not found")
     
+    old_values = {"full_name": user.full_name, "email": user.email}
     db.delete(user)
     db.commit()
+    
+    create_audit_log(
+        db=db,
+        action="EMPLOYEE_DELETED",
+        entity_type="employee",
+        entity_id=employee_id_pk,
+        user=admin,
+        old_values=old_values,
+        request=request
+    )
+    
+    background_tasks.add_task(manager.broadcast, {"event": "EMPLOYEES_UPDATED"})
+    background_tasks.add_task(manager.broadcast, {"event": "ACCOUNT_DEACTIVATED", "user_id": str(employee_id_pk)})
     return None
 
 @router.patch("/{employee_id_pk}/status", response_model=EmployeeResponse)
 def toggle_employee_status(
     employee_id_pk: int, 
     is_active: bool,
+    background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN])),
+    reason: str = None
 ):
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
         raise HTTPException(status_code=404, detail="Employee not found")
     
+    old_status = user.is_active
     user.is_active = is_active
+    if not is_active and reason:
+        user.deactivation_reason = reason
+    elif is_active:
+        user.deactivation_reason = None
+        
     db.commit()
     db.refresh(user)
+    
+    create_audit_log(
+        db=db,
+        action="EMPLOYEE_STATUS_CHANGED",
+        entity_type="employee",
+        entity_id=user.id,
+        user=admin,
+        old_values={"is_active": old_status},
+        new_values={"is_active": user.is_active, "reason": reason},
+        request=request
+    )
+    
+    background_tasks.add_task(manager.broadcast, {"event": "EMPLOYEES_UPDATED"})
+    if not is_active:
+        background_tasks.add_task(manager.broadcast, {"event": "ACCOUNT_DEACTIVATED", "user_id": str(user.id)})
     return user

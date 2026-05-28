@@ -6,7 +6,7 @@ export const projectService = {
     page?: number; 
     limit?: number; 
     search?: string; 
-    status_filter?: string; 
+    status?: string; 
     manager_id?: number;
   }) => {
     const response = await api.get<ProjectListResponse>('/projects/', { params });

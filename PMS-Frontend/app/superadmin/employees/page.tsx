@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  MoreVertical, 
+import {
+  Plus,
+  Search,
   Download,
   Trash2,
   Edit2,
@@ -14,10 +12,9 @@ import {
   Mail,
   Phone,
   Loader2,
-  Key,
-  Copy,
-  Check,
-  AlertCircle
+  AlertCircle,
+  Users,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,17 +26,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -63,56 +52,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { employeeService } from '@/services/employeeService';
-import { Employee, UserRole } from '@/types';
+import { Employee } from '@/types';
 import { toast } from 'sonner';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-
-const employeeSchema = z.object({
-  employee_id: z.string().min(2, 'Employee ID must be at least 2 characters'),
-  full_name: z.string().min(2, 'Full Name is required'),
-  username: z.string().min(3, 'Username must be at least 3 characters').regex(/^[a-zA-Z0-9_]+$/, 'Only letters, numbers and underscores allowed'),
-  email: z.string().email('Invalid email address'),
-  mobile_number: z.string().length(10, 'Mobile number must be exactly 10 digits'),
-  role: z.enum(['employee', 'intern']),
-  designation: z.string().min(2, 'Designation is required'),
-});
-
-type EmployeeFormValues = z.infer<typeof employeeSchema>;
+import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
+import { EmployeeForm } from '@/components/employees/EmployeeForm';
+import { useAuthStore } from '@/store/authStore';
 
 export default function EmployeeListPage() {
   const router = useRouter();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useWebSocketEvent('EMPLOYEES_UPDATED', () => setRefreshTrigger(prev => prev + 1));
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState('');
   const [newEmployeeName, setNewEmployeeName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<EmployeeFormValues>({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: {
-      employee_id: '',
-      full_name: '',
-      username: '',
-      email: '',
-      mobile_number: '',
-      role: 'employee',
-      designation: '',
-    }
-  });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchEmployees = async () => {
     try {
@@ -125,7 +94,6 @@ export default function EmployeeListPage() {
       });
       setEmployees(data.items);
       setTotal(data.total);
-      setPages(data.pages);
     } catch (error) {
       toast.error('Failed to fetch resources');
     } finally {
@@ -138,25 +106,23 @@ export default function EmployeeListPage() {
       fetchEmployees();
     }, 500);
     return () => clearTimeout(timer);
-  }, [searchTerm, roleFilter]);
+  }, [searchTerm, roleFilter, refreshTrigger]);
 
-  const onSubmit = async (values: EmployeeFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
       setIsSubmitting(true);
       if (editingEmployee) {
         await employeeService.updateEmployee(editingEmployee.id, values);
         toast.success('Employee updated successfully');
+        setIsAddModalOpen(false);
       } else {
         const result = await employeeService.createEmployee(values);
-        setGeneratedPassword(result.temp_password);
         setNewEmployeeName(result.full_name);
+        setIsAddModalOpen(false);
         setIsPasswordModalOpen(true);
-        toast.success('Employee created successfully');
+        toast.success('Employee deployed to the system');
       }
-      setIsAddModalOpen(false);
-      setEditingEmployee(null);
       fetchEmployees();
-      form.reset();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Operation failed');
     } finally {
@@ -166,25 +132,27 @@ export default function EmployeeListPage() {
 
   const handleEdit = (employee: Employee) => {
     setEditingEmployee(employee);
-    form.setValue('employee_id', employee.employee_id);
-    form.setValue('full_name', employee.full_name);
-    form.setValue('username', employee.username);
-    form.setValue('email', employee.email);
-    form.setValue('mobile_number', employee.mobile_number);
-    form.setValue('role', employee.role as 'employee' | 'intern');
-    form.setValue('designation', employee.designation);
     setIsAddModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this employee?')) {
-      try {
-        await employeeService.deleteEmployee(id);
-        toast.success('Employee deleted');
-        fetchEmployees();
-      } catch (error) {
-        toast.error('Failed to delete employee');
-      }
+  const confirmDelete = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!employeeToDelete) return;
+    setIsDeleting(true);
+    try {
+      await employeeService.deleteEmployee(employeeToDelete.id);
+      toast.success('Employee deleted');
+      fetchEmployees();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || error.message || 'Failed to delete employee');
+    } finally {
+      setIsDeleting(false);
+      setDeleteModalOpen(false);
+      setEmployeeToDelete(null);
     }
   };
 
@@ -198,399 +166,328 @@ export default function EmployeeListPage() {
     }
   };
 
-  const copyPassword = () => {
-    navigator.clipboard.writeText(generatedPassword);
-    toast.success('Password copied to clipboard');
+  const handleDownload = () => {
+    if (employees.length === 0) {
+      toast.error('No data to download');
+      return;
+    }
+
+    const headers = ['Employee ID', 'Full Name', 'Email', 'Mobile Number', 'Role', 'Designation', 'Status'];
+    const csvRows = [headers.join(',')];
+
+    employees.forEach(emp => {
+      const row = [
+        emp.employee_id || '',
+        `"${emp.full_name || ''}"`,
+        emp.email || '',
+        emp.mobile_number || '',
+        emp.role || '',
+        `"${emp.designation || ''}"`,
+        emp.is_active ? 'Active' : 'Inactive'
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `employees_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const generateNextEmployeeId = () => {
+    if (!employees || employees.length === 0) return 'SAM001';
+
+    let maxId = 0;
+    let prefix = 'SAM';
+
+    employees.forEach(emp => {
+      if (!emp.employee_id) return;
+      const match = String(emp.employee_id).match(/^([a-zA-Z]+)(\d+)$/);
+      if (match) {
+        prefix = match[1];
+        const num = parseInt(match[2], 10);
+        if (num > maxId) maxId = num;
+      }
+    });
+
+    const nextNum = maxId + 1;
+    return `${prefix}${nextNum.toString().padStart(3, '0')}`;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4 max-w-[1600px] mx-auto pb-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-100">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Employee List</h2>
-          <p className="text-slate-500 font-medium text-sm">Manage your company employees and interns.</p>
+          <div className="inline-flex items-center justify-center p-2 bg-indigo-50 rounded-xl mb-2 text-indigo-600">
+            <Users className="h-5 w-5" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 uppercase">Employee Core</h2>
+          <p className="text-slate-500 font-medium text-xs mt-1 max-w-md">Orchestrate and manage your entire workforce through this centralized command hub.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-xl border-slate-200">
-            <Download className="mr-2 h-4 w-4" /> Download List
-          </Button>
-          <Button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-600/20 px-6"
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="outline"
+            className="rounded-lg border-slate-200 h-9 px-4 font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
+            onClick={handleDownload}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Employee
+            <Download className="mr-2 h-4 w-4" /> Export Data
           </Button>
+            <Button
+              onClick={() => {
+                setEditingEmployee(null);
+                setIsAddModalOpen(true);
+              }}
+              className="h-9 bg-slate-900 text-white hover:bg-slate-800 rounded-lg shadow-sm px-6 font-black text-xs uppercase tracking-widest hover:-translate-y-0.5 transition-all"
+            >
+              <Plus className="mr-2 h-4 w-4" /> Add Employee
+            </Button>
         </div>
       </div>
 
-      <Card className="border-slate-200 rounded-3xl shadow-sm overflow-hidden bg-white">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 py-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="relative flex-1 min-w-[300px] group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-              <Input 
-                placeholder="Search employees..." 
-                className="pl-11 h-12 bg-white rounded-xl border-slate-200 focus-visible:ring-blue-500/20 shadow-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val || 'all')}>
-                <SelectTrigger className="h-12 w-[140px] rounded-xl border-slate-200 bg-white hover:bg-slate-50 transition-all font-bold text-xs uppercase tracking-wider flex justify-between px-4">
-                  <SelectValue placeholder="Role" />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-100 shadow-2xl p-2">
-                  <SelectItem value="all" className="rounded-xl py-2.5 font-bold text-xs uppercase tracking-wider">All</SelectItem>
-                  <SelectItem value="employee" className="rounded-xl py-2.5 font-bold text-xs uppercase tracking-wider">Employee</SelectItem>
-                  <SelectItem value="intern" className="rounded-xl py-2.5 font-bold text-xs uppercase tracking-wider">Intern</SelectItem>
-                </SelectContent>
-              </Select>
-              <div className="px-6 py-4 rounded-xl bg-slate-900 text-white shadow-xl shadow-slate-900/10">
-                <span className="text-[10px] font-black uppercase tracking-widest">{total} Employees</span>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/30">
-              <TableRow className="border-slate-100">
-                <TableHead className="w-[100px] text-[10px] uppercase font-bold text-slate-400 py-4 px-8 tracking-widest">Employee ID</TableHead>
-                <TableHead className="text-[10px] uppercase font-bold text-slate-400 py-4 tracking-widest">Name</TableHead>
-                <TableHead className="text-[10px] uppercase font-bold text-slate-400 py-4 tracking-widest">Designation</TableHead>
-                <TableHead className="text-[10px] uppercase font-bold text-slate-400 py-4 tracking-widest">Contact Details</TableHead>
-                <TableHead className="text-[10px] uppercase font-bold text-slate-400 py-4 tracking-widest">Status</TableHead>
-                <TableHead className="text-[10px] uppercase font-bold text-slate-400 py-4 text-right px-8 tracking-widest">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={6} className="h-16 text-center">
-                       <Loader2 className="h-5 w-5 animate-spin mx-auto text-slate-300" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : employees.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-32 text-center text-slate-500 font-medium italic">
-                    No resources found in current search
-                  </TableCell>
-                </TableRow>
-              ) : (
-                employees.map((emp, i) => (
-                  <motion.tr
-                    key={emp.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05 }}
-                    onClick={() => router.push(`/superadmin/employees/${emp.id}`)}
-                    className="group border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
-                  >
-                    <TableCell className="font-mono text-[10px] font-bold text-slate-300 px-8">
-                      {emp.employee_id}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-4">
-                        <Avatar className="h-10 w-10 ring-2 ring-white shadow-sm">
-                          <AvatarFallback className="bg-slate-900 text-white text-[10px] font-black">
-                            {emp.full_name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{emp.full_name}</span>
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">@{emp.username} &bull; {emp.role}</span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                         <div className="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
-                         <span className="text-xs font-semibold text-slate-600">{emp.designation || 'N/A'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
-                          <Mail className="h-3 w-3 text-slate-300" /> {emp.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] font-medium text-slate-500">
-                          <Phone className="h-3 w-3 text-slate-300" /> {emp.mobile_number || 'No contact'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleStatus(emp.id, emp.is_active);
-                        }}
-                        className={cn(
-                          "text-[10px] uppercase font-bold px-3 py-0.5 rounded-full border-none shadow-sm cursor-pointer hover:opacity-80 transition-opacity",
-                          emp.is_active 
-                            ? "bg-emerald-100 text-emerald-700" 
-                            : "bg-red-100 text-red-700"
-                        )}
-                      >
-                        {emp.is_active ? 'active' : 'inactive'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right px-8">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/superadmin/employees/${emp.id}`);
-                          }}
-                          className="h-8 w-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(emp);
-                          }}
-                          className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(emp.id);
-                          }}
-                          className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </motion.tr>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Add Employee Modal */}
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">
-              {editingEmployee ? 'Edit Employee' : 'Add New Employee'}
-            </DialogTitle>
-            <DialogDescription className="text-slate-500 font-medium">
-              Create a new account for an employee or intern.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="employee_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Employee ID <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input placeholder="SAM001" {...field} className="rounded-xl border-slate-200" />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Username <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input placeholder="rahulvaidya" {...field} className="rounded-xl border-slate-200" />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="full_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Full Name <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input placeholder="Rahul Vaidya" {...field} className="rounded-xl border-slate-200" />
-                    </FormControl>
-                    <FormMessage className="text-[10px]" />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Email Address <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input placeholder="rahul@sambhav.com" {...field} className="rounded-xl border-slate-200" />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mobile_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Mobile Number <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="9876543210" 
-                          {...field} 
-                          maxLength={10}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                            field.onChange(value);
-                          }}
-                          className="rounded-xl border-slate-200" 
-                        />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">User Type <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="rounded-xl border-slate-200">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="employee">Employee</SelectItem>
-                          <SelectItem value="intern">Intern</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="designation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Designation <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input placeholder="Sr. Developer" {...field} className="rounded-xl border-slate-200" />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3 mt-4">
-                <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-                <div className="text-[10px] font-bold text-blue-700 uppercase tracking-tight leading-relaxed">
-                  Security Protocol: Credentials will be auto-generated. The password will be set as <code className="bg-blue-100 px-1 rounded">{"{username}@sam"}</code>.
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        <div className="md:col-span-12">
+          <Card className="border-none rounded-2xl shadow-sm overflow-hidden bg-white/80 backdrop-blur-xl">
+            <CardHeader className="bg-white border-b border-slate-100 p-4">
+              <div className="flex flex-col lg:flex-row gap-3 items-center justify-between">
+                <div className="relative flex-1 w-full group max-w-2xl">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
+                  <Input
+                    placeholder="Search by name, email, or ID..."
+                    className="pl-9 h-10 bg-slate-50/50 rounded-lg border-slate-100 focus-visible:ring-indigo-500/20 focus-visible:bg-white shadow-inner font-semibold transition-all text-xs"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center gap-3 w-full lg:w-auto">
+                  <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val || 'all')}>
+                    <SelectTrigger className="h-10 w-full lg:w-[140px] rounded-lg border-slate-100 bg-slate-50/50 hover:bg-white focus:bg-white transition-all font-black text-[10px] uppercase tracking-widest px-3">
+                      <SelectValue placeholder="Role">
+                        {roleFilter === 'all' ? 'All Roles' : roleFilter === 'employee' ? 'Employee' : roleFilter === 'intern' ? 'Intern' : 'Role'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="rounded-lg border-slate-100 shadow-xl p-1">
+                      <SelectItem value="all" className="rounded-md py-2 font-black text-[10px] uppercase tracking-widest">All Roles</SelectItem>
+                      <SelectItem value="employee" className="rounded-md py-2 font-black text-[10px] uppercase tracking-widest">Employee</SelectItem>
+                      <SelectItem value="intern" className="rounded-md py-2 font-black text-[10px] uppercase tracking-widest">Intern</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="h-10 px-4 flex items-center justify-center rounded-lg bg-slate-900 text-white shadow-sm shrink-0">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[11px] font-black uppercase tracking-widest">{total} Total</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+            </CardHeader>
+            <CardContent className="p-0 bg-white/40">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-slate-50/80">
+                    <TableRow className="border-slate-100 hover:bg-transparent">
+                      <TableHead className="w-[100px] text-[10px] uppercase font-black text-slate-400 py-3 px-4 tracking-widest">ID</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black text-slate-400 py-3 px-4 tracking-widest">Profile</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black text-slate-400 py-3 px-4 tracking-widest">Position</TableHead>
+                      <TableHead className="text-[10px] uppercase font-bold text-slate-400 py-3 px-4 tracking-widest">Contact</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black text-slate-400 py-3 px-4 tracking-widest">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase font-black text-slate-400 py-3 px-4 text-right tracking-widest">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <TableRow key={i}>
+                          <TableCell colSpan={6} className="h-24 text-center">
+                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-300" />
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : employees.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="h-48 text-center">
+                          <div className="flex flex-col items-center justify-center text-slate-400">
+                            <Users className="h-12 w-12 mb-4 opacity-20" />
+                            <span className="font-bold text-sm uppercase tracking-widest">No resources detected</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      <AnimatePresence>
+                        {employees.map((emp, i) => (
+                          <motion.tr
+                            key={emp.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ delay: i * 0.05, duration: 0.3 }}
+                            onClick={() => router.push(`/superadmin/employees/${emp.id}`)}
+                            className="group border-b border-slate-50 hover:bg-white hover:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] transition-all cursor-pointer relative z-0 hover:z-10"
+                          >
+                            <TableCell className="font-mono text-xs font-black text-slate-400 px-4 py-2">
+                              {emp.employee_id}
+                            </TableCell>
+                            <TableCell className="px-4 py-2">
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-8 w-8 ring-2 ring-white shadow-sm">
+                                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-blue-600 text-white text-[10px] font-black">
+                                    {emp.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="text-xs font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{emp.full_name}</span>
+                                  <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">{emp.role}</span>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-4 py-2">
+                              <div className="flex items-center gap-2">
+                                <Briefcase className="h-3.5 w-3.5 text-slate-300" />
+                                <span className="text-xs font-bold text-slate-700">{emp.designation || 'Unassigned'}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-4 py-2">
+                              <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                                  <Mail className="h-3 w-3 text-slate-300" /> {emp.email}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                                  <Phone className="h-3 w-3 text-slate-300" /> {emp.mobile_number || 'No contact'}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-4 py-2">
+                              <Badge
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleStatus(emp.id, emp.is_active);
+                                }}
+                                className={cn(
+                                  "text-[9px] uppercase font-black px-3 py-1 rounded-full border-none shadow-sm cursor-pointer hover:scale-105 transition-all",
+                                  emp.is_active
+                                    ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                    : "bg-rose-50 text-rose-600 hover:bg-rose-100"
+                                )}
+                              >
+                                {emp.is_active ? 'Active' : 'Suspended'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right px-4 py-2">
+                              <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.push(`/superadmin/employees/${emp.id}`);
+                                  }}
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all bg-white shadow-sm border border-slate-100"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEdit(emp);
+                                  }}
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all bg-white shadow-sm border border-slate-100"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmDelete(emp);
+                                  }}
+                                  className="h-7 w-7 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all bg-white shadow-sm border border-slate-100"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </motion.tr>
+                        ))}
+                      </AnimatePresence>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-              <DialogFooter className="pt-4">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="rounded-xl font-bold uppercase text-[10px]"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase text-[10px] px-8"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>{editingEmployee ? 'Saving...' : 'Creating...'}</span>
-                    </div>
-                  ) : editingEmployee ? 'Save Changes' : 'Create Account'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <EmployeeForm 
+        mode={editingEmployee ? 'edit' : 'create'}
+        isOpen={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        defaultValues={editingEmployee ? {
+          employee_id: editingEmployee.employee_id || '',
+          full_name: editingEmployee.full_name,
+          email: editingEmployee.email,
+          mobile_number: editingEmployee.mobile_number || '',
+          role: editingEmployee.role,
+          designation: editingEmployee.designation || '',
+        } : {
+          employee_id: generateNextEmployeeId(),
+          full_name: '',
+          email: '',
+          mobile_number: '',
+          role: 'employee',
+          designation: '',
+        }}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+      />
 
-      {/* Password Credential Notification Modal */}
       <Dialog open={isPasswordModalOpen} onOpenChange={setIsPasswordModalOpen}>
-        <DialogContent className="sm:max-w-[400px] rounded-3xl border-2 border-emerald-500 bg-white">
-          <div className="flex flex-col items-center text-center py-6 space-y-4">
-            <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center mb-2 animate-bounce">
-              <Key className="h-8 w-8 text-emerald-600" />
+        <DialogContent className="sm:max-w-[480px] rounded-[2rem] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-emerald-500 p-6 text-white text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none transform translate-x-1/4 -translate-y-1/4">
+              <Mail className="w-32 h-32" />
             </div>
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-black uppercase text-emerald-700">Credentials Generated</DialogTitle>
-              <DialogDescription className="text-slate-500 font-medium">
-                Resource <span className="font-bold text-slate-800">{newEmployeeName}</span> has been initialized. 
-                <br/>Copy the temporary password now:
+            <div className="h-16 w-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner ring-1 ring-white/30">
+              <Mail className="h-8 w-8 text-white" />
+            </div>
+            <DialogHeader className="relative z-10">
+              <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white text-center">
+                Transmission Sent
+              </DialogTitle>
+              <DialogDescription className="text-emerald-50 font-semibold text-xs mt-1 text-center max-w-sm mx-auto">
+                Resource <span className="font-black text-white">{newEmployeeName}</span> has been securely initialized in the network.
               </DialogDescription>
             </DialogHeader>
-
-            <div className="w-full bg-slate-50 border border-slate-100 p-4 rounded-2xl relative group overflow-hidden">
-               <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-               <span className="text-xl font-mono font-black text-slate-800 tracking-widest block py-2">
-                 {generatedPassword}
-               </span>
-               <Button 
-                 variant="ghost" 
-                 size="sm" 
-                 className="mt-4 w-full h-11 bg-white hover:bg-emerald-50 border border-slate-200 rounded-xl font-bold uppercase text-[10px]"
-                 onClick={copyPassword}
-               >
-                 <Copy className="mr-2 h-4 w-4" /> Copy Access Secret
-               </Button>
-            </div>
-
-            <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest italic pt-2">
-              Warning: This secret is only visible once. 
+          </div>
+          <div className="p-6 bg-white text-center space-y-4">
+            <p className="text-slate-600 font-medium text-xs">
+              An automated email containing cryptographic access keys (temporary password) has been dispatched.
             </p>
-
-            <Button 
-              className="w-full h-12 bg-slate-900 text-white rounded-xl font-black uppercase text-[10px]"
+            <Button
+              className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-black uppercase text-[10px] tracking-widest shadow-sm hover:-translate-y-0.5 transition-transform"
               onClick={() => setIsPasswordModalOpen(false)}
             >
-              System Operational
+              Acknowledge & Close
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onOpenChange={setDeleteModalOpen}
+        onConfirm={handleDelete}
+        itemName={`Employee "${employeeToDelete?.full_name}"`}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

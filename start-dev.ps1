@@ -85,7 +85,7 @@ Write-Host ""
 
 # --- Launch Backend ---
 $backendPath = Join-Path $PSScriptRoot "PMS-backend"
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; Write-Host 'Starting Backend on port $backendPort...' -ForegroundColor Cyan; .\.venv\Scripts\python -m uvicorn app.main:app --reload --host 0.0.0.0 --port $backendPort"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; Write-Host 'Starting Backend on port $backendPort...' -ForegroundColor Cyan; .\.venv\Scripts\python -m uvicorn app.main:app --reload --reload-dir app --host 0.0.0.0 --port $backendPort"
 
 Start-Sleep -Seconds 2
 

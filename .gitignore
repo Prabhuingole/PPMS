@@ -1,0 +1,21 @@
+# Environment files
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+
+# Next.js
+.next/
+*.tsbuildinfo
+
+# Database
+*.db
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

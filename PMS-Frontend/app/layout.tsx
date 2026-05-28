@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
 import { cn } from '@/lib/utils';
+import WebSocketProvider from '@/components/WebSocketProvider';
+import { AxiosInterceptor } from '@/components/AxiosInterceptor';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -16,8 +18,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans antialiased", inter.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans antialiased", inter.variable)}>
       <body suppressHydrationWarning className="bg-slate-50 text-slate-900">
+        <AxiosInterceptor />
+        <WebSocketProvider />
         {children}
         <Toaster position="top-right" />
       </body>

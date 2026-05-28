@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 from typing import Optional, List
+from pydantic import BaseModel, EmailStr, field_validator
 
 class ReportingManagerBase(BaseModel):
     full_name: str
@@ -8,6 +9,12 @@ class ReportingManagerBase(BaseModel):
     mobile_number: str
     designation: Optional[str] = None
     status: str = "active"
+
+    @field_validator('email')
+    def validate_gmail(cls, v):
+        if v and not v.lower().endswith('@gmail.com'):
+            raise ValueError('Email must be a valid @gmail.com address')
+        return v
 
 class ReportingManagerCreate(ReportingManagerBase):
     pass
@@ -19,10 +26,26 @@ class ReportingManagerUpdate(BaseModel):
     designation: Optional[str] = None
     status: Optional[str] = None
 
+    @field_validator('email')
+    def validate_gmail(cls, v):
+        if v and not v.lower().endswith('@gmail.com'):
+            raise ValueError('Email must be a valid @gmail.com address')
+        return v
+
+class ManagedProjectBase(BaseModel):
+    id: int
+    name: str
+    code: str
+    status: str
+
+    class Config:
+        from_attributes = True
+
 class ReportingManagerResponse(ReportingManagerBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    managed_projects: List[ManagedProjectBase] = []
 
     class Config:
         from_attributes = True

@@ -33,8 +33,8 @@ export const employeeService = {
     return response.data;
   },
 
-  toggleStatus: async (id: number, is_active: boolean) => {
-    const response = await api.patch(`/employees/${id}/status`, null, { params: { is_active } });
+  toggleStatus: async (id: number, is_active: boolean, reason?: string) => {
+    const response = await api.patch(`/employees/${id}/status`, null, { params: { is_active, reason } });
     return response.data;
   },
 };

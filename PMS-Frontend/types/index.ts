@@ -1,9 +1,8 @@
-export type UserRole = 'superadmin' | 'employee' | 'intern';
+export type UserRole = 'superadmin' | 'admin' | 'reporting_manager' | 'employee' | 'intern';
 
 export interface User {
   id: string;
   employee_id?: string;
-  username?: string;
   full_name: string;
   email: string;
   role: UserRole;
@@ -12,18 +11,23 @@ export interface User {
   mobile_number?: string;
   joining_date?: string;
   is_active: boolean;
+  must_change_password?: boolean;
+  password_updated_at?: string;
+  is_mfa_enabled?: boolean;
+  account_status?: string;
+  last_login_at?: string;
 }
 
 export interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  mfaEmail: string | null;
 }
 
 export interface Employee {
   id: number;
   employee_id: string;
-  username: string;
   full_name: string;
   email: string;
   mobile_number: string;
@@ -63,6 +67,10 @@ export interface Project {
   documents?: ProjectDocument[];
   created_at: string;
   updated_at: string;
+  total_hours?: number;
+  total_hours_worked?: number;
+  total_hours_remaining?: number;
+  my_hours_worked?: number;
 }
 
 export interface ProjectDocument {
@@ -95,6 +103,13 @@ export interface Timesheet {
   downtime: boolean;
 }
 
+export interface ManagedProjectBase {
+  id: number;
+  name: string;
+  code: string;
+  status: string;
+}
+
 export interface ReportingManager {
   id: number;
   full_name: string;
@@ -104,6 +119,7 @@ export interface ReportingManager {
   status: string;
   created_at: string;
   updated_at: string;
+  managed_projects?: ManagedProjectBase[];
 }
 
 export interface ReportingManagerListResponse {
@@ -119,4 +135,46 @@ export interface DocumentTemplate {
   filename?: string;
   html_content?: string;
   updated_at: string;
+}
+
+export interface NoteWorkspace {
+  id: number;
+  user_id: number;
+  page_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotePage {
+  id: number;
+  workspace_id: number;
+  title: string;
+  content: string | null;
+  category: string;
+  is_pinned: boolean;
+  is_archived: boolean;
+  checklist_items: NoteChecklistItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteChecklistItem {
+  id: number;
+  page_id: number;
+  text: string;
+  is_completed: boolean;
+  completed_at: string | null;
+  sort_order: number;
+}
+
+export interface AdminWorkspaceOverview {
+  id: number;
+  user_id: number;
+  user_name: string;
+  email: string;
+  designation: string | null;
+  page_count: number;
+  total_tasks: number;
+  completed_tasks: number;
+  last_activity: string | null;
 }

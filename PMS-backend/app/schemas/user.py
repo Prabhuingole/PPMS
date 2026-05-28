@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -12,6 +12,27 @@ class UserResponse(BaseModel):
     email: str
     role: str
     designation: Optional[str] = None
+    mobile_number: Optional[str] = None
+    bio: Optional[str] = None
+    must_change_password: bool = False
+    password_updated_at: Optional[datetime] = None
+    is_mfa_enabled: bool = False
+    account_status: str = "active"
+    last_login_at: Optional[datetime] = None
+
+class SetupAccountSchema(BaseModel):
+    new_password: str
+    confirm_password: str
+    new_email: EmailStr
+
+class MFARequiredResponse(BaseModel):
+    mfa_required: bool
+    email: EmailStr
+    message: str
+
+class VerifyMFASchema(BaseModel):
+    email: EmailStr
+    otp: str
 
 class TokenResponse(BaseModel):
     access_token: str
@@ -22,15 +43,28 @@ class ProfileUpdateSchema(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     bio: Optional[str] = None
+    mobile_number: Optional[str] = None
+    designation: Optional[str] = None
+    is_mfa_enabled: Optional[bool] = None
+
+class ChangePasswordSchema(BaseModel):
+    current_password: str
+    new_password: str
+
+class ForgotPasswordSchema(BaseModel):
+    email: EmailStr
+
+class ResetPasswordSchema(BaseModel):
+    token: str
+    new_password: str
 
 # --- Employee CRUD Schemas ---
 
 class EmployeeBase(BaseModel):
-    employee_id: str
+    employee_id: Optional[str] = None
     full_name: str
-    username: str
     email: EmailStr
-    mobile_number: str
+    mobile_number: Optional[str] = None
     role: str # employee or intern
     designation: Optional[str] = None
     joining_date: Optional[datetime] = None
@@ -49,6 +83,13 @@ class EmployeeUpdate(BaseModel):
 from app.schemas.project import ProjectResponse
 from app.schemas.timesheet import TimesheetResponse
 
+class EmployeeListItemResponse(EmployeeBase):
+    id: int
+    is_active: bool
+    
+    class Config:
+        from_attributes = True
+
 class EmployeeResponse(EmployeeBase):
     id: int
     is_active: bool
@@ -59,10 +100,10 @@ class EmployeeResponse(EmployeeBase):
         from_attributes = True
 
 class EmployeeCreateResponse(EmployeeResponse):
-    temp_password: str # The auto-generated password returned only once
+    pass
 
 class EmployeeList(BaseModel):
-    items: List[EmployeeResponse]
+    items: List[EmployeeListItemResponse]
     total: int
     page: int
     pages: int

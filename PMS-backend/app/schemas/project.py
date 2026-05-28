@@ -4,12 +4,13 @@ from typing import Optional, List
 
 class ProjectBase(BaseModel):
     name: str
-    code: Optional[str] = None
+    code: str
     description: Optional[str] = None
     client_name: Optional[str] = None
     status: str = "active"
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    total_hours: float = 0.0
     reporting_manager_id: Optional[int] = None
 
 class ProjectCreate(ProjectBase):
@@ -23,6 +24,7 @@ class ProjectUpdate(BaseModel):
     status: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    total_hours: Optional[float] = None
     reporting_manager_id: Optional[int] = None
     member_ids: Optional[List[int]] = None
 
@@ -42,6 +44,9 @@ class ProjectResponse(ProjectBase):
     id: int
     reporting_manager: Optional[ReportingManagerResponse] = None
     members: List[ProjectMemberResponse] = []
+    total_hours_worked: float = 0.0
+    total_hours_remaining: float = 0.0
+    my_hours_worked: Optional[float] = None
     created_at: datetime
     updated_at: datetime
 

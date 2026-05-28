@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { 
   FileText, 
   Download, 
-  Eye, 
+  ExternalLink,
   Loader2, 
   ArrowLeft,
   Search,
@@ -15,13 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
@@ -84,7 +77,7 @@ export default function EmployeeTemplatesPage() {
 
   const filteredTemplates = templates.filter(t => 
     t.doc_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    docTypeFullNames[t.doc_type]?.toLowerCase().includes(searchQuery.toLowerCase())
+    (docTypeFullNames[t.doc_type] || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -104,20 +97,20 @@ export default function EmployeeTemplatesPage() {
            <Button 
              variant="ghost" 
              onClick={() => router.back()}
-             className="group text-slate-500 hover:text-indigo-600 font-bold text-[10px] uppercase tracking-widest px-0"
+             className="group text-slate-500 hover:text-indigo-600 font-semibold text-sm px-0 mb-2"
            >
-             <ArrowLeft className="mr-2 h-3 w-3 transition-transform group-hover:-translate-x-1" />
+             <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
              Back to Stream
            </Button>
-           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tight">Master Templates</h1>
-           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Official Governance Artifacts & Standards</p>
+           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Master Templates</h1>
+           <p className="text-slate-500 text-sm font-medium mt-1">Official Governance Artifacts & Standards</p>
         </div>
 
         <div className="relative w-full md:w-80 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
           <Input 
             placeholder="Filter standards..." 
-            className="pl-11 h-12 rounded-2xl border-slate-100 bg-white shadow-lg shadow-slate-100/50 focus:ring-2 focus:ring-indigo-600 transition-all text-xs font-bold uppercase tracking-widest"
+            className="pl-11 h-11 rounded-xl bg-white border-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -133,65 +126,81 @@ export default function EmployeeTemplatesPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
           >
-            <Card className="rounded-[32px] border-none shadow-2xl shadow-slate-200/50 hover:shadow-indigo-100/50 transition-all bg-white group h-full flex flex-col">
-              <CardHeader className="p-8 pb-4">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-4 bg-slate-50 rounded-2xl group-hover:bg-indigo-50 transition-colors">
-                    <BookOpen className="h-8 w-8 text-indigo-600" />
+            <Card className="flex flex-col h-full border-slate-200 shadow-sm hover:shadow-md transition-all bg-white rounded-2xl group overflow-hidden">
+              <CardHeader className="p-5 pb-3 border-b border-slate-100">
+                <div className="mb-4">
+                  <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 w-fit">
+                    <BookOpen className="h-6 w-6" />
                   </div>
-                  <Badge className="bg-slate-900 text-white border-none px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em]">Matrix v1.0</Badge>
                 </div>
-                <CardTitle className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none mb-2">{template.doc_type}</CardTitle>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                  {docTypeFullNames[template.doc_type]}
+                <CardTitle className="text-lg font-bold text-slate-900 leading-tight mb-1 truncate" title={template.doc_type}>
+                  {template.doc_type}
+                </CardTitle>
+                <p className="text-sm font-medium text-slate-500 truncate" title={docTypeFullNames[template.doc_type] || 'Standard Template'}>
+                  {docTypeFullNames[template.doc_type] || 'Standard Template'}
                 </p>
               </CardHeader>
-              <CardContent className="p-8 pt-4 flex-grow flex flex-col justify-between space-y-6">
+              <CardContent className="p-5 pt-4 flex-grow flex flex-col justify-between space-y-5">
+                
+                {template.html_content && (
+                   <div className="bg-slate-50/80 p-3.5 rounded-xl max-h-32 overflow-y-auto overflow-x-hidden border border-slate-100">
+                     <p className="text-sm text-slate-600 font-medium leading-relaxed break-words whitespace-pre-wrap">
+                        {template.html_content}
+                     </p>
+                   </div>
+                )}
+
                 <div className="flex flex-wrap gap-2">
-                   {template.html_content && (
-                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-indigo-100 bg-indigo-50/30 text-indigo-600 px-3 py-1">
-                         <Monitor className="h-3 w-3 mr-1.5" />
-                         Interactive Viewer
-                      </Badge>
-                   )}
                    {template.filename && (
-                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-emerald-100 bg-emerald-50/30 text-emerald-600 px-3 py-1">
-                         <FileText className="h-3 w-3 mr-1.5" />
+                      <Badge variant="outline" className="text-xs font-semibold border-emerald-200 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full">
+                         <FileText className="h-3.5 w-3.5 mr-1.5" />
                          Asset Available
                       </Badge>
                    )}
                 </div>
 
                 <div className="flex gap-3">
-                   {template.html_content && (
-                      <Dialog>
-                        <DialogTrigger asChild>
-                           <Button className="flex-1 h-11 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200">
-                             <Eye className="h-3.5 w-3.5 mr-2" />
-                             View Standard
-                           </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-y-auto rounded-[32px] p-8">
-                           <DialogHeader>
-                              <DialogTitle className="text-2xl font-black uppercase tracking-tight">{template.doc_type} Standard</DialogTitle>
-                              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">{docTypeFullNames[template.doc_type]}</p>
-                           </DialogHeader>
-                           <div className="mt-8 prose prose-slate max-w-none prose-sm font-medium leading-relaxed bg-slate-50 p-8 rounded-3xl border border-slate-100">
-                              <div dangerouslySetInnerHTML={{ __html: template.html_content }} />
-                           </div>
-                        </DialogContent>
-                      </Dialog>
-                   )}
-                   
                    {template.filename && (
-                      <Button 
-                        variant="outline"
-                        onClick={() => handleDownload(template.doc_type, template.filename!)}
-                        className="flex-1 h-11 rounded-xl border-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 hover:border-indigo-200 transition-all"
-                      >
-                         <Download className="h-3.5 w-3.5 mr-2" />
-                         Get Asset
-                      </Button>
+                      <>
+                        <Button 
+                          onClick={async () => {
+                            const newWindow = window.open('about:blank', '_blank');
+                            if (newWindow) {
+                               newWindow.document.write('<div style="font-family:sans-serif;padding:20px;text-align:center;">Loading document viewer...</div>');
+                            }
+                            try {
+                              const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/templates/download/${encodeURIComponent(template.doc_type)}?inline=true`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                              });
+                              if (response.data?.url) {
+                                 if (newWindow) {
+                                    newWindow.location.href = response.data.url;
+                                 } else {
+                                    window.open(response.data.url, '_blank');
+                                 }
+                              } else {
+                                 if (newWindow) newWindow.close();
+                                 toast.error('Failed to retrieve document URL');
+                              }
+                            } catch (error) {
+                              if (newWindow) newWindow.close();
+                              toast.error('Failed to view document');
+                            }
+                          }}
+                          className="flex-1 h-10 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View Document
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => handleDownload(template.doc_type, template.filename!)}
+                          className="flex-1 h-10 rounded-lg border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                        >
+                           <Download className="h-4 w-4 mr-2" />
+                           Download
+                        </Button>
+                      </>
                    )}
                 </div>
               </CardContent>

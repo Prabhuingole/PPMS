@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Enum
+from sqlalchemy.orm import relationship, backref
 from app.database.session import Base
 from datetime import datetime
 
@@ -13,9 +13,9 @@ class ProjectDocument(Base):
     display_name = Column(String, nullable=True)
     preparation_date = Column(DateTime, nullable=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
-    uploaded_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    uploaded_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     
     project = relationship("Project", backref="documents")
-    uploaded_by = relationship("User", backref="uploaded_documents")
+    uploaded_by = relationship("User", backref=backref("uploaded_documents", cascade="all, delete-orphan"))

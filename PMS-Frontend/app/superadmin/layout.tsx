@@ -5,15 +5,20 @@ import { useEffect, useState } from 'react';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuthStore } from '@/store/authStore';
+import { useUIStore } from '@/store/uiStore';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, _hasHydrated } = useAuthStore();
+  const { sidebarCollapsed } = useUIStore();
   const router = useRouter();
+  const pathname = usePathname();
+  const isViewDoc = pathname.includes('/view-doc');
 
   useEffect(() => {
     if (_hasHydrated) {
-      if (!isAuthenticated || user?.role !== 'superadmin') {
+      if (!isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
         if (['employee', 'intern'].includes(user?.role || '')) {
            router.replace('/employee/dashboard');
         } else {
@@ -23,20 +28,31 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   }, [_hasHydrated, isAuthenticated, user, router]);
 
-  if (!_hasHydrated || !isAuthenticated || user?.role !== 'superadmin') {
+  if (!_hasHydrated || !isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50" suppressHydrationWarning>
         <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
       </div>
     );
   }
 
+  if (isViewDoc) {
+    return (
+      <div className="flex min-h-screen bg-slate-950 text-slate-200" suppressHydrationWarning>
+        <main className="flex-1 min-w-0">{children}</main>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900" suppressHydrationWarning>
       <Sidebar />
-      <div className="flex flex-1 flex-col transition-all duration-300 ml-64">
+      <div className={cn(
+        "flex flex-1 flex-col transition-all duration-300 min-w-0",
+        sidebarCollapsed ? "md:ml-20" : "md:ml-64"
+      )}>
         <Navbar />
-        <main className="flex-1 p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-8 overflow-x-hidden overflow-y-auto">{children}</main>
       </div>
     </div>
   );
