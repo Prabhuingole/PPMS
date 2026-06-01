@@ -26,7 +26,8 @@ from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
 
 # Initialize Database Tables
-Base.metadata.create_all(bind=engine)
+# TEMPORARILY DISABLED FOR VERCEL ISOLATION TEST
+# Base.metadata.create_all(bind=engine)
 
 # 1. Database Seeding - Creates superadmin if it doesn't exist
 @asynccontextmanager
@@ -62,7 +63,8 @@ async def lifespan(app: FastAPI):
     print("--- FINISHED DATABASE SEEDING ---")
     yield
 
-app = FastAPI(title="Sambhav PMS API", version="1.0.0", lifespan=lifespan)
+# TEMPORARILY DISABLED lifespan FOR VERCEL ISOLATION TEST
+app = FastAPI(title="Sambhav PMS API", version="1.0.0")
 
 # Add Rate Limiter Exception Handler
 app.state.limiter = limiter
