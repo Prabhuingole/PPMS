@@ -6,15 +6,24 @@ import io
 class R2Storage:
     def __init__(self):
         self.endpoint_url = settings.R2_ENDPOINT
-        self.s3 = boto3.client(
-            "s3",
-            endpoint_url=self.endpoint_url,
-            aws_access_key_id=settings.R2_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
-            config=Config(signature_version="s3v4"),
-            region_name="auto"
-        )
         self.bucket = settings.R2_BUCKET_NAME
+        self._s3_client = None
+
+    @property
+    def s3(self):
+        # Lazy initialization prevents boto3 from crashing the app during global import phase
+        if self._s3_client is None:
+            if not self.endpoint_url:
+                raise ValueError("R2_ENDPOINT is missing from environment variables")
+            self._s3_client = boto3.client(
+                "s3",
+                endpoint_url=self.endpoint_url,
+                aws_access_key_id=settings.R2_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,
+                config=Config(signature_version="s3v4"),
+                region_name="auto"
+            )
+        return self._s3_client
 
     def upload_file(self, file_obj, key, content_type=None):
         extra_args = {}
