@@ -1,0 +1,180 @@
+export type UserRole = 'superadmin' | 'admin' | 'reporting_manager' | 'employee' | 'intern';
+
+export interface User {
+  id: string;
+  employee_id?: string;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  designation?: string;
+  bio?: string;
+  mobile_number?: string;
+  joining_date?: string;
+  is_active: boolean;
+  must_change_password?: boolean;
+  password_updated_at?: string;
+  is_mfa_enabled?: boolean;
+  account_status?: string;
+  last_login_at?: string;
+}
+
+export interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  mfaEmail: string | null;
+}
+
+export interface Employee {
+  id: number;
+  employee_id: string;
+  full_name: string;
+  email: string;
+  mobile_number: string;
+  role: UserRole;
+  designation: string;
+  is_active: boolean;
+  joining_date: string;
+}
+
+export interface EmployeeListResponse {
+  items: Employee[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface ProjectMember {
+  id: number;
+  full_name: string;
+  email: string;
+  role: string;
+  designation?: string;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  code: string;
+  description?: string;
+  client_name?: string;
+  status: 'planning' | 'active' | 'on-hold' | 'completed';
+  start_date?: string;
+  end_date?: string;
+  reporting_manager_id?: number;
+  reporting_manager?: ReportingManager;
+  members: ProjectMember[];
+  documents?: ProjectDocument[];
+  created_at: string;
+  updated_at: string;
+  total_hours?: number;
+  total_hours_worked?: number;
+  total_hours_remaining?: number;
+  my_hours_worked?: number;
+}
+
+export interface ProjectDocument {
+  id: number;
+  filename: string;
+  display_name?: string;
+  doc_type: string;
+  preparation_date?: string;
+  project_id: number;
+  uploaded_by_id: number;
+  created_at: string;
+}
+
+export interface ProjectListResponse {
+  items: Project[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface Timesheet {
+  id: string;
+  employeeId: string;
+  projectId: string;
+  date: string;
+  hours: number;
+  description: string;
+  status: 'pending' | 'approved' | 'rejected';
+  overtime: boolean;
+  downtime: boolean;
+}
+
+export interface ManagedProjectBase {
+  id: number;
+  name: string;
+  code: string;
+  status: string;
+}
+
+export interface ReportingManager {
+  id: number;
+  full_name: string;
+  email: string;
+  mobile_number?: string;
+  designation?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  managed_projects?: ManagedProjectBase[];
+}
+
+export interface ReportingManagerListResponse {
+  items: ReportingManager[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export interface DocumentTemplate {
+  id: number;
+  doc_type: string;
+  filename?: string;
+  html_content?: string;
+  updated_at: string;
+}
+
+export interface NoteWorkspace {
+  id: number;
+  user_id: number;
+  page_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotePage {
+  id: number;
+  workspace_id: number;
+  title: string;
+  content: string | null;
+  category: string;
+  is_pinned: boolean;
+  is_archived: boolean;
+  checklist_items: NoteChecklistItem[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NoteChecklistItem {
+  id: number;
+  page_id: number;
+  text: string;
+  is_completed: boolean;
+  completed_at: string | null;
+  sort_order: number;
+}
+
+export interface AdminWorkspaceOverview {
+  id: number;
+  user_id: number;
+  user_name: string;
+  email: string;
+  designation: string | null;
+  page_count: number;
+  total_tasks: number;
+  completed_tasks: number;
+  last_activity: string | null;
+}
