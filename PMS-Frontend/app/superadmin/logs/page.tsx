@@ -67,7 +67,7 @@ export default function ActivityLogsPage() {
   }, [entityType]);
 
   return (
-    <div className="flex-1 space-y-8 p-8 max-w-6xl mx-auto">
+    <div className="flex-1 space-y-8 p-8 w-full">
       {/* Header Section */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -132,7 +132,7 @@ export default function ActivityLogsPage() {
       </div>
 
       {/* Timeline Section */}
-      <div className="bg-slate-50/50 rounded-3xl p-6 sm:p-10 border border-slate-100 shadow-sm min-h-[500px] flex flex-col">
+      <div className="flex flex-col flex-1 min-h-[500px]">
         <div className="flex-1">
           <AuditLogFeed logs={logs} isLoading={loading} />
         </div>

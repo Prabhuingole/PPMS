@@ -19,7 +19,8 @@ import {
   Download,
   AlertCircle,
   File,
-  Trash2
+  Trash2,
+  Circle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -43,6 +44,74 @@ import { toast } from 'sonner';
 import { ProjectFormModal } from '../ProjectFormModal';
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
+const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, userId: string, token: string }) => {
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        setLoading(true);
+        const pagesRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/notes/admin/projects/${projectId}/users/${userId}/pages`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const pagesWithTasks = pagesRes.data.filter((p: any) => p.checklist_total > 0);
+        
+        const taskPromises = pagesWithTasks.map((p: any) => 
+          axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/notes/admin/pages/${p.id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        );
+        
+        const pageDetailsResponses = await Promise.all(taskPromises);
+        
+        let allTasks: any[] = [];
+        pageDetailsResponses.forEach(res => {
+          if (res.data && res.data.checklist_items) {
+             const items = res.data.checklist_items.map((item: any) => ({
+                ...item,
+                page_title: res.data.title
+             }));
+             allTasks = [...allTasks, ...items];
+          }
+        });
+        
+        setTasks(allTasks);
+      } catch (error) {
+        console.error("Error fetching tasks for user:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchTasks();
+  }, [projectId, userId, token]);
+
+  if (loading) return <div className="p-4 flex justify-center"><Loader2 className="h-4 w-4 animate-spin text-slate-400" /></div>;
+  if (tasks.length === 0) return null;
+
+  return (
+    <div className="space-y-2 mt-3 pt-3 border-t border-slate-200">
+      {tasks.map(task => (
+         <div key={task.id} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-200">
+           <div className="mt-0.5 shrink-0">
+             {task.is_completed ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+             ) : (
+                <Circle className="w-4 h-4 text-slate-300" />
+             )}
+           </div>
+           <div className="flex-1 min-w-0">
+             <p className={`text-sm ${task.is_completed ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{task.text}</p>
+             <p className="text-[10px] text-slate-400 mt-1">From page: {task.page_title}</p>
+           </div>
+         </div>
+      ))}
+    </div>
+  );
+};
+
 export default function ProjectDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -54,6 +123,7 @@ export default function ProjectDetailsPage() {
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [managers, setManagers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [userTasks, setUserTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -86,7 +156,7 @@ export default function ProjectDetailsPage() {
     if (!token || !projectId) return;
     try {
       setLoading(true);
-      const [projRes, docRes, mgrRes, empRes] = await Promise.all([
+      const [projRes, docRes, mgrRes, empRes, userTasksRes] = await Promise.all([
         axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/${projectId}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
@@ -98,16 +168,24 @@ export default function ProjectDetailsPage() {
         }),
         axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/employees/?status_filter=true&limit=1000`, {
           headers: { Authorization: `Bearer ${token}` }
-        })
+        }),
+        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/notes/admin/projects/${projectId}/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch(() => ({ data: [] }))
       ]);
 
       setProject(projRes.data);
       setDocuments(docRes.data);
       setManagers(mgrRes.data.items || mgrRes.data);
       setEmployees(empRes.data.items || empRes.data);
-    } catch (error) {
-      console.error('Error fetching project details:', error);
-      toast.error('Failed to load project details');
+      setUserTasks(userTasksRes.data);
+    } catch (error: any) {
+      if (error.response?.status === 404 || error.response?.status === 422) {
+        setProject(null);
+      } else {
+        console.error('Error fetching project details:', error.message || error);
+        toast.error('Failed to load project details');
+      }
     } finally {
       setLoading(false);
     }
@@ -144,7 +222,7 @@ export default function ProjectDetailsPage() {
   const handleDownloadDoc = async (docId: number, filename: string) => {
     try {
       const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/download/${docId}`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/download/${docId}?inline=true`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (res.data.url) {
@@ -202,20 +280,22 @@ export default function ProjectDetailsPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-8 bg-slate-50 overflow-y-auto">
-      {/* Header */}
-      <div className="mb-8">
+      <div className="mb-4">
         <Button 
           variant="ghost" 
           onClick={() => router.push(backConfig.path)}
-          className="mb-4 text-slate-500 hover:text-slate-800 -ml-2 h-8 px-2"
+          className="text-slate-500 hover:text-slate-800 -ml-2 h-8 px-2 mb-2"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           <span className="text-xs font-bold uppercase tracking-widest">
             {backConfig.label}
           </span>
         </Button>
+      </div>
 
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+      <Card className="rounded-3xl shadow-sm border border-slate-100 bg-white overflow-hidden mb-8">
+        {/* Header Section */}
+        <div className="bg-slate-50/50 border-b border-slate-100 px-6 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project.name}</h1>
@@ -230,7 +310,7 @@ export default function ProjectDetailsPage() {
                 {project.status.toUpperCase()}
               </Badge>
             </div>
-            <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 font-medium">
               <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-sm">
                 <Briefcase className="h-4 w-4 text-blue-500" />
                 <span className="font-mono text-xs">{project.code}</span>
@@ -243,262 +323,282 @@ export default function ProjectDetailsPage() {
               )}
             </div>
           </div>
-          
           <Button 
             onClick={() => setIsEditModalOpen(true)}
             variant="outline"
-            className="border-slate-200 text-slate-600 bg-white hover:bg-slate-50 shadow-sm"
+            className="border-slate-200 text-slate-600 bg-white hover:bg-slate-50 shadow-sm shrink-0"
           >
             Edit Project Details
           </Button>
         </div>
-      </div>
 
-      {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-        <Card className="border-0 shadow-sm bg-white overflow-hidden rounded-2xl">
-          <CardContent className="p-6 relative h-full flex flex-col justify-center">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-bl-full -mr-4 -mt-4 opacity-50 pointer-events-none" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Team Size</span>
-              <div className="flex items-end gap-2">
-                <span className="text-3xl font-black text-slate-800">{project.members?.length || 0}</span>
-                <span className="text-sm font-semibold text-slate-400 mb-1">Members</span>
-              </div>
-            </div>
-            <Users className="absolute bottom-6 right-6 h-6 w-6 text-blue-400 opacity-50" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm bg-white overflow-hidden rounded-2xl md:col-span-2 lg:col-span-2">
-          <CardContent className="p-6 relative h-full flex flex-col justify-center">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-bl-full -mr-4 -mt-4 opacity-50 pointer-events-none" />
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Time Tracking</span>
-            <div className="grid grid-cols-3 gap-4 w-full relative z-10">
+        {/* Content Section (Information Grid) */}
+        <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-10">
+            {/* Project Summary */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Allotted</span>
-                <span className="text-2xl font-black text-slate-800">{project.total_hours || 0}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Consumed</span>
-                <span className="text-2xl font-black text-slate-800">{project.total_hours_worked || 0}</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Remaining</span>
-                <div className="flex items-end gap-1">
-                  <span className={`text-2xl font-black ${(project.total_hours_remaining ?? 0) < 0 ? "text-red-500" : "text-emerald-500"}`}>
-                    {(project.total_hours_remaining ?? 0) < 0 ? (project.total_hours_remaining || 0) * -1 : (project.total_hours_remaining || 0)}
-                  </span>
-                  {(project.total_hours_remaining ?? 0) < 0 && <span className="text-[10px] font-black uppercase text-red-500 mb-1">Over</span>}
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Team Size</span>
+                <div className="flex items-end gap-1.5">
+                  <span className="text-xl font-black text-slate-800">{project.members?.length || 0}</span>
+                  <span className="text-sm font-semibold text-slate-400 mb-0.5">Members</span>
                 </div>
               </div>
-            </div>
-            <Clock className="absolute bottom-6 right-6 h-6 w-6 text-emerald-400 opacity-50" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm bg-white overflow-hidden rounded-2xl">
-          <CardContent className="p-6 relative">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-50 to-indigo-100/50 rounded-bl-full -mr-4 -mt-4 opacity-50 pointer-events-none" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Documents</span>
-              <div className="flex items-end gap-2">
-                <span className="text-3xl font-black text-slate-800">{documents.length}</span>
-                <span className="text-sm font-semibold text-slate-400 mb-1">Files</span>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Documents</span>
+                <div className="flex items-end gap-1.5">
+                  <span className="text-xl font-black text-slate-800">{documents.length}</span>
+                  <span className="text-sm font-semibold text-slate-400 mb-0.5">Files</span>
+                </div>
               </div>
-            </div>
-            <FileText className="absolute bottom-6 right-6 h-6 w-6 text-indigo-400 opacity-50" />
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm bg-white overflow-hidden rounded-2xl">
-          <CardContent className="p-6 relative">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-bl-full -mr-4 -mt-4 opacity-50 pointer-events-none" />
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Timeline</span>
-              <div className="flex flex-col mt-1">
-                <span className="text-sm font-bold text-slate-800">
-                  {project.start_date && project.end_date 
-                    ? `${differenceInDays(new Date(project.end_date), new Date(project.start_date))} Days` 
-                    : 'Duration N/A'}
-                </span>
-                <span className="text-xs font-medium text-slate-400 mt-0.5">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Duration</span>
+                <div className="flex items-end gap-1.5">
+                  <span className="text-xl font-black text-slate-800">
+                    {project.start_date && project.end_date 
+                      ? differenceInDays(new Date(project.end_date), new Date(project.start_date))
+                      : '-'}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-400 mb-0.5">Days</span>
+                </div>
+              </div>
+              <div className="col-span-2 md:col-span-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Timeline</span>
+                <span className="text-sm font-semibold text-slate-800 block">
                   {project.start_date ? format(new Date(project.start_date), 'MMM d, yy') : 'N/A'} - {project.end_date ? format(new Date(project.end_date), 'MMM d, yy') : 'N/A'}
                 </span>
               </div>
             </div>
-            <Calendar className="absolute bottom-6 right-6 h-6 w-6 text-purple-400 opacity-50" />
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-8">
-          <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <div className="h-px bg-slate-100" />
+
+            {/* Time Tracking */}
+            <div>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <Clock className="h-5 w-5 text-blue-500" />
+                Time Tracking
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Allocated Hours</span>
+                  <span className="text-2xl font-black text-slate-800">{project.total_hours || 0}</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Consumed Hours</span>
+                  <span className="text-2xl font-black text-slate-800">{project.total_hours_worked || 0}</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col relative overflow-hidden">
+                  <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
+                    <Clock className="w-16 h-16 text-emerald-600" />
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 relative z-10">Remaining Hours</span>
+                  <div className="flex items-end gap-1 relative z-10">
+                    <span className={`text-2xl font-black ${(project.total_hours_remaining ?? 0) < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                      {(project.total_hours_remaining ?? 0) < 0 ? (project.total_hours_remaining || 0) * -1 : (project.total_hours_remaining || 0)}
+                    </span>
+                    {(project.total_hours_remaining ?? 0) < 0 && <span className="text-[10px] font-black uppercase text-red-600 mb-1">Over</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            {/* Project Description */}
+            <div>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <FileText className="h-5 w-5 text-indigo-500" />
+                Project Description
+              </h3>
+              {project.description ? (
+                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap break-words text-sm">{project.description}</p>
+              ) : (
+                <p className="text-slate-400 italic text-sm">No description provided for this project.</p>
+              )}
+            </div>
+
+            <div className="h-px bg-slate-100" />
+
+            {/* Documents */}
+            <div>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+                <FileText className="h-5 w-5 text-indigo-500" /> 
+                Project Documents
+                <Badge variant="outline" className="font-mono text-[10px] ml-2 bg-slate-50">{documents.length}</Badge>
+              </h3>
+              {documents.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {documents.map((doc: any) => (
+                    <div 
+                      key={doc.id} 
+                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100/60 hover:bg-white hover:shadow-sm transition-all group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0 font-bold text-[8px]">
+                          {doc.doc_type || 'DOC'}
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-bold text-slate-800 truncate" title={doc.display_name}>
+                            {doc.display_name}
+                          </span>
+                          <span className="text-[9px] text-slate-400 font-medium">
+                            {doc.preparation_date ? format(new Date(doc.preparation_date), 'dd MMM yyyy') : 'No Date'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')} className="h-6 w-6 rounded-md hover:bg-emerald-50 text-slate-400 hover:text-emerald-600" title="View Document">
+                          <Eye className="h-3 w-3" />
+                        </Button>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)} className="h-6 w-6 rounded-md hover:bg-blue-50 text-slate-400 hover:text-blue-600" title="Download Document">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => setDocToDelete(doc.id)} className="h-6 w-6 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-600" title="Delete Document">
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <File className="h-6 w-6 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs font-medium text-slate-500">No documents uploaded yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column */}
+          <div className="space-y-8">
+            {/* Reporting Manager */}
+            <div>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
                 <UserCheck className="h-5 w-5 text-emerald-500" />
                 Reporting Manager
               </h3>
-            </CardHeader>
-            <CardContent className="p-6">
               {project.reporting_manager ? (
                 <div 
                   onClick={() => router.push(`/superadmin/reporting-managers/${project.reporting_manager.id}?backPath=/superadmin/projects/${project.id}`)}
-                  className="flex items-center gap-4 p-3 -m-3 rounded-2xl cursor-pointer hover:bg-slate-50 transition-colors group"
+                  className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-white hover:shadow-sm transition-all group"
                 >
-                  <Avatar className="h-16 w-16 border-2 border-emerald-100 group-hover:border-emerald-300 transition-colors">
-                    <AvatarFallback className="bg-emerald-50 text-emerald-700 font-bold text-xl group-hover:bg-emerald-100 transition-colors">
+                  <Avatar className="h-12 w-12 border-2 border-emerald-100 group-hover:border-emerald-300 transition-colors">
+                    <AvatarFallback className="bg-emerald-50 text-emerald-700 font-bold group-hover:bg-emerald-100 transition-colors">
                       {project.reporting_manager.full_name.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
-                    <h4 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{project.reporting_manager.full_name}</h4>
-                    <p className="text-sm font-medium text-slate-500">{project.reporting_manager.email}</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{project.reporting_manager.full_name}</h4>
+                    <p className="text-xs font-medium text-slate-500 truncate">{project.reporting_manager.email}</p>
                     {project.reporting_manager.designation && (
-                      <Badge variant="secondary" className="mt-2 text-xs bg-slate-100 text-slate-600 group-hover:bg-slate-200">
+                      <Badge variant="secondary" className="mt-1 text-[9px] bg-white border border-slate-200 text-slate-600">
                         {project.reporting_manager.designation}
                       </Badge>
                     )}
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-400 italic">No reporting manager assigned.</p>
+                <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <p className="text-xs font-medium text-slate-400 italic">No reporting manager assigned.</p>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white">
-            <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-indigo-500" />
-                Project Description
-              </h3>
-            </CardHeader>
-            <CardContent className="p-6">
-              {project.description ? (
-                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap break-words">{project.description}</p>
-              ) : (
-                <p className="text-slate-400 italic">No description provided for this project.</p>
-              )}
-            </CardContent>
-          </Card>
+            {/* Team Members */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-500" />
+                  Team Members
+                </h3>
+                <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">{project.members?.length || 0}</Badge>
+              </div>
+              
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden">
+                {project.members && project.members.length > 0 ? (
+                  <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+                    {project.members.map((member: any) => {
+                      const uTask = userTasks.find((u: any) => u.user_id === member.id);
+                      const hasTasks = uTask && uTask.total_tasks > 0;
+                      
+                      return (
+                        <div 
+                          key={member.id} 
+                          onClick={() => router.push(`/superadmin/employees/${member.id}`)}
+                          className="p-3 flex items-start gap-3 hover:bg-white transition-colors cursor-pointer group"
+                        >
+                          <Avatar className="h-10 w-10 border border-slate-200 group-hover:border-blue-300 transition-colors shrink-0">
+                            <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm group-hover:bg-blue-100 transition-colors">
+                              {member.full_name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{member.full_name}</p>
+                            <p className="text-xs font-medium text-slate-500 truncate mb-1">{member.email}</p>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {member.designation && (
+                                <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-slate-400 bg-white group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
+                                  {member.designation}
+                                </Badge>
+                              )}
+                              {hasTasks && (
+                                <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded-sm">
+                                  <CheckCircle2 className={`w-3 h-3 ${uTask.completed_tasks === uTask.total_tasks ? 'text-emerald-500' : 'text-slate-400'}`} />
+                                  <span>{uTask.completed_tasks}/{uTask.total_tasks} Tasks</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center">
+                    <p className="text-xs italic text-slate-400">No team members assigned</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+      </Card>
 
-        {/* Right Column - Team Members */}
-        <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white lg:col-span-1">
-          <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5 flex flex-row items-center justify-between sticky top-0">
-            <h3 className="font-bold text-slate-800 flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              Team Members
-            </h3>
-            <Badge variant="outline" className="font-mono text-xs">{project.members?.length || 0}</Badge>
-          </CardHeader>
-          <CardContent className="p-0 overflow-y-auto max-h-[500px]">
-            {project.members && project.members.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {project.members.map((member: any) => (
-                  <div 
-                    key={member.id} 
-                    onClick={() => router.push(`/superadmin/employees/${member.id}`)}
-                    className="p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors cursor-pointer group"
-                  >
-                    <Avatar className="h-10 w-10 border border-slate-200 group-hover:border-blue-300 transition-colors">
-                      <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm group-hover:bg-blue-100 transition-colors">
-                        {member.full_name.charAt(0)}
+      {/* Employee To-Do Lists Section */}
+      <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white mb-8">
+        <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5">
+          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Employee To-Do Lists
+          </h3>
+        </CardHeader>
+        <CardContent className="p-6 bg-slate-50/50">
+          {userTasks && userTasks.filter(u => u.total_tasks > 0).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {userTasks.filter(u => u.total_tasks > 0).map(u => (
+                <div key={u.user_id} className="bg-slate-50 rounded-2xl border border-slate-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border border-slate-200 shrink-0">
+                      <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm">
+                        {u.user_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{member.full_name}</p>
-                      <p className="text-xs font-medium text-slate-500 truncate">{member.email}</p>
-                    </div>
-                    {member.designation && (
-                      <Badge variant="outline" className="text-[10px] uppercase tracking-wider text-slate-400 shrink-0 group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
-                        {member.designation}
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="p-8 text-center text-slate-400">
-                <Users className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                <p className="text-sm italic">No team members assigned</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Documents Section */}
-      <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white mb-8">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5 flex flex-row items-center justify-between">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-indigo-500" /> Project Documents
-          </h3>
-        </CardHeader>
-        <CardContent className="p-6">
-          {documents.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {documents.map((doc: any) => (
-                <div 
-                  key={doc.id} 
-                  className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100/60 hover:bg-white hover:shadow-md transition-all group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0 font-bold text-[10px]">
-                      {doc.doc_type || 'DOC'}
-                    </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-bold text-slate-800 truncate" title={doc.display_name}>
-                        {doc.display_name}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {doc.preparation_date ? format(new Date(doc.preparation_date), 'dd MMM yyyy') : 'No Date'}
-                      </span>
+                      <p className="text-sm font-bold text-slate-800 truncate">{u.user_name}</p>
+                      <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 mt-0.5">
+                        <CheckCircle2 className={`w-3 h-3 ${u.completed_tasks === u.total_tasks ? 'text-emerald-500' : 'text-slate-400'}`} />
+                        <span>{u.completed_tasks}/{u.total_tasks} Tasks Completed</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')}
-                      className="h-8 w-8 rounded-xl hover:bg-emerald-50 text-slate-400 hover:text-emerald-600 transition-colors"
-                      title="View Document"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)}
-                      className="h-8 w-8 rounded-xl hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition-colors"
-                      title="Download Document"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setDocToDelete(doc.id)}
-                      className="h-8 w-8 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors"
-                      title="Delete Document"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <EmployeeTaskView projectId={projectId} userId={u.user_id} token={token} />
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-12 text-center flex flex-col items-center">
-              <File className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-lg font-bold text-slate-700">No Documents</h3>
-              <p className="text-sm text-slate-500 mt-1 max-w-md">This project doesn't have any uploaded documents yet.</p>
+            <div className="text-center p-8 text-slate-500">
+              <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3 opacity-50" />
+              <p className="text-sm font-medium">No tasks assigned to employees for this project.</p>
             </div>
           )}
         </CardContent>

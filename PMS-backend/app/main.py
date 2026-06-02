@@ -4,34 +4,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-import sys
-import traceback
-
-try:
-    # Internal imports
-    from app.database.session import engine, Base, SessionLocal
-    from app.models.user import User
-    from app.models.project import Project
-    from app.models.timesheet import Timesheet
-    from app.models.reporting_manager import ReportingManager
-    from app.models.document import ProjectDocument
-    from app.models.template import DocumentTemplate
-    from app.models.notification import Notification
-    from app.models.session import UserSession
-    from app.models.audit_log import AuditLog
-    from app.models.note import NoteWorkspace, NotePage, NoteChecklistItem
-    from app.core.config import settings
-    from app.core.security import get_password_hash
-    from app.routes import auth, employee_management, reporting_manager, project_management, documents, templates, timesheets, notifications, audit_logs, notes, admin_management
-    from fastapi import WebSocket, WebSocketDisconnect, Request
-    from app.core.websockets import manager
-    from slowapi import _rate_limit_exceeded_handler
-    from slowapi.errors import RateLimitExceeded
-    from app.core.limiter import limiter
-except Exception as e:
-    print("CRITICAL STARTUP CRASH:", file=sys.stderr)
-    traceback.print_exc(file=sys.stderr)
-    raise e
+# Internal imports
+from app.database.session import engine, Base, SessionLocal
+from app.models.user import User
+from app.models.project import Project
+from app.models.timesheet import Timesheet
+from app.models.reporting_manager import ReportingManager
+from app.models.document import ProjectDocument
+from app.models.template import DocumentTemplate
+from app.models.notification import Notification
+from app.models.session import UserSession
+from app.models.audit_log import AuditLog
+from app.models.note import NoteWorkspace, NotePage, NoteChecklistItem
+from app.core.config import settings
+from app.core.security import get_password_hash
+from app.routes import auth, employee_management, reporting_manager, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents
+from fastapi import WebSocket, WebSocketDisconnect, Request
+from app.core.websockets import manager
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.core.limiter import limiter
 
 # Initialize Database Tables
 # TEMPORARILY DISABLED FOR VERCEL ISOLATION TEST

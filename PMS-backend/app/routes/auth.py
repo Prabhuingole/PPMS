@@ -92,6 +92,7 @@ def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db))
         "token_type": "bearer",
         "user": {
             "id": str(user.id),
+            "employee_id": user.employee_id,
             "full_name": user.full_name,
             "email": user.email,
             "role": user.role,
@@ -237,6 +238,7 @@ def setup_account(payload: SetupAccountSchema, request: Request, db: Session = D
         "token_type": "bearer",
         "user": {
             "id": str(current_user.id),
+            "employee_id": current_user.employee_id,
             "full_name": current_user.full_name,
             "email": current_user.email,
             "role": current_user.role,
@@ -376,6 +378,7 @@ def update_profile(
     
     return {
         "id": str(current_user.id),
+        "employee_id": current_user.employee_id,
         "full_name": current_user.full_name,
         "email": current_user.email,
         "bio": current_user.bio,

@@ -182,12 +182,12 @@ export default function EmployeeProjectsPage() {
                   </CardContent>
 
                   <CardFooter className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
-                     <Link href={`/employee/projects/${project.id}`}>
+                     <Link href={`/employee/projects/${project.id}`} className="flex-1">
                         <Button 
-                          variant="ghost"
-                          className="h-9 px-4 text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-100 rounded-lg transition-colors"
+                          className="w-full h-9 px-4 text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all shadow-sm hover:shadow-indigo-200 hover:shadow-md flex items-center gap-2"
                         >
-                          Explore Project
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          View Project Details
                         </Button>
                      </Link>
                      <div className="flex -space-x-2">

@@ -147,6 +147,7 @@ export default function EmployeeProfilePage() {
       );
 
       updateUser({
+        employee_id: response.data.employee_id,
         full_name: response.data.full_name,
         email: response.data.email,
         mobile_number: response.data.mobile_number,
@@ -256,11 +257,21 @@ export default function EmployeeProfilePage() {
                     onClick={() => setIsEditing(true)}
                     className="rounded-xl h-9 border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50 transition-all"
                   >
-                     <Edit className="mr-2 h-3 w-3" /> Update Metadata
+                     <Edit className="mr-2 h-3 w-3" /> Edit Details
                   </Button>
                </div>
 
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Employee ID */}
+                  <div className="space-y-2">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center">
+                        <Briefcase className="h-3 w-3 mr-2 text-indigo-500" /> Employee ID
+                     </p>
+                     <div className="h-11 rounded-xl bg-slate-50 border border-slate-100 px-3 flex items-center font-bold text-xs text-slate-700 cursor-not-allowed">
+                        {user?.employee_id || '-'}
+                     </div>
+                  </div>
+
                   {/* Full Name */}
                   <div className="space-y-2">
                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center">
@@ -489,6 +500,7 @@ export default function EmployeeProfilePage() {
         isOpen={isEditing}
         onOpenChange={setIsEditing}
         defaultValues={{
+          employee_id: user?.employee_id || '',
           full_name: user?.full_name || '',
           email: user?.email || '',
           mobile_number: user?.mobile_number || '',

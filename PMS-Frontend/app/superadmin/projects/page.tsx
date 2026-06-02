@@ -251,12 +251,12 @@ export default function ProjectListPage() {
                       <SelectValue placeholder="Reporting Manager" className="truncate">
                         {managerFilter === 'all' 
                           ? 'Reporting Manager' 
-                          : managers.find(m => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
+                          : managers?.find(m => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent className="rounded-md border-slate-200 shadow-lg max-h-[300px] w-[90vw] sm:w-[250px]">
                       <SelectItem value="all" className="text-sm font-medium">Reporting Manager</SelectItem>
-                      {managers.map(m => (
+                      {managers?.map(m => (
                         <SelectItem key={m.id} value={m.id.toString()} className="text-sm font-medium">
                           {m.full_name}
                         </SelectItem>
@@ -295,7 +295,7 @@ export default function ProjectListPage() {
                     </TableCell>
                   </TableRow>
                 ))
-              ) : projects.length === 0 ? (
+              ) : !projects || projects.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="h-60 text-center">
                     <div className="flex flex-col items-center justify-center space-y-4 opacity-40">
@@ -331,11 +331,11 @@ export default function ProjectListPage() {
                         {project.reporting_manager?.full_name.split(' ')[0] || 'Unassigned'}
                       </div>
                     </TableCell>
-                    <TableCell>
+                     <TableCell>
                        <div className="flex items-center gap-2">
                          <Users className="h-4 w-4 text-slate-400" />
                          <span className="text-sm font-medium text-slate-700">
-                           {project.members.length} {project.members.length === 1 ? 'Member' : 'Members'}
+                           {project.members?.length || 0} {(project.members?.length === 1) ? 'Member' : 'Members'}
                          </span>
                        </div>
                     </TableCell>

@@ -46,6 +46,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
 
 const docTypeMap: Record<string, string> = {
   'PRD': 'Product Requirement Document',
@@ -398,21 +406,25 @@ export default function ProjectDetailsPage() {
                                            />
                                         </div>
                                         <div className="space-y-1.5">
-                                           <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Type</Label>
-                                           <select 
-                                              value={fileData.type}
-                                              onChange={(e) => {
-                                                const newFiles = [...uploadFiles];
-                                                newFiles[index].type = e.target.value;
-                                                setUploadFiles(newFiles);
-                                              }}
-                                              className="w-full h-9 rounded-lg border border-slate-200 px-2 text-xs font-bold bg-white"
-                                           >
-                                              {Object.entries(docTypeMap).map(([key, value]) => (
-                                                 <option key={key} value={key}>{key}</option>
-                                              ))}
-                                              <option value="Other">Other</option>
-                                           </select>
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Type</Label>
+                                            <Select
+                                               value={fileData.type}
+                                               onValueChange={(val) => {
+                                                 const newFiles = [...uploadFiles];
+                                                 newFiles[index].type = val;
+                                                 setUploadFiles(newFiles);
+                                               }}
+                                            >
+                                               <SelectTrigger className="h-9 rounded-lg border-slate-200 text-xs">
+                                                 <SelectValue placeholder="Select type" />
+                                               </SelectTrigger>
+                                               <SelectContent>
+                                                 {Object.entries(docTypeMap).map(([key, value]) => (
+                                                    <SelectItem key={key} value={key}>{key}</SelectItem>
+                                                 ))}
+                                                 <SelectItem value="Other">Other</SelectItem>
+                                               </SelectContent>
+                                            </Select>
                                         </div>
                                      </div>
                                      {fileData.type === 'Other' && (

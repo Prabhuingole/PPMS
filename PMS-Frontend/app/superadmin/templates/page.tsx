@@ -273,7 +273,9 @@ export default function TemplateManagementPage() {
                       />
                    </div>
                    <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Master Asset Upload (HTML Form/PDF/Word/Excel)</Label>
+                       <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Master Asset Upload (HTML / PDF / Word / Excel) <span className="text-red-500">*</span>
+                       </Label>
                       {selectedFile ? (
                          <div className="flex items-center justify-between p-4 rounded-2xl border border-indigo-100 bg-indigo-50/50">
                             <div className="flex items-center">
@@ -289,11 +291,16 @@ export default function TemplateManagementPage() {
                             </Button>
                          </div>
                       ) : (
-                         <Input 
-                            type="file" 
-                            className="h-12 rounded-2xl border-slate-200 file:bg-indigo-50 file:text-indigo-600 file:border-none file:h-full file:mr-4 file:px-4 file:font-black file:text-[10px] file:uppercase cursor-pointer"
-                            onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                         />
+                          <>
+                            <Input 
+                               type="file" 
+                               className="h-12 rounded-2xl border-slate-200 file:bg-indigo-50 file:text-indigo-600 file:border-none file:h-full file:mr-4 file:px-4 file:font-black file:text-[10px] file:uppercase cursor-pointer"
+                               onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                            />
+                            <p className="text-[10px] text-red-400 font-bold mt-1">
+                              A document is required to create a template.
+                            </p>
+                          </>
                       )}
                    </div>
                 </div>
@@ -302,6 +309,10 @@ export default function TemplateManagementPage() {
                       onClick={async () => {
                          if (!newTemplateName) {
                             toast.error('Template Name is required');
+                            return;
+                         }
+                         if (!selectedFile) {
+                            toast.error('Please upload a document to create the template');
                             return;
                          }
                          setIsUploading(true);
@@ -438,7 +449,9 @@ export default function TemplateManagementPage() {
                              />
                           </div>
                           <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Master Asset Upload (HTML Form/PDF/Word/Excel)</Label>
+                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          Master Asset Upload (HTML / PDF / Word / Excel) <span className="text-red-500">*</span>
+                       </Label>
                             {template?.filename && !removeFile ? (
                                <div className="flex flex-wrap items-center justify-between gap-2 p-3 sm:p-4 rounded-2xl border border-slate-200 bg-slate-50">
                                   <div className="flex items-center">

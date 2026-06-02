@@ -118,7 +118,6 @@ export function EmployeeForm({
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Identity Information</h4>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {!isProfileEdit && (
                   <FormField
                     control={form.control}
                     name="employee_id"
@@ -130,7 +129,7 @@ export function EmployeeForm({
                             placeholder="SAM001"
                             {...field}
                             readOnly={isCreate}
-                            disabled={mode === 'edit'} // usually ID cannot be edited once created
+                            disabled={mode === 'edit' || mode === 'profile_edit'} // usually ID cannot be edited once created
                             className="h-10 rounded-lg border-slate-100 bg-slate-50 cursor-not-allowed text-slate-500 font-bold"
                           />
                         </FormControl>
@@ -138,12 +137,11 @@ export function EmployeeForm({
                       </FormItem>
                     )}
                   />
-                )}
-                <FormField
-                  control={form.control}
-                  name="full_name"
-                  render={({ field }) => (
-                    <FormItem className={isProfileEdit ? "sm:col-span-2" : ""}>
+                  <FormField
+                    control={form.control}
+                    name="full_name"
+                    render={({ field }) => (
+                      <FormItem>
                       <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="John Doe" {...field} className="h-10 rounded-lg border-slate-200 bg-white focus-visible:bg-white focus-visible:ring-indigo-500 transition-colors font-semibold text-sm shadow-sm" />

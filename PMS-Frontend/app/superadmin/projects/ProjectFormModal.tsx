@@ -15,7 +15,8 @@ import {
   File as FileIcon,
   X,
   Eye,
-  Loader2
+  Loader2,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,14 +64,16 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const projectSchema = z.object({
-  name: z.string().min(2, 'Project Name is required'),
+  name: z.string()
+    .min(2, 'Project Name is required')
+    .regex(/^[a-zA-Z _\-().&]+$/, 'Project name must not contain numbers or special characters'),
   code: z.string().min(2, 'Project ID is required'),
   description: z.string().optional(),
   status: z.enum(['planning', 'active', 'on-hold', 'completed']),
   start_date: z.string().optional().nullable(),
   end_date: z.string().optional().nullable(),
   total_hours: z.coerce.number().optional(),
-  reporting_manager_id: z.string().optional().nullable(),
+  reporting_manager_id: z.string().min(1, 'Reporting Manager is required'),
   member_ids: z.array(z.number()),
 });
 
@@ -95,6 +98,12 @@ export function ProjectFormModal({
 }: ProjectFormModalProps) {
   const { token } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  
+  const filteredEmployees = employees.filter(emp => 
+    (emp?.full_name?.toLowerCase().includes(employeeSearch.toLowerCase())) || 
+    (emp?.designation?.toLowerCase().includes(employeeSearch.toLowerCase()))
+  );
   
   // Document upload state
   type PendingDoc = {
@@ -167,6 +176,7 @@ export function ProjectFormModal({
       }
       
       setPendingDocs([]);
+      setEmployeeSearch('');
     }
   }, [isOpen, editingProject, form, token]);
 
@@ -271,7 +281,16 @@ export function ProjectFormModal({
                           Project Name <span className="text-red-500">*</span>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter project name..." {...field} className="h-10 rounded-md border-slate-200 bg-white focus:bg-white text-sm shadow-sm" />
+                      <Input
+                          placeholder="Enter project name..."
+                          {...field}
+                          onChange={(e) => {
+                            // Strip numbers and special characters — allow letters, spaces, _ - ( ) . &
+                            const cleaned = e.target.value.replace(/[^a-zA-Z _\-().&]/g, '');
+                            field.onChange(cleaned);
+                          }}
+                          className="h-10 rounded-md border-slate-200 bg-white focus:bg-white text-sm shadow-sm"
+                        />
                       </FormControl>
                       <FormMessage className="text-xs text-red-500" />
                     </FormItem>
@@ -347,7 +366,7 @@ export function ProjectFormModal({
                   render={({ field }) => (
                     <FormItem className="space-y-1.5">
                       <FormLabel className="text-sm font-medium text-slate-700">
-                          Reporting Manager
+                          Reporting Manager <span className="text-red-500">*</span>
                       </FormLabel>
                       <Select 
                         onValueChange={field.onChange} 
@@ -441,49 +460,68 @@ export function ProjectFormModal({
               </div>
 
               <div className="space-y-3">
-                <FormLabel className="text-sm font-medium text-slate-700">
-                    Team Members
-                </FormLabel>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <FormLabel className="text-sm font-medium text-slate-700">
+                      Team Members
+                  </FormLabel>
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Search employees..."
+                      value={employeeSearch}
+                      onChange={(e) => setEmployeeSearch(e.target.value)}
+                      className="pl-9 h-9 rounded-md border-slate-200 text-sm bg-white"
+                    />
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-lg bg-slate-50 border border-slate-200 max-h-[250px] overflow-y-auto custom-scrollbar">
-                  {employees.map((employee) => (
+                  {filteredEmployees.length > 0 ? filteredEmployees.map((employee) => (
                     <FormField
                       key={employee.id}
                       control={form.control}
                       name="member_ids"
                       render={({ field }) => {
+                        const isSelected = field.value?.includes(employee.id);
                         return (
-                          <FormItem className="flex flex-row items-center space-x-3 space-y-0 p-3 rounded-md bg-white border border-slate-200 hover:border-slate-300 transition-all cursor-pointer shadow-sm">
+                          <FormItem 
+                            className={`flex flex-row items-center space-x-3 space-y-0 p-3 rounded-md border transition-all cursor-pointer shadow-sm ${isSelected ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-200 hover:border-slate-300'}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const checked = !isSelected;
+                              if (checked) {
+                                field.onChange([...(field.value || []), employee.id]);
+                              } else {
+                                field.onChange(field.value?.filter((value) => value !== employee.id));
+                              }
+                            }}
+                          >
                             <FormControl>
                               <Checkbox
-                                checked={field.value?.includes(employee.id)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([...field.value, employee.id])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== employee.id
-                                        )
-                                      )
-                                }}
-                                className="h-4 w-4 rounded-sm border-slate-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                                checked={isSelected}
+                                tabIndex={-1}
+                                className="h-4 w-4 rounded-sm border-slate-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600 pointer-events-none"
                               />
                             </FormControl>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 w-full">
                               <Avatar className="h-8 w-8">
                                 <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-medium border border-slate-200">
-                                  {employee.full_name.split(' ').map(n => n[0]).join('')}
+                                  {employee?.full_name ? employee.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
                                 </AvatarFallback>
                               </Avatar>
-                              <div className="flex flex-col">
-                                <span className="text-sm font-medium text-slate-900 leading-none mb-1">{employee.full_name}</span>
-                                <span className="text-xs text-slate-500">{employee.designation || 'Specialist'}</span>
+                              <div className="flex flex-col flex-1 min-w-0">
+                                <span className="text-sm font-medium text-slate-900 leading-none mb-1 truncate" title={employee.full_name}>{employee.full_name}</span>
+                                <span className="text-xs text-slate-500 truncate" title={employee.designation || 'Specialist'}>{employee.designation || 'Specialist'}</span>
                               </div>
                             </div>
                           </FormItem>
                         )
                       }}
                     />
-                  ))}
+                  )) : (
+                    <div className="col-span-1 md:col-span-2 py-8 text-center text-sm text-slate-500">
+                      No team members found matching "{employeeSearch}"
+                    </div>
+                  )}
                 </div>
               </div>
 

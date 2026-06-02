@@ -16,8 +16,8 @@ from app.core.websockets import manager
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 
-TEMPLATE_DIR = "uploads/templates"
-os.makedirs(TEMPLATE_DIR, exist_ok=True)
+#TEMPLATE_DIR = "uploads/templates"
+#os.makedirs(TEMPLATE_DIR, exist_ok=True)
 
 @router.post("/update", response_model=DocumentTemplateResponse)
 async def update_template(

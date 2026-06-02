@@ -8,6 +8,7 @@ class LoginSchema(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
+    employee_id: Optional[str] = None
     full_name: str
     email: str
     role: str
@@ -73,7 +74,7 @@ class EmployeeCreate(EmployeeBase):
     pass
 
 class EmployeeUpdate(BaseModel):
-    name: Optional[str] = None
+    full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     mobile_number: Optional[str] = None
     role: Optional[str] = None

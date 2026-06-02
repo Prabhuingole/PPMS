@@ -56,42 +56,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { employeeService } from '@/services/employeeService';
 import { Employee } from '@/types';
 import { toast } from 'sonner';
-
-const employeeSchema = z.object({
-  employee_id: z.string().min(2, 'Employee ID must be at least 2 characters'),
-  full_name: z.string().min(2, 'Full Name is required').regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
-  email: z.string().trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com'), 'Email must be a @gmail.com address'),
-  mobile_number: z.string()
-    .length(10, 'Mobile number must be exactly 10 digits')
-    .regex(/^[6-9]\d{9}$/, 'This format input is required (10 digits starting with 6-9)'),
-  role: z.enum(['employee', 'intern']),
-  designation: z.string().min(2, 'Designation is required'),
-});
-
-type EmployeeFormValues = z.infer<typeof employeeSchema>;
+import { EmployeeForm } from '@/components/employees/EmployeeForm';
 
 export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -121,29 +91,11 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
     window.open(`/superadmin/timesheets/view-doc?id=${timesheetId}`, '_blank');
   };
 
-  const form = useForm<EmployeeFormValues>({
-    resolver: zodResolver(employeeSchema),
-    defaultValues: {
-      employee_id: '',
-      full_name: '',
-      email: '',
-      mobile_number: '',
-      role: 'employee',
-      designation: '',
-    }
-  });
-
   const handleEdit = () => {
-    form.setValue('employee_id', employee.employee_id);
-    form.setValue('full_name', employee.full_name);
-    form.setValue('email', employee.email);
-    form.setValue('mobile_number', employee.mobile_number || '');
-    form.setValue('role', employee.role as 'employee' | 'intern');
-    form.setValue('designation', employee.designation || '');
     setIsEditModalOpen(true);
   };
 
-  const onSubmit = async (values: EmployeeFormValues) => {
+  const onSubmit = async (values: any) => {
     try {
       setIsSubmitting(true);
       const updated = await employeeService.updateEmployee(employee.id, values);
@@ -483,154 +435,21 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px] rounded-3xl">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-black uppercase tracking-tight">
-              Edit Employee Profile
-            </DialogTitle>
-            <DialogDescription className="text-slate-500 font-medium">
-              Update details for this employee or intern.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="employee_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Employee ID <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          readOnly
-                          className="rounded-xl border-slate-200 bg-slate-50 cursor-not-allowed text-slate-500 font-medium" 
-                        />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="full_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs font-bold text-slate-500 uppercase tracking-wider">Full Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} className="h-12 bg-white rounded-xl border-slate-200" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Email Address <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input placeholder="rahul@sambhav.com" {...field} className="rounded-xl border-slate-200" />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="mobile_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Mobile Number <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="9876543210" 
-                          {...field} 
-                          maxLength={10}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                            field.onChange(value);
-                          }}
-                          className="rounded-xl border-slate-200" 
-                        />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">User Type <span className="text-red-500">*</span></FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="rounded-xl border-slate-200">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="employee">Employee</SelectItem>
-                          <SelectItem value="intern">Intern</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="designation"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase text-slate-400">Designation <span className="text-red-500">*</span></FormLabel>
-                      <FormControl>
-                        <Input placeholder="Sr. Developer" {...field} className="rounded-xl border-slate-200" />
-                      </FormControl>
-                      <FormMessage className="text-[10px]" />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <DialogFooter className="pt-4">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="rounded-xl font-bold uppercase text-[10px]"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold uppercase text-[10px] px-8"
-                >
-                  {isSubmitting ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Saving...</span>
-                    </div>
-                  ) : 'Save Changes'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <EmployeeForm
+        mode="profile_edit"
+        isOpen={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        defaultValues={{
+          employee_id: employee.employee_id,
+          full_name: employee.full_name,
+          email: employee.email,
+          mobile_number: employee.mobile_number || '',
+          role: employee.role,
+          designation: employee.designation || '',
+        }}
+        onSubmit={onSubmit}
+        isSubmitting={isSubmitting}
+      />
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
