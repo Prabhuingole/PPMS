@@ -44,7 +44,7 @@ import { toast } from 'sonner';
 import { ProjectFormModal } from '../ProjectFormModal';
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
-const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, userId: string, token: string }) => {
+const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, userId: string, token: string | null }) => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
