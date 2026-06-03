@@ -24,7 +24,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
-import UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 
 export default function SettingsPage() {
   const { user, token, updateUser, logout } = useAuthStore();
@@ -477,19 +477,19 @@ export default function SettingsPage() {
                  </Card>
 
                  <Card className="border-none rounded-[1.5rem] shadow-xl shadow-slate-200/40 bg-white overflow-hidden p-4 sm:p-8 flex flex-col items-start gap-6 border border-white mt-6">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center space-x-4 sm:space-x-6">
-                        <div className="p-3 bg-red-50 rounded-xl text-red-600">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-4">
+                      <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                        <div className="p-3 bg-red-50 rounded-xl text-red-600 flex-shrink-0">
                            <LogOut className="h-6 w-6" />
                         </div>
-                        <div>
-                           <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Active Sessions</h4>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Logged in on other devices? You can sign out here.</p>
+                        <div className="min-w-0">
+                           <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight truncate">Active Sessions</h4>
+                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Logged in on other devices? You can sign out here.</p>
                         </div>
                      </div>
                       <Button 
                         onClick={handleLogoutAll}
-                        className="bg-white text-red-600 hover:bg-red-50 border border-red-100 rounded-xl h-9 px-4 font-black text-[9px] uppercase tracking-widest shadow-sm w-full sm:w-auto"
+                        className="bg-white text-red-600 hover:bg-red-50 border border-red-100 rounded-xl h-9 px-4 font-black text-[9px] uppercase tracking-widest shadow-sm w-full md:w-auto flex-shrink-0"
                       >
                          Revoke All Others
                      </Button>
