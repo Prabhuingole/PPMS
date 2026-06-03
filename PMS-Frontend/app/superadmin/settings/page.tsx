@@ -24,6 +24,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
+import UAParser from 'ua-parser-js';
 
 export default function SettingsPage() {
   const { user, token, updateUser, logout } = useAuthStore();
@@ -504,7 +505,22 @@ export default function SettingsPage() {
                           <div key={session.session_id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 gap-4 hover:bg-white hover:border-slate-200 transition-colors">
                             <div>
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-800">{session.device_info || 'Unknown Device'}</span>
+                                <span className="text-xs font-bold text-slate-800">
+                                  {(() => {
+                                    if (!session.device_info || session.device_info === 'Unknown Device') return 'Unknown Device';
+                                    const parser = new UAParser(session.device_info);
+                                    const browser = parser.getBrowser();
+                                    const os = parser.getOS();
+                                    const device = parser.getDevice();
+                                    
+                                    const browserStr = browser.name ? `${browser.name} ${browser.version?.split('.')[0] || ''}` : '';
+                                    const osStr = os.name ? `${os.name} ${os.version || ''}` : '';
+                                    const isMobile = os.name === 'iOS' || os.name === 'Android' || device.type === 'mobile';
+                                    const deviceType = device.vendor || device.model ? `${device.vendor || ''} ${device.model || ''}`.trim() : (isMobile ? 'Mobile Device' : 'Desktop/Laptop');
+                                    
+                                    return [browserStr, osStr, deviceType].filter(Boolean).join(' • ') || session.device_info;
+                                  })()}
+                                </span>
                                 {session.is_current && (
                                   <span className="bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">This Device</span>
                                 )}

@@ -25,9 +25,9 @@ export function Navbar() {
   const { user, isAuthenticated, logout, _hasHydrated, token } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
-  const isSuperadmin = user?.role === 'superadmin';
-  const profilePath = isSuperadmin ? '/superadmin/settings' : '/employee/profile';
-  const settingsPath = isSuperadmin ? '/superadmin/settings' : '/employee/profile';
+  const isAdminOrSuperadmin = ['superadmin', 'admin'].includes(user?.role || '');
+  const profilePath = isAdminOrSuperadmin ? '/superadmin/settings' : '/employee/profile';
+  const settingsPath = isAdminOrSuperadmin ? '/superadmin/settings' : '/employee/profile';
 
   const [notifications, setNotifications] = useState<any[]>([]);
 

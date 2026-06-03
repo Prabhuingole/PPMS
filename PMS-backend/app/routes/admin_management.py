@@ -8,7 +8,7 @@ import string
 
 from app.database.session import get_db
 from app.models.user import User, UserRole
-from app.schemas.user import EmployeeCreate, EmployeeResponse, EmployeeCreateResponse, EmployeeList
+from app.schemas.user import EmployeeCreate, EmployeeResponse, EmployeeCreateResponse, EmployeeList, EmployeeUpdate
 from app.core.security import get_password_hash
 from app.core.deps import check_roles
 from app.core.audit import create_audit_log
@@ -151,3 +151,65 @@ def delete_admin(
     db.commit()
     background_tasks.add_task(manager.broadcast, {"event": "ACCOUNT_DEACTIVATED", "user_id": str(user_id)})
     return None
+
+@router.put("/{user_id}", response_model=EmployeeResponse)
+def update_admin(
+    user_id: int,
+    payload: EmployeeUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin: User = require_superadmin
+):
+    user_to_update = db.query(User).filter(User.id == user_id, User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN])).first()
+    if not user_to_update:
+        raise HTTPException(status_code=404, detail="Admin not found")
+        
+    # Security: Do not allow modifying the primary system admin's email or role
+    if user_to_update.email == "admin@sambhav.com" and (payload.email != "admin@sambhav.com" or payload.role != UserRole.SUPERADMIN):
+        if payload.email and payload.email != "admin@sambhav.com":
+            raise HTTPException(status_code=400, detail="Cannot change the email of the primary system administrator")
+        if payload.role and payload.role != UserRole.SUPERADMIN:
+            raise HTTPException(status_code=400, detail="Cannot change the role of the primary system administrator")
+
+    if payload.email and payload.email.lower() != user_to_update.email.lower():
+        if db.query(User).filter(func.lower(User.email) == payload.email.lower()).first():
+            raise HTTPException(status_code=400, detail="Email already registered")
+            
+    old_values = {
+        "full_name": user_to_update.full_name,
+        "email": user_to_update.email,
+        "mobile_number": user_to_update.mobile_number,
+        "designation": user_to_update.designation
+    }
+
+    if payload.full_name is not None:
+        user_to_update.full_name = payload.full_name
+    if payload.email is not None:
+        user_to_update.email = payload.email
+    if payload.mobile_number is not None:
+        user_to_update.mobile_number = payload.mobile_number
+    if payload.designation is not None:
+        user_to_update.designation = payload.designation
+        
+    db.commit()
+    db.refresh(user_to_update)
+    
+    new_values = {
+        "full_name": user_to_update.full_name,
+        "email": user_to_update.email,
+        "mobile_number": user_to_update.mobile_number,
+        "designation": user_to_update.designation
+    }
+    
+    create_audit_log(
+        db=db,
+        action="ADMIN_UPDATED",
+        entity_type="user",
+        entity_id=user_to_update.id,
+        user=admin,
+        old_values=old_values,
+        new_values=new_values,
+        request=request
+    )
+    
+    return EmployeeResponse.model_validate(user_to_update).model_dump()

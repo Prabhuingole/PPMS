@@ -32,4 +32,11 @@ export const adminService = {
     });
     return response.data;
   },
+
+  updateAdmin: async (id: number, data: any) => {
+    const response = await axios.put(`${API_URL}/admins/${id}`, data, {
+      headers: getHeaders(),
+    });
+    return response.data;
+  },
 };

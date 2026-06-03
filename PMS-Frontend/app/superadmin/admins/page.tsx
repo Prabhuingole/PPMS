@@ -12,7 +12,8 @@ import {
   Mail,
   Phone,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Edit2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,9 +63,9 @@ import { useAuthStore } from '@/store/authStore';
 
 const adminSchema = z.object({
   employee_id: z.string().min(2, 'Admin ID is required'),
-  full_name: z.string().min(2, 'Full Name is required'),
-  email: z.string().trim().toLowerCase().email('Invalid email'),
-  mobile_number: z.string().length(10, 'Mobile must be 10 digits'),
+  full_name: z.string().min(2, 'Full Name is required').regex(/^[A-Za-z\s]+$/, 'Name cannot contain numbers or special characters'),
+  email: z.string().trim().toLowerCase().email('Invalid email').refine(val => val.endsWith('@gmail.com') || val === 'admin@sambhav.com', { message: 'Must be a @gmail.com address' }),
+  mobile_number: z.string().regex(/^[7-9]\d{9}$/, 'Must be a 10-digit Indian number starting with 7, 8, or 9'),
   role: z.literal('admin'),
   designation: z.string().min(2, 'Designation is required'),
 });
@@ -85,6 +86,8 @@ export default function AdminListPage() {
   const [newAdminName, setNewAdminName] = useState('');
   const [adminToDelete, setAdminToDelete] = useState<Employee | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [adminToEdit, setAdminToEdit] = useState<Employee | null>(null);
 
   const form = useForm<AdminFormValues>({
     resolver: zodResolver(adminSchema),
@@ -134,6 +137,22 @@ export default function AdminListPage() {
       form.reset();
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to create admin');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onEditSubmit = async (values: AdminFormValues) => {
+    if (!adminToEdit) return;
+    try {
+      setIsSubmitting(true);
+      await adminService.updateAdmin(adminToEdit.id, values);
+      toast.success('Admin updated successfully');
+      setIsEditModalOpen(false);
+      setAdminToEdit(null);
+      fetchAdmins();
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Failed to update admin');
     } finally {
       setIsSubmitting(false);
     }
@@ -294,6 +313,25 @@ export default function AdminListPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                onClick={() => {
+                                  setAdminToEdit(emp);
+                                  form.reset({
+                                    employee_id: emp.employee_id || '',
+                                    full_name: emp.full_name,
+                                    email: emp.email,
+                                    mobile_number: emp.mobile_number || '',
+                                    role: 'admin',
+                                    designation: emp.designation || 'System Admin',
+                                  });
+                                  setIsEditModalOpen(true);
+                                }}
+                                className="h-8 w-8 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors mr-2"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => setAdminToDelete(emp)}
                                 className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
                               >
@@ -433,6 +471,145 @@ export default function AdminListPage() {
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : 'Add New Admin'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditModalOpen} onOpenChange={(open) => {
+        setIsEditModalOpen(open);
+        if (!open) {
+          setAdminToEdit(null);
+          form.reset();
+        }
+      }}>
+        <DialogContent className="sm:max-w-[700px] rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-slate-900 p-6 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+              <ShieldCheck className="w-24 h-24" />
+            </div>
+            <DialogHeader className="relative z-10">
+              <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">
+                Edit Admin Details
+              </DialogTitle>
+              <DialogDescription className="text-slate-400 font-medium text-xs mt-1">
+                Update details for {adminToEdit?.full_name}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onEditSubmit)} className="space-y-4 p-6 bg-white">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="employee_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Identifier <span className="text-rose-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          readOnly
+                          className="h-10 rounded-lg border-slate-100 bg-slate-50 cursor-not-allowed text-slate-500 font-bold"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="full_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="Admin Name" {...field} className="h-10 rounded-lg border-slate-200 bg-slate-50/50 focus-visible:bg-white font-semibold text-sm" />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address <span className="text-rose-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="admin@gmail.com" 
+                          {...field} 
+                          className="h-10 rounded-lg border-slate-200 bg-slate-50/50 focus-visible:bg-white font-semibold text-sm" 
+                          readOnly={adminToEdit?.email === 'admin@sambhav.com'}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="mobile_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mobile Number <span className="text-rose-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="9876543210"
+                          {...field}
+                          maxLength={10}
+                          onChange={(e) => {
+                            field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10));
+                          }}
+                          className="h-10 rounded-lg border-slate-200 bg-slate-50/50 focus-visible:bg-white font-semibold text-sm"
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="designation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Designation <span className="text-rose-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="System Administrator" {...field} className="h-10 rounded-lg border-slate-200 bg-slate-50/50 focus-visible:bg-white font-semibold text-sm" />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <DialogFooter className="pt-4 border-t border-slate-50">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="rounded-lg h-10 px-4 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-slate-900"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg h-10 px-6 font-black uppercase tracking-widest text-[10px] shadow-sm"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : 'Save Changes'}
                 </Button>
               </DialogFooter>
             </form>
