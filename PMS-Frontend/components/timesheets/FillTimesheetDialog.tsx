@@ -587,16 +587,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
                             <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Project <span className="text-red-400">*</span></Label>
                             <Select value={entry.projectId} onValueChange={(v) => v && updateEntry(entry.id, 'projectId', v)}>
                               <SelectTrigger className="h-10 rounded-lg border-slate-200 text-xs font-bold w-full min-w-0 overflow-hidden">
-                                <SelectValue placeholder="Select Project" className="truncate">
-                                  {entry.projectId
-                                    ? entry.projectId === 'other'
-                                      ? 'Other Work'
-                                      : (() => {
-                                          const p = projects.find(proj => proj.id.toString() === entry.projectId);
-                                          return p ? (p.code ? `[${p.code}] — ${p.name}` : p.name) : entry.projectId;
-                                        })()
-                                    : undefined}
-                                </SelectValue>
+                                <SelectValue placeholder="Select Project" className="truncate" />
                               </SelectTrigger>
                               <SelectContent className="rounded-xl max-w-[400px]">
                                 {projects.map(p => (

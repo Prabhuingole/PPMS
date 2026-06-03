@@ -71,6 +71,22 @@ def create_timesheets(
     from sqlalchemy import cast, Date
     from datetime import datetime as dt
     
+    if not timesheets:
+        return []
+
+    # Check for existing submissions on the same date
+    target_dates = {ts.date.date() if hasattr(ts.date, 'date') else dt.fromisoformat(str(ts.date)).date() for ts in timesheets}
+    for t_date in target_dates:
+        existing = db.query(Timesheet).filter(
+            Timesheet.user_id == current_user.id,
+            cast(Timesheet.date, Date) == t_date
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A timesheet for {t_date.strftime('%d %b %Y')} has already been submitted. Please edit your existing submission instead."
+            )
+            
     created = []
     for ts in timesheets:
         new_ts = Timesheet(

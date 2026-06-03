@@ -72,68 +72,61 @@ type GroupedTimesheet = {
 
 export default function TimesheetApprovalPage() {
   const { token } = useAuthStore();
-  const [groups, setGroups] = useState<GroupedTimesheet[]>([]);
-  const [historyGroups, setHistoryGroups] = useState<GroupedTimesheet[]>([]);
+  const [pendingGroups, setPendingGroups] = useState<GroupedTimesheet[]>([]);
+  const [tableGroups, setTableGroups] = useState<GroupedTimesheet[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<GroupedTimesheet | null>(null);
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [visibleCount, setVisibleCount] = useState(5);
-  
-  const [historySearchTerm, setHistorySearchTerm] = useState('');
-  const [historyPage, setHistoryPage] = useState(1);
-  const [historyTotal, setHistoryTotal] = useState(0);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
-  const [debouncedHistorySearch, setDebouncedHistorySearch] = useState('');
-  const historyPageSize = 5;
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  const pageSize = 10;
 
   useWebSocketEvent('TIMESHEETS_UPDATED', () => setRefreshTrigger(prev => prev + 1));
 
+  // Fetch only pending for stats
   useEffect(() => {
     if (token) {
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/grouped`, {
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/grouped?status=pending`, {
         headers: { Authorization: `Bearer ${token}` }
-      }).then(res => setGroups(res.data)).catch(console.error);
+      }).then(res => setPendingGroups(res.data)).catch(console.error);
     }
   }, [token, refreshTrigger]);
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      setDebouncedHistorySearch(historySearchTerm);
-      setHistoryPage(1);
+      setDebouncedSearch(searchTerm);
+      setCurrentPage(1);
     }, 500);
     return () => clearTimeout(handler);
-  }, [historySearchTerm]);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (token) {
-      setIsHistoryLoading(true);
+      setIsLoading(true);
       axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/grouped/paginated`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { page: historyPage, size: historyPageSize, status: 'all', search: debouncedHistorySearch }
+        params: { page: currentPage, size: pageSize, status: statusFilter, search: debouncedSearch }
       })
       .then(res => {
-        setHistoryGroups(res.data.items || []);
-        setHistoryTotal(res.data.total || 0);
+        setTableGroups(res.data.items || []);
+        setTotalItems(res.data.total || 0);
       })
       .catch(console.error)
-      .finally(() => setIsHistoryLoading(false));
+      .finally(() => setIsLoading(false));
     }
-  }, [token, refreshTrigger, historyPage, debouncedHistorySearch]);
-
-  useEffect(() => {
-    setVisibleCount(5);
-  }, [searchTerm]);
+  }, [token, refreshTrigger, currentPage, debouncedSearch, statusFilter]);
 
   const formatDuration = (decimal: number) => {
     const h = Math.floor(decimal);
     const m = Math.round((decimal - h) * 60);
     return `${h}h ${m}m`;
   };
-
-
 
   const handleDownloadAttachment = async (timesheetId: number, filename: string) => {
     try {
@@ -183,18 +176,9 @@ export default function TimesheetApprovalPage() {
     }
   };
 
-  const filteredGroups = groups.filter(g => 
-    g.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    g.user_email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const displayedGroups = filteredGroups.slice(0, visibleCount);
-
-  const displayedHistoryGroups = historyGroups;
-
-  const totalPendingHours = groups.reduce((acc, g) => acc + g.total_hours, 0);
-  const totalTasks = groups.reduce((acc, g) => acc + g.task_count, 0);
-  const uniqueEmployees = new Set(groups.map(g => g.user_id)).size;
+  const totalPendingHours = pendingGroups.reduce((acc, g) => acc + g.total_hours, 0);
+  const totalTasks = pendingGroups.reduce((acc, g) => acc + g.task_count, 0);
+  const uniqueEmployees = new Set(pendingGroups.map(g => g.user_id)).size;
 
   const attendanceBadgeStyle = (att: string) => {
     switch (att) {
@@ -208,48 +192,32 @@ export default function TimesheetApprovalPage() {
     }
   };
 
-  // Generate consistent avatar colors from name
-  const avatarGradient = (name: string) => {
-    const gradients = [
-      'from-indigo-500 to-purple-600',
-      'from-emerald-500 to-teal-600',
-      'from-amber-500 to-orange-600',
-      'from-rose-500 to-pink-600',
-      'from-cyan-500 to-blue-600',
-      'from-violet-500 to-fuchsia-600',
-    ];
-    let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    return gradients[Math.abs(hash) % gradients.length];
-  };
-
   return (
     <div className="space-y-8">
-      {/* ── Hero Header ── */}
       {/* ── Hero Header ── */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-6 border-b border-slate-200">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900 flex items-center gap-2">
-            Timesheet Approvals
+            Timesheets
           </h2>
           <p className="text-slate-500 text-sm mt-1">
             Review, approve, or reject employee timesheet submissions
           </p>
         </div>
-        {groups.length > 0 && (
+        {pendingGroups.length > 0 && (
           <div className="flex items-center gap-2 bg-amber-50 rounded-lg px-3 py-1.5 border border-amber-200">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
             <span className="text-xs font-medium text-amber-700">
-              {groups.length} awaiting review
+              {pendingGroups.length} awaiting review
             </span>
           </div>
         )}
       </div>
 
-      {/* ── Stats Grid ── */}
+      {/* ── Stats Grid (Pending Only) ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { label: 'Pending Review', value: groups.length, sub: 'Submissions', icon: Clock },
+          { label: 'Pending Review', value: pendingGroups.length, sub: 'Submissions', icon: Clock },
           { label: 'Total Hours', value: formatDuration(totalPendingHours), sub: 'Pending Hours', icon: Timer },
           { label: 'Total Tasks', value: totalTasks, sub: `${uniqueEmployees} employee${uniqueEmployees !== 1 ? 's' : ''}`, icon: FileText },
         ].map((stat, i) => (
@@ -264,177 +232,46 @@ export default function TimesheetApprovalPage() {
         ))}
       </div>
 
-      {/* ── Queue Table ── */}
+      {/* ── Unified Table ── */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.3 }}
       >
         <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-slate-200">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border-b border-slate-200 bg-slate-50/50">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-900">Approval Queue</span>
-              <Badge variant="secondary" className="bg-slate-100 text-slate-600 rounded-md px-2 font-medium">
-                {filteredGroups.length}
-              </Badge>
-            </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input 
-                placeholder="Search employees..." 
-                className="h-9 pl-9 rounded-md border-slate-200 focus-visible:ring-1 focus-visible:ring-indigo-500 text-sm placeholder:text-slate-400"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-slate-200 hover:bg-transparent">
-                  <TableHead className="h-10 px-4 py-2 text-xs font-medium text-slate-500">Employee</TableHead>
-                  <TableHead className="h-10 px-4 py-2 text-xs font-medium text-slate-500">Date</TableHead>
-                  <TableHead className="h-10 px-4 py-2 text-xs font-medium text-slate-500">Attendance</TableHead>
-                  <TableHead className="h-10 px-4 py-2 text-xs font-medium text-slate-500">Tasks</TableHead>
-                  <TableHead className="h-10 px-4 py-2 text-xs font-medium text-slate-500">Duration</TableHead>
-                  <TableHead className="h-10 px-4 py-2 text-right" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {displayedGroups.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="py-20 text-center">
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="flex flex-col items-center gap-4"
-                      >
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
-                          <History className="h-7 w-7 text-slate-300" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-slate-400 uppercase tracking-wide">No Pending Timesheets</p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            {searchTerm ? 'Try adjusting your search' : 'All timesheets have been reviewed. Check back later.'}
-                          </p>
-                        </div>
-                      </motion.div>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  displayedGroups.map((group, i) => (
-                    <TableRow 
-                      key={`${group.user_id}_${group.date}`}
-                      className="group border-b border-slate-100 hover:bg-slate-50/50 cursor-pointer transition-colors"
-                      onClick={() => { setSelectedGroup(group); setFeedback(''); }}
-                    >
-                      <TableCell className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs bg-slate-100 text-slate-600 font-medium border border-slate-200">
-                              {group.user_name ? group.user_name.substring(0, 2).toUpperCase() : 'U'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-slate-900">{group.user_name}</span>
-                            <span className="text-xs text-slate-500">{group.user_designation || group.user_email}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-3">
-                        <span className="text-sm text-slate-700 font-medium">
-                          {new Date(group.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-3">
-                        <Badge variant="outline" className={cn(
-                          "font-medium text-xs px-2 py-0.5 rounded-md capitalize",
-                          attendanceBadgeStyle(group.attendance)
-                        )}>
-                          {group.attendance ? group.attendance.replace(/-/g, ' ') : 'Full Day'}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-3">
-                        <span className="text-sm text-slate-600">
-                          {group.task_count} {group.task_count === 1 ? 'task' : 'tasks'}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-700">{formatDuration(group.total_hours)}</span>
-                          {group.total_hours > 8 && (
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-700 px-1.5 py-0 rounded text-[10px] font-semibold">OT</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="px-4 py-3 text-right">
-                        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-600 inline-block transition-colors" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-
-          {filteredGroups.length > 5 && (
-            <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <span className="text-xs text-slate-500 font-medium">
-                Showing {displayedGroups.length} of {filteredGroups.length} pending submissions
-              </span>
-              <div className="flex items-center gap-3">
-                {visibleCount > 5 && (
-                  <Button
-                    onClick={() => setVisibleCount(5)}
-                    variant="outline"
-                    className="border-slate-200 text-slate-700 rounded-md h-8 px-4 text-xs font-medium"
-                  >
-                    See Less
-                  </Button>
-                )}
-                {visibleCount < filteredGroups.length && (
-                  <Button
-                    onClick={() => setVisibleCount(prev => prev + 5)}
-                    className="bg-slate-900 text-white hover:bg-slate-800 rounded-md h-8 px-4 text-xs font-medium"
-                  >
-                    Load More
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </motion.div>
-
-      {/* ── History Table ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, delay: 0.4 }}
-      >
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-slate-200 bg-slate-50">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-slate-900">Timesheet History</span>
+              <span className="text-sm font-semibold text-slate-900">All Timesheets</span>
               <Badge variant="secondary" className="bg-slate-200 text-slate-700 rounded-md px-2 font-medium">
-                {historyTotal}
+                {totalItems}
               </Badge>
             </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input 
-                placeholder="Search history by employee..." 
-                className="h-9 pl-9 rounded-md border-slate-200 bg-white focus-visible:ring-1 focus-visible:ring-indigo-500 text-sm placeholder:text-slate-400"
-                value={historySearchTerm}
-                onChange={(e) => setHistorySearchTerm(e.target.value)}
-              />
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="flex bg-slate-200/50 p-1 rounded-lg w-full sm:w-auto">
+                {['all', 'pending', 'approved', 'rejected'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => { setStatusFilter(status); setCurrentPage(1); }}
+                    className={cn(
+                      "flex-1 sm:flex-none px-4 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md transition-all",
+                      statusFilter === status 
+                        ? "bg-white text-indigo-600 shadow-sm" 
+                        : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                    )}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  placeholder="Search employees..." 
+                  className="h-9 pl-9 rounded-md border-slate-200 bg-white focus-visible:ring-1 focus-visible:ring-indigo-500 text-sm placeholder:text-slate-400"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
@@ -451,7 +288,16 @@ export default function TimesheetApprovalPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayedHistoryGroups.length === 0 ? (
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="py-20 text-center">
+                      <div className="flex flex-col items-center justify-center gap-3">
+                        <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-indigo-600" />
+                        <p className="text-sm font-medium text-slate-500">Loading timesheets...</p>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : tableGroups.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="py-20 text-center">
                       <motion.div
@@ -463,20 +309,20 @@ export default function TimesheetApprovalPage() {
                           <History className="h-7 w-7 text-slate-300" />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-slate-400 uppercase tracking-wide">No History Found</p>
+                          <p className="text-sm font-black text-slate-400 uppercase tracking-wide">No Timesheets Found</p>
                           <p className="text-xs text-slate-400 mt-1">
-                            {historySearchTerm ? 'Try adjusting your search' : 'No timesheets have been submitted yet.'}
+                            {searchTerm || statusFilter !== 'all' ? 'Try adjusting your filters' : 'No timesheets have been submitted yet.'}
                           </p>
                         </div>
                       </motion.div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayedHistoryGroups.map((group, i) => {
+                  tableGroups.map((group) => {
                     const status = group.tasks[0]?.status || 'pending';
                     return (
                       <TableRow 
-                        key={`${group.user_id}_${group.date}_hist`}
+                        key={`${group.user_id}_${group.date}`}
                         className="group border-b border-slate-100 hover:bg-slate-50/50 cursor-pointer transition-colors"
                         onClick={() => { setSelectedGroup(group); setFeedback(''); }}
                       >
@@ -540,23 +386,23 @@ export default function TimesheetApprovalPage() {
             </Table>
           </div>
 
-          {historyTotal > historyPageSize && (
+          {totalItems > pageSize && (
             <div className="p-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
               <span className="text-xs text-slate-500 font-medium">
-                Showing {Math.min((historyPage - 1) * historyPageSize + 1, historyTotal)} to {Math.min(historyPage * historyPageSize, historyTotal)} of {historyTotal} history records
+                Showing {Math.min((currentPage - 1) * pageSize + 1, totalItems)} to {Math.min(currentPage * pageSize, totalItems)} of {totalItems} records
               </span>
               <div className="flex items-center gap-3">
                 <Button
-                  onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
-                  disabled={historyPage === 1 || isHistoryLoading}
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || isLoading}
                   variant="outline"
                   className="border-slate-200 text-slate-700 rounded-md h-8 px-4 text-xs font-medium disabled:opacity-50"
                 >
                   Previous
                 </Button>
                 <Button
-                  onClick={() => setHistoryPage(p => p + 1)}
-                  disabled={historyPage * historyPageSize >= historyTotal || isHistoryLoading}
+                  onClick={() => setCurrentPage(p => p + 1)}
+                  disabled={currentPage * pageSize >= totalItems || isLoading}
                   className="bg-slate-900 text-white hover:bg-slate-800 rounded-md h-8 px-4 text-xs font-medium disabled:opacity-50"
                 >
                   Next
@@ -624,13 +470,12 @@ export default function TimesheetApprovalPage() {
                 </div>
 
                 <div className="space-y-3">
-                  {selectedGroup.tasks.map((task, taskIdx) => (
+                  {selectedGroup.tasks.map((task) => (
                     <div
                       key={task.id}
                       className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm"
                     >
                       <div className="flex items-start gap-3">
-                        {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-4">
                             <div className="min-w-0 space-y-1">
@@ -655,7 +500,6 @@ export default function TimesheetApprovalPage() {
                             </span>
                           </div>
 
-                          {/* Attachment */}
                           {task.attachment_path && (
                             <div className="mt-3 flex items-center gap-2">
                               <span className="text-xs text-slate-500 flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 w-fit">
