@@ -26,11 +26,7 @@ export default function EmployeeNotesPage() {
   
   const [pages, setPages] = useState<any[]>([]);
   const [activePageId, setActivePageId] = useState<number | null>(null);
-  const [activePage, setActivePage] = useState<NotePage | null>(null);
-
-  
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -89,23 +85,6 @@ export default function EmployeeNotesPage() {
     }
   }, [token, selectedProjectId, refreshTrigger, searchQuery]);
 
-  const loadPageContent = async (id: number) => {
-    try {
-      const page = await notesService.getPage(id);
-      setActivePage(page);
-    } catch (error) {
-      toast.error('Failed to load page');
-    }
-  };
-
-  useEffect(() => {
-    if (activePageId) {
-      loadPageContent(activePageId);
-    } else {
-      setActivePage(null);
-    }
-  }, [activePageId]);
-
   const handleCreatePage = async () => {
     if (!selectedProjectId) {
       toast.error("Please select a project first");
@@ -124,33 +103,14 @@ export default function EmployeeNotesPage() {
     }
   };
 
-  const handleUpdatePage = useCallback(async (id: number, data: Partial<NotePage>) => {
-    try {
-      setIsSaving(true);
-      await notesService.updatePage(id, data);
-      setRefreshTrigger(prev => prev + 1);
-      setTimeout(() => setIsSaving(false), 500);
-    } catch (error) {
-      setIsSaving(false);
-      toast.error('Failed to save changes');
-    }
-  }, []);
-
-  const handleContentChange = (field: 'title' | 'content', value: string) => {
-    if (!activePage) return;
-    
-    setActivePage(prev => prev ? { ...prev, [field]: value } : null);
-
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    
-    saveTimeoutRef.current = setTimeout(() => {
-      handleUpdatePage(activePage.id, { [field]: value });
-    }, 1000);
-  };
-
   const handleTogglePin = async (page: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    await handleUpdatePage(page.id, { is_pinned: !page.is_pinned });
+    try {
+      await notesService.updatePage(page.id, { is_pinned: !page.is_pinned });
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      toast.error('Failed to pin/unpin');
+    }
   };
 
   const handleDeletePage = async (id: number, e?: React.MouseEvent) => {
@@ -163,58 +123,6 @@ export default function EmployeeNotesPage() {
       toast.success('List deleted');
     } catch (error) {
       toast.error('Failed to delete list');
-    }
-  };
-
-  // Checklist functions
-  const handleAddChecklist = async (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && e.currentTarget.value.trim() && activePage) {
-      const text = e.currentTarget.value.trim();
-      e.currentTarget.value = '';
-      try {
-        const item = await notesService.addChecklistItem(activePage.id, { text });
-        setActivePage(prev => prev ? {
-          ...prev, 
-          checklist_items: [...prev.checklist_items, item]
-        } : null);
-        setRefreshTrigger(prev => prev + 1);
-      } catch (error) {
-        toast.error('Failed to add task');
-      }
-    }
-  };
-
-  const handleToggleChecklist = async (itemId: number) => {
-    if (!activePage) return;
-    try {
-      const updatedItem = await notesService.toggleChecklistItem(itemId);
-      setActivePage(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          checklist_items: prev.checklist_items.map(item => item.id === itemId ? updatedItem : item)
-        };
-      });
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      toast.error('Failed to update task');
-    }
-  };
-
-  const handleDeleteChecklist = async (itemId: number) => {
-    if (!activePage) return;
-    try {
-      await notesService.deleteChecklistItem(itemId);
-      setActivePage(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          checklist_items: prev.checklist_items.filter(item => item.id !== itemId)
-        };
-      });
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      toast.error('Failed to delete task');
     }
   };
 
@@ -345,115 +253,11 @@ export default function EmployeeNotesPage() {
 
       {/* MAIN EDITOR */}
       <div className="flex-1 flex flex-col min-w-0 bg-white relative">
-        {activePage ? (
-          <>
-            {/* Editor Header */}
-            <div className="h-14 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white/50 backdrop-blur-xl z-10 sticky top-0">
-              <div className="flex items-center space-x-3">
-                <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
-                  To Do List
-                </div>
-                <div className="flex items-center text-[10px] font-bold text-slate-400">
-                  <Clock className="h-3 w-3 mr-1.5" />
-                  Last edited {formatDistanceToNow(new Date(activePage.updated_at + (activePage.updated_at.endsWith('Z') ? '' : 'Z')), { addSuffix: true })}
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <AnimatePresence>
-                  {isSaving && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="flex items-center text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full"
-                    >
-                      <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> Saving
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                {!isSaving && (
-                  <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 py-1">
-                    <Check className="h-3 w-3 mr-1.5 text-emerald-500" /> Saved
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Editor Content */}
-            <div className="flex-1 overflow-y-auto px-8 md:px-16 py-12 pb-32">
-              <div className="max-w-3xl mx-auto space-y-6">
-                
-                {/* Title Input */}
-                <input 
-                  type="text"
-                  value={activePage.title}
-                  onChange={(e) => handleContentChange('title', e.target.value)}
-                  placeholder="Untitled To Do List"
-                  className="w-full text-4xl font-black tracking-tight text-slate-900 border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0"
-                />
-
-                {/* Content Textarea */}
-                <textarea 
-                  value={activePage.content || ''}
-                  onChange={(e) => handleContentChange('content', e.target.value)}
-                  placeholder="Add a brief description..."
-                  className="w-full min-h-[60px] text-base leading-relaxed text-slate-700 border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0 resize-none font-medium"
-                />
-
-                {/* Checklist Section */}
-                <div className="pt-6 border-t border-slate-100 mt-6">
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 flex items-center mb-6">
-                    <CheckSquare className="h-4 w-4 mr-2 text-indigo-600" /> Task List
-                  </h3>
-                  
-                  <div className="space-y-2 mb-6">
-                    {activePage.checklist_items.map((item) => (
-                      <div key={item.id} className="flex items-start group">
-                        <button 
-                          onClick={() => handleToggleChecklist(item.id)}
-                          className="mt-0.5 mr-3 shrink-0 text-slate-300 hover:text-indigo-600 transition-colors"
-                        >
-                          {item.is_completed ? (
-                            <CheckSquare2 className="h-5 w-5 text-indigo-600" />
-                          ) : (
-                            <Square className="h-5 w-5" />
-                          )}
-                        </button>
-                        <span className={cn(
-                          "flex-1 text-sm font-medium pt-0.5 outline-none transition-all",
-                          item.is_completed ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700"
-                        )}>
-                          {item.text}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteChecklist(item.id)}
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 rounded-full"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                    {activePage.checklist_items.length === 0 && (
-                      <p className="text-xs text-slate-400 italic">No tasks added yet.</p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center">
-                    <Plus className="h-4 w-4 mr-3 text-slate-300" />
-                    <input 
-                      type="text"
-                      placeholder="Add a new task... (Press Enter)"
-                      onKeyDown={handleAddChecklist}
-                      className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-slate-300 focus:ring-0 p-0 font-medium"
-                    />
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </>
+        {activePageId ? (
+          <MainEditor 
+            pageId={activePageId} 
+            onPageUpdated={() => setRefreshTrigger(prev => prev + 1)} 
+          />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/30">
             <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4">
@@ -526,3 +330,242 @@ function PageSidebarItem({ page, isActive, onClick, onPin, onDelete }: {
     </div>
   );
 }
+
+function LocalInput({ initialValue, onChange, placeholder, className }: { initialValue: string, onChange: (val: string) => void, placeholder: string, className: string }) {
+  const [val, setVal] = useState(initialValue || '');
+  
+  useEffect(() => {
+    setVal(initialValue || '');
+  }, [initialValue]);
+
+  return (
+    <input 
+      type="text"
+      value={val}
+      onChange={(e) => {
+        setVal(e.target.value);
+        onChange(e.target.value);
+      }}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
+
+function LocalTextarea({ initialValue, onChange, placeholder, className }: { initialValue: string, onChange: (val: string) => void, placeholder: string, className: string }) {
+  const [val, setVal] = useState(initialValue || '');
+  
+  useEffect(() => {
+    setVal(initialValue || '');
+  }, [initialValue]);
+
+  return (
+    <textarea 
+      value={val}
+      onChange={(e) => {
+        setVal(e.target.value);
+        onChange(e.target.value);
+      }}
+      placeholder={placeholder}
+      className={className}
+    />
+  );
+}
+
+function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: () => void }) {
+  const [activePage, setActivePage] = useState<NotePage | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadPageContent = async (id: number) => {
+    try {
+      const page = await notesService.getPage(id);
+      setActivePage(page);
+    } catch (error) {
+      toast.error('Failed to load page');
+    }
+  };
+
+  useEffect(() => {
+    loadPageContent(pageId);
+  }, [pageId]);
+
+  const handleUpdatePage = useCallback(async (data: Partial<NotePage>) => {
+    if (!activePage) return;
+    try {
+      setIsSaving(true);
+      await notesService.updatePage(activePage.id, data);
+      onPageUpdated();
+      setTimeout(() => setIsSaving(false), 500);
+    } catch (error) {
+      setIsSaving(false);
+      toast.error('Failed to save changes');
+    }
+  }, [activePage, onPageUpdated]);
+
+  const handleContentChange = (field: 'title' | 'content', value: string) => {
+    // We intentionally DO NOT update activePage here to prevent MainEditor from re-rendering on every single keystroke.
+    // The LocalInput and LocalTextarea manage their own visible typing state instantly.
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => {
+      handleUpdatePage({ [field]: value });
+    }, 1000);
+  };
+
+  const handleAddChecklist = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && e.currentTarget.value.trim() && activePage) {
+      const text = e.currentTarget.value.trim();
+      e.currentTarget.value = '';
+      try {
+        const item = await notesService.addChecklistItem(activePage.id, { text });
+        setActivePage(prev => prev ? {
+          ...prev, 
+          checklist_items: [...prev.checklist_items, item]
+        } : null);
+        onPageUpdated();
+      } catch (error) {
+        toast.error('Failed to add task');
+      }
+    }
+  };
+
+  const handleToggleChecklist = async (itemId: number) => {
+    if (!activePage) return;
+    try {
+      const updatedItem = await notesService.toggleChecklistItem(itemId);
+      setActivePage(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          checklist_items: prev.checklist_items.map(item => item.id === itemId ? updatedItem : item)
+        };
+      });
+      onPageUpdated();
+    } catch (error) {
+      toast.error('Failed to update task');
+    }
+  };
+
+  const handleDeleteChecklist = async (itemId: number) => {
+    if (!activePage) return;
+    try {
+      await notesService.deleteChecklistItem(itemId);
+      setActivePage(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          checklist_items: prev.checklist_items.filter(item => item.id !== itemId)
+        };
+      });
+      onPageUpdated();
+    } catch (error) {
+      toast.error('Failed to delete task');
+    }
+  };
+
+  if (!activePage) return <div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-500 h-8 w-8" /></div>;
+
+  return (
+    <>
+      <div className="h-14 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white/50 backdrop-blur-xl z-10 sticky top-0">
+        <div className="flex items-center space-x-3">
+          <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
+            To Do List
+          </div>
+          <div className="flex items-center text-[10px] font-bold text-slate-400">
+            <Clock className="h-3 w-3 mr-1.5" />
+            Last edited {formatDistanceToNow(new Date(activePage.updated_at + (activePage.updated_at.endsWith('Z') ? '' : 'Z')), { addSuffix: true })}
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <AnimatePresence>
+            {isSaving && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full"
+              >
+                <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> Saving
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {!isSaving && (
+            <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 py-1">
+              <Check className="h-3 w-3 mr-1.5 text-emerald-500" /> Saved
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-8 md:px-16 py-12 pb-32">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <LocalInput 
+            initialValue={activePage.title}
+            onChange={(val: string) => handleContentChange('title', val)}
+            placeholder="Untitled To Do List"
+            className="w-full text-4xl font-black tracking-tight text-slate-900 border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0"
+          />
+
+          <LocalTextarea 
+            initialValue={activePage.content || ''}
+            onChange={(val: string) => handleContentChange('content', val)}
+            placeholder="Add a brief description..."
+            className="w-full min-h-[60px] text-base leading-relaxed text-slate-700 border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0 resize-none font-medium"
+          />
+
+          <div className="pt-6 border-t border-slate-100 mt-6">
+            <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 flex items-center mb-6">
+              <CheckSquare className="h-4 w-4 mr-2 text-indigo-600" /> Task List
+            </h3>
+            
+            <div className="space-y-2 mb-6">
+              {activePage.checklist_items.map((item) => (
+                <div key={item.id} className="flex items-start group">
+                  <button 
+                    onClick={() => handleToggleChecklist(item.id)}
+                    className="mt-0.5 mr-3 shrink-0 text-slate-300 hover:text-indigo-600 transition-colors"
+                  >
+                    {item.is_completed ? (
+                      <CheckSquare2 className="h-5 w-5 text-indigo-600" />
+                    ) : (
+                      <Square className="h-5 w-5" />
+                    )}
+                  </button>
+                  <span className={cn(
+                    "flex-1 text-sm font-medium pt-0.5 outline-none transition-all",
+                    item.is_completed ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700"
+                  )}>
+                    {item.text}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDeleteChecklist(item.id)}
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 rounded-full"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+              {activePage.checklist_items.length === 0 && (
+                <p className="text-xs text-slate-400 italic">No tasks added yet.</p>
+              )}
+            </div>
+
+            <div className="flex items-center">
+              <Plus className="h-4 w-4 mr-3 text-slate-300" />
+              <input 
+                type="text"
+                placeholder="Add a new task... (Press Enter)"
+                onKeyDown={handleAddChecklist}
+                className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-slate-300 focus:ring-0 p-0 font-medium"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+

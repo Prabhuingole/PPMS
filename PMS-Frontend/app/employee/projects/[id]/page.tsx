@@ -494,25 +494,7 @@ export default function ProjectDetailsPage() {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                                    onClick={async () => {
-                                      const newWindow = window.open('about:blank', '_blank');
-                                      if (newWindow) newWindow.document.write('<div style="font-family:sans-serif;padding:20px;text-align:center;">Loading document viewer...</div>');
-                                      try {
-                                        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/download/${doc.id}?inline=true`, {
-                                          headers: { Authorization: `Bearer ${token}` }
-                                        });
-                                        if (response.data?.url) {
-                                           if (newWindow) newWindow.location.href = response.data.url;
-                                           else window.open(response.data.url, '_blank');
-                                        } else {
-                                           if (newWindow) newWindow.close();
-                                           toast.error('Failed to retrieve document URL');
-                                        }
-                                      } catch (error) {
-                                        if (newWindow) newWindow.close();
-                                        toast.error('Failed to view document');
-                                      }
-                                    }}
+                                    onClick={() => window.open(`/employee/projects/view-doc?id=${doc.id}`, '_blank')}
                                  >
                                     <Eye className="h-4 w-4" />
                                  </Button>
