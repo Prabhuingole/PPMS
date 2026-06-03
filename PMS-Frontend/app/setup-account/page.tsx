@@ -154,7 +154,8 @@ export default function SetupAccountPage() {
                             <Input 
                               placeholder="name@company.com" 
                               {...field} 
-                              className="pl-11 h-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
+                              disabled
+                              className="pl-11 h-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold disabled:opacity-75 disabled:cursor-not-allowed"
                             />
                           </div>
                         </FormControl>
@@ -175,7 +176,7 @@ export default function SetupAccountPage() {
                               type={showNewPassword ? "text" : "password"}
                               placeholder="••••••••"
                               {...field}
-                              className="h-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
+                              className="h-12 pr-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
                             />
                             <button
                               type="button"
@@ -207,7 +208,7 @@ export default function SetupAccountPage() {
                               type={showConfirmPassword ? "text" : "password"}
                               placeholder="••••••••"
                               {...field}
-                              className="h-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
+                              className="h-12 pr-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
                             />
                             <button
                               type="button"
