@@ -427,7 +427,8 @@ def forgot_password(payload: ForgotPasswordSchema, request: Request, db: Session
         return {"message": "If an account exists, a password reset link has been sent."}
     
     token = create_reset_token(email=user.email)
-    frontend_url = "http://localhost:3000"  # We should use an env var in production, but hardcoding for now as it's a known URL
+    from app.core.config import settings
+    frontend_url = settings.FRONTEND_URL
     reset_link = f"{frontend_url}/reset-password?token={token}"
     
     send_password_reset_email(to_email=user.email, employee_name=user.full_name, reset_link=reset_link)

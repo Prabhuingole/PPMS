@@ -21,7 +21,7 @@ def send_temporary_password_email(to_email: str, employee_name: str, temp_passwo
         <li><strong>Email:</strong> {to_email}</li>
         <li><strong>Temporary Password:</strong> {temp_password}</li>
     </ul>
-    <p>Please <a href="http://localhost:3000/login">click here to log in</a>.</p>
+    <p>Please <a href="{settings.FRONTEND_URL}/login">click here to log in</a>.</p>
     <p>You will be prompted to set a new, secure password upon your first login.</p>
     <p>Best regards,<br>The Team</p>
     """
