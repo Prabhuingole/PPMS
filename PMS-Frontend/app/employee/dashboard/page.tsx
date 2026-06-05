@@ -23,6 +23,7 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 import { Popover, PopoverContent, PopoverHeader, PopoverTrigger } from '@/components/ui/popover';
+import { AttendanceWidget } from '@/components/employee/AttendanceWidget';
 
 export default function EmployeeDashboard() {
   const { token, user } = useAuthStore();
@@ -99,6 +100,11 @@ export default function EmployeeDashboard() {
            <PlusCircle className="mr-2 h-4 w-4" /> Fill Timesheet
         </Link>
       </div>
+
+      {/* Attendance Widget */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <AttendanceWidget />
+      </motion.div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

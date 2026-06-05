@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Scope Document - SPMS</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            color: #333;
+        }
+        h1, h2, h3, h4, h5 {
+            color: #1e293b;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        h1 { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
+        h2 { border-bottom: 1px solid #e2e8f0; padding-bottom: 0.3em; }
+        a { color: #2563eb; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        code {
+            background: #f1f5f9;
+            padding: 0.2em 0.4em;
+            border-radius: 6px;
+            font-size: 85%;
+            font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+        }
+        pre {
+            background: #f8fafc;
+            padding: 16px;
+            overflow-x: auto;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f8fafc;
+        }
+        hr {
+            height: 1px;
+            background-color: #e2e8f0;
+            border: none;
+            margin: 24px 0;
+        }
+        ul, ol {
+            padding-left: 2em;
+        }
+        li {
+            margin-bottom: 0.25em;
+        }
+    </style>
+</head>
+<body>
+<h1>Scope of Work</h1>
+<h2>Project Information</h2>
+<p><strong>Project Name:</strong><br />
+Sambhav Project Management System (SPMS)</p>
+<p><strong>Document Type:</strong><br />
+Scope of Work</p>
+<p><strong>Document Status:</strong><br />
+Current System Scope</p>
+<p><strong>Version:</strong><br />
+Auto-generated from codebase</p>
+<p><strong>Generated Date:</strong><br />
+2026-06-04</p>
+<hr />
+<h1>Executive Summary</h1>
+<p>The Sambhav Project Management System (SPMS) is a modernized, unified digital platform designed to optimize internal workflows, human resource oversight, and project execution. Built to eliminate fragmented tracking methods, SPMS provides a centralized hub where organizations can securely oversee their workforce and project lifecycles. </p>
+<p>The primary business objectives of SPMS are to enforce accountability, streamline daily operations, and reduce administrative overhead. By solving the core problems of disjointed task tracking, manual timesheet reviews, and poor project visibility, SPMS empowers leadership to make data-driven decisions while ensuring employees have a frictionless environment to report their daily progress. The intended users range from executive leadership (Super Admins) to daily operational staff (Employees and Interns).</p>
+<hr />
+<h1>Project Overview</h1>
+<p>SPMS operates as a centralized web-based Project Management System explicitly engineered to manage the following core operational pillars:</p>
+<ul>
+<li><strong>Employees:</strong> Comprehensive lifecycle and profile management.</li>
+<li><strong>Reporting Managers:</strong> Hierarchical team assignments and oversight.</li>
+<li><strong>Projects:</strong> End-to-end tracking of project details, milestones, and documentation.</li>
+<li><strong>Timesheets:</strong> Daily logging of billable/non-billable hours with a structured approval flow.</li>
+<li><strong>Templates:</strong> Standardized governance artifacts (e.g., PRD, BRD).</li>
+<li><strong>Activity Tracking:</strong> Continuous auditing of system and user events.</li>
+<li><strong>Administrative Operations:</strong> Granular control over platform access and configurations.</li>
+</ul>
+<p>By seamlessly connecting project assignments with daily time tracking and managerial oversight, SPMS radically improves project visibility and overall operational efficiency.</p>
+<hr />
+<h1>System Architecture</h1>
+<h2>Frontend</h2>
+<ul>
+<li><strong>Framework:</strong> Next.js (App Router)</li>
+<li><strong>UI Technology:</strong> React, Tailwind CSS, Shadcn UI, Radix UI primitives, Framer Motion (animations)</li>
+<li><strong>State Management:</strong> Zustand (global state), React local state</li>
+<li><strong>Routing:</strong> Next.js native file-based routing</li>
+</ul>
+<h2>Backend</h2>
+<ul>
+<li><strong>Framework:</strong> FastAPI (Python)</li>
+<li><strong>APIs:</strong> RESTful architecture with WebSocket support for real-time updates</li>
+<li><strong>Authentication:</strong> JWT (JSON Web Tokens) with bcrypt password hashing</li>
+</ul>
+<h2>Database</h2>
+<ul>
+<li><strong>Database Technology:</strong> Relational Database (via SQLAlchemy ORM, compatible with PostgreSQL/SQLite)</li>
+<li><strong>Entity Relationships:</strong> Deeply relational architecture linking Users to Projects, Timesheets to Users and Projects, and Audit Logs tracking entities system-wide.</li>
+</ul>
+<hr />
+<h1>User Roles &amp; Permissions</h1>
+<p>SPMS enforces a robust Role-Based Access Control (RBAC) architecture. The implemented roles and their capabilities are defined below:</p>
+<h2>Super Admin</h2>
+<ul>
+<li>Manage all Admins, Employees, and Reporting Managers</li>
+<li>Full CRUD (Create, Read, Update, Delete) access to Projects</li>
+<li>Manage Master Templates and Governance Documents</li>
+<li>View and export global Activity Logs (Audit Trail)</li>
+<li>Oversee all Timesheets (Approve/Reject globally)</li>
+<li>Configure master system Settings and view Active Sessions</li>
+</ul>
+<h2>Admin</h2>
+<ul>
+<li>Manage Employees and Reporting Managers</li>
+<li>Manage Projects and Team Assignments</li>
+<li>Oversee Timesheet approval queues</li>
+<li>Access Activity Logs</li>
+<li>View Master Templates</li>
+</ul>
+<h2>Reporting Manager</h2>
+<ul>
+<li>View assigned team members</li>
+<li>Manage and track Projects assigned to their purview</li>
+<li>Review, approve, and reject Timesheets submitted by direct reports</li>
+<li>View Project Documents and Master Templates</li>
+</ul>
+<h2>Employee</h2>
+<ul>
+<li>View assigned Projects and associated documentation</li>
+<li>Submit daily Timesheets and view approval status</li>
+<li>Maintain personal To-Do lists and Notes</li>
+<li>Access Master Templates for daily operations</li>
+<li>Manage personal profile settings</li>
+</ul>
+<h2>Intern</h2>
+<ul>
+<li>Functionally similar to the Employee role with restricted administrative visibility, focused purely on task execution and daily timesheet submission.</li>
+</ul>
+<hr />
+<h1>Functional Modules</h1>
+<h2>Authentication &amp; Authorization</h2>
+<ul>
+<li><strong>Login/Logout:</strong> Secure credential-based authentication returning JWT access tokens.</li>
+<li><strong>Session Management:</strong> Tracking of active login sessions and device information via User-Agent parsing.</li>
+<li><strong>Role-Based Access Control:</strong> API and Route-level guards ensuring strict adherence to role privileges.</li>
+</ul>
+<h2>Dashboard Module</h2>
+<ul>
+<li><strong>Dashboard Widgets:</strong> Real-time counters for Total Employees, Active Projects, and Pending/Approved Timesheets.</li>
+<li><strong>Metrics:</strong> Weekly hours trends, status distributions, and team utilization charts.</li>
+<li><strong>Quick Insights:</strong> Live feeds of recent organizational activity and timesheet submissions.</li>
+</ul>
+<h2>Employee Management Module</h2>
+<ul>
+<li><strong>Create/Edit/Delete Employee:</strong> Full lifecycle management of user accounts.</li>
+<li><strong>Employee Profiles:</strong> Detailed views including designations, roles, and contact information.</li>
+<li><strong>Employee Assignment:</strong> Assigning employees to specific Reporting Managers and Projects.</li>
+</ul>
+<h2>Reporting Manager Module</h2>
+<ul>
+<li><strong>Manager Creation:</strong> Upgrading employees to manager status.</li>
+<li><strong>Manager Assignment:</strong> Linking managers to specific projects for direct oversight.</li>
+<li><strong>Team Management:</strong> Visibility into the performance and timesheets of assigned team members.</li>
+</ul>
+<h2>Project Management Module</h2>
+<h3>Features</h3>
+<ul>
+<li><strong>Project Creation &amp; Editing:</strong> Defining project scope, client details, and total allocated hours.</li>
+<li><strong>Project &amp; Team Assignment:</strong> Allocating specific employees and managers to project rosters.</li>
+<li><strong>Project Status Tracking:</strong> Monitoring active, completed, or on-hold statuses.</li>
+<li><strong>Project Timeline Tracking:</strong> Start and end date management against logged hours.</li>
+<li><strong>Project Documents:</strong> Secure upload, storage (via S3/R2), and inline viewing of project-specific files.</li>
+<li><strong>Project Details View:</strong> Aggregated metrics displaying total hours worked vs. total hours remaining.</li>
+</ul>
+<h2>Timesheet Management Module</h2>
+<ul>
+<li><strong>Timesheet Creation:</strong> Employees logging daily hours against specific projects or general categories.</li>
+<li><strong>Timesheet Submission:</strong> Restriction limiting submissions to one consolidated timesheet per day to prevent fragmentation.</li>
+<li><strong>Timesheet Approval Flow:</strong> A dual-queue system allowing Managers/Admins to bulk approve or reject timesheets with mandatory feedback.</li>
+<li><strong>Time Tracking:</strong> Calculation of daily, weekly, and project-lifetime hours.</li>
+<li><strong>Historical Records:</strong> Read-only archives of past approved or rejected timesheets.</li>
+</ul>
+<h2>Notes &amp; To-Do Module</h2>
+<ul>
+<li><strong>Personal Workspaces:</strong> Private areas for employees to manage daily tasks.</li>
+<li><strong>Checklists:</strong> Interactive task lists with real-time saving and debounce optimization.</li>
+<li><strong>Pinning &amp; Organization:</strong> Ability to pin important notes for quick access.</li>
+</ul>
+<h2>Templates Module</h2>
+<ul>
+<li><strong>Template Creation &amp; Management:</strong> Admins uploading Master Templates (PRD, BRD, Scope Documents).</li>
+<li><strong>Template Usage:</strong> Employees downloading or securely viewing governance templates inline without needing external software.</li>
+</ul>
+<h2>Activity Logs Module</h2>
+<ul>
+<li><strong>System Tracking:</strong> Automatic backend logging of critical database mutations.</li>
+<li><strong>User Activity Monitoring:</strong> Tracking who performed what action and when.</li>
+<li><strong>Audit Trail:</strong> Read-only historical ledger of events like <code>PROJECT_CREATED</code>, <code>TIMESHEET_APPROVED</code>, and <code>TIMESHEET_EDITED</code>.</li>
+</ul>
+<h2>Settings Module</h2>
+<ul>
+<li><strong>Profile Settings:</strong> User-level password and bio updates.</li>
+<li><strong>System Settings:</strong> Super Admin visibility into active user sessions, device types, and operating systems.</li>
+</ul>
+<hr />
+<h1>Data Management</h1>
+<ul>
+<li><strong>Employee Data:</strong> Secure storage of PII, hashed passwords, and organizational hierarchy links.</li>
+<li><strong>Project Data:</strong> Centralized repository for project metadata, timelines, and hour budgets.</li>
+<li><strong>Timesheet Data:</strong> Highly relational tracking of time spent per project, per employee, per day.</li>
+<li><strong>Activity Log Data:</strong> Immutable ledger for compliance and security auditing.</li>
+<li><strong>Document Storage:</strong> Integration with cloud object storage (S3/R2 compatible) for project files, timesheet attachments, and master templates, utilizing secure presigned URLs.</li>
+</ul>
+<hr />
+<h1>Key Features</h1>
+<ul>
+<li><strong>Role-Based Access Control:</strong> Strict data siloing ensuring users only see what they are authorized to see.</li>
+<li><strong>Project Tracking:</strong> Granular monitoring of project health through timesheet hour aggregation.</li>
+<li><strong>Team Management:</strong> Clear hierarchical structures tying employees to managers.</li>
+<li><strong>Document Management:</strong> Secure, inline viewing and downloading of enterprise artifacts.</li>
+<li><strong>Activity Monitoring:</strong> Comprehensive auditing for enterprise accountability.</li>
+<li><strong>Timesheet Tracking:</strong> Streamlined, strict daily time-logging with mandatory manager feedback loops.</li>
+</ul>
+<hr />
+<h1>Workflow Overview</h1>
+<p><strong>Core Operational Workflow:</strong>
+1. <strong>Admin</strong> creates a Project and assigns a <strong>Reporting Manager</strong> and <strong>Employees</strong>.
+2. <strong>Employee</strong> logs into the portal, views the assigned Project, and accesses necessary Master Templates.
+3. <strong>Employee</strong> works on tasks, optionally utilizing the Notes/To-Do module.
+4. <strong>Employee</strong> submits a consolidated daily Timesheet detailing hours spent on the Project.
+5. <strong>Reporting Manager</strong> receives a notification, reviews the Timesheet, and Approves or Rejects it with mandatory feedback.
+6. <strong>Super Admin</strong> monitors high-level Dashboard metrics to ensure operational efficiency and project budget adherence.</p>
+<hr />
+<h1>Security &amp; Access Control</h1>
+<ul>
+<li><strong>Authentication:</strong> Required for all API interactions; enforced via Bearer JWTs.</li>
+<li><strong>Authorization:</strong> Backend dependency injection checks user roles before executing mutations.</li>
+<li><strong>Protected Routes:</strong> Next.js middleware and layout guards prevent unauthorized UI access.</li>
+<li><strong>Data Access Restrictions:</strong> Employees can only fetch timesheets and projects assigned explicitly to them. Document access requires generating ephemeral, securely signed URLs.</li>
+</ul>
+<hr />
+<h1>Current Scope Boundaries</h1>
+<p>To ensure clarity on the current state of the platform, <strong>the following modules are explicitly NOT part of the current implemented scope:</strong></p>
+<ul>
+<li>Attendance Management (Clock-in/Clock-out tracking)</li>
+<li>Leave Management &amp; Approval Workflows</li>
+<li>Payroll Processing &amp; Invoice Generation</li>
+<li>Face Recognition / Biometrics</li>
+<li>Location / GPS Tracking</li>
+<li>Recruitment Management (ATS)</li>
+<li>Performance Evaluation System</li>
+</ul>
+<hr />
+<h1>Non-Functional Requirements</h1>
+<ul>
+<li><strong>Performance Expectations:</strong> Optimized React rendering minimizing layout thrashing. Asynchronous backend processing for notifications and websockets.</li>
+<li><strong>Scalability:</strong> Stateless API design allowing for horizontal backend scaling, heavily reliant on a centralized PostgreSQL/Relational database.</li>
+<li><strong>Security:</strong> Prevention of insecure direct object references (IDOR) via strict row-level authorization checks in API endpoints.</li>
+<li><strong>Maintainability:</strong> Modular component architecture using Tailwind and Shadcn, alongside a FastAPI architecture cleanly separating routes and models.</li>
+<li><strong>Availability:</strong> Web-based architecture accessible 24/7 via modern web browsers.</li>
+</ul>
+<hr />
+<h1>Future Enhancement Opportunities</h1>
+<p><em>The following features are slated for the future product roadmap and are not currently active:</em></p>
+<ul>
+<li>Dedicated Attendance System</li>
+<li>Integrated Leave Management</li>
+<li>Automated Payroll &amp; Invoicing</li>
+<li>Granular Notification System (Email/Push)</li>
+<li>Advanced Analytics Dashboard (Predictive Project Budgeting)</li>
+<li>Native Mobile Application</li>
+</ul>
+<hr />
+<h1>Deliverables Summary</h1>
+<ul>
+<li><strong>Modules Delivered:</strong> Dashboard, Employee Management, Project Management, Timesheets, Notes/To-Do, Templates, Activity Logs, Settings.</li>
+<li><strong>Features Delivered:</strong> Secure Authentication, S3 Document Integration, Real-time WebSockets, Audit Trails, Hierarchical Data Filtering.</li>
+<li><strong>User Roles Supported:</strong> Super Admin, Admin, Reporting Manager, Employee, Intern.</li>
+<li><strong>Current System Capabilities:</strong> Comprehensive, secure, and centralized project and time tracking suitable for mid-to-large organizational deployment.</li>
+</ul>
+<hr />
+<h1>Conclusion</h1>
+<p>The Sambhav Project Management System (SPMS) successfully delivers a highly capable, centralized project management platform. Through its implementation of strict role-based access control, integrated document handling, and rigorous timesheet governance, SPMS streamlines employee management, project tracking, and administrative oversight. The current scope provides a robust foundation that solves immediate operational inefficiencies, paving the way for future scalability and enterprise enhancements.</p>
+</body>
+</html>

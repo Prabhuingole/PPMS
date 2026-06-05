@@ -18,7 +18,7 @@ from app.models.audit_log import AuditLog
 from app.models.note import NoteWorkspace, NotePage, NoteChecklistItem
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.routes import auth, employee_management, reporting_manager, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents
+from app.routes import auth, employee_management, reporting_manager, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance
 from fastapi import WebSocket, WebSocketDisconnect, Request
 from app.core.websockets import manager
 from slowapi import _rate_limit_exceeded_handler
@@ -98,6 +98,7 @@ app.include_router(employee_management.router)
 app.include_router(reporting_manager.router)
 app.include_router(project_management.router)
 app.include_router(documents.router)
+app.include_router(attendance.router)
 app.include_router(templates.router)
 app.include_router(timesheets.router)
 app.include_router(notifications.router)

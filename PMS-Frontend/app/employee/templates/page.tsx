@@ -150,14 +150,7 @@ export default function EmployeeTemplatesPage() {
                    </div>
                 )}
 
-                <div className="flex flex-wrap gap-2">
-                   {template.filename && (
-                      <Badge variant="outline" className="text-xs font-semibold border-emerald-200 bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full">
-                         <FileText className="h-3.5 w-3.5 mr-1.5" />
-                         Asset Available
-                      </Badge>
-                   )}
-                </div>
+
 
                 <div className="flex gap-3">
                    {template.filename && (

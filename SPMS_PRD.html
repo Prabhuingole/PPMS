@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Requirements Document - SPMS</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+        :root {
+            --orange: #f05a28;
+            --black: #111111;
+            --bg: #f9f8f4;
+            --border: #e2e8f0;
+            --text: #334155;
+            --text-dark: #0f172a;
+        }
+
+        body {
+            background-color: var(--bg);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            padding: 40px 20px;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 60px 80px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .pre-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #64748b;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        h1.main-title {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--black);
+            text-transform: uppercase;
+            margin: 0 0 16px 0;
+            letter-spacing: -0.5px;
+        }
+
+        .sub-title {
+            color: var(--orange);
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 32px;
+        }
+
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 40px;
+        }
+
+        .meta-table td {
+            border: 1px solid var(--border);
+            padding: 16px;
+            font-size: 14px;
+        }
+
+        .meta-table td strong {
+            color: var(--text-dark);
+            display: inline-block;
+            min-width: 120px;
+            font-weight: 700;
+        }
+
+        h2.section-title {
+            color: var(--orange);
+            font-size: 20px;
+            font-weight: 800;
+            text-transform: uppercase;
+            margin-top: 48px;
+            margin-bottom: 8px;
+        }
+
+        .section-divider {
+            height: 2px;
+            background-color: var(--orange);
+            border: none;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+        
+        h3 {
+            color: var(--text-dark);
+            font-size: 16px;
+            font-weight: 700;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+
+        p {
+            margin-bottom: 16px;
+        }
+
+        ul {
+            padding-left: 24px;
+            margin-bottom: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        li strong {
+            color: var(--text-dark);
+            font-weight: 700;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 32px;
+            margin-top: 16px;
+        }
+
+        .data-table th {
+            background-color: var(--black);
+            color: #ffffff;
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .data-table td {
+            border: 1px solid var(--border);
+            padding: 16px;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        .data-table td strong {
+            color: var(--text-dark);
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .signoff-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-top: 24px;
+            margin-bottom: 32px;
+        }
+
+        .signoff-box {
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .signoff-header {
+            background-color: var(--black);
+            color: #ffffff;
+            text-align: center;
+            padding: 12px;
+            font-size: 13px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+
+        .signoff-body {
+            padding: 24px;
+            background-color: #ffffff;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+                padding: 0;
+            }
+            .signoff-box {
+                page-break-inside: avoid;
+            }
+            h2.section-title {
+                page-break-after: avoid;
+            }
+            .section-divider {
+                page-break-after: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="pre-title">REQUIREMENTS & SPECIFICATIONS</div>
+    <h1 class="main-title">PRODUCT REQUIREMENTS DOCUMENT</h1>
+    <div class="sub-title">[Sambhav Project Management System]</div>
+
+    <table class="meta-table">
+        <tbody>
+            <tr>
+                <td><strong>Product Name</strong> Sambhav Project Management System</td>
+                <td><strong>Document Date</strong> June 04, 2026</td>
+            </tr>
+            <tr>
+                <td><strong>Project Type</strong> Enterprise SaaS Web Application</td>
+                <td><strong>Document Status</strong> Final</td>
+            </tr>
+            <tr>
+                <td><strong>Product Owner</strong> Sambhav IT Solutions</td>
+                <td><strong>Version</strong> Current Production Version</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 class="section-title">1. OVERVIEW</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>Product Name & Tagline:</strong> Sambhav Project Management System (SPMS) - "Streamlining teams, time, and tasks in one unified hub."</li>
+        <li><strong>Type of Project:</strong> Enterprise SaaS Web Application</li>
+        <li><strong>Background / Context:</strong> Managing employees, tracking projects, and reviewing timesheets were highly disconnected processes. Relying on spreadsheets and email chains resulted in poor project visibility, fragmented administrative oversight, and severe inefficiencies in approving timesheets. SPMS was built to consolidate these pillars into one role-based ecosystem.</li>
+        <li><strong>Goal / Objective:</strong> Centralize enterprise operations to achieve complete project tracking visibility, streamline employee data management, automate timesheet submissions and approvals, provide robust activity monitoring, and enforce strict role-based administrative control.</li>
+    </ul>
+
+    <h2 class="section-title">2. PROBLEM STATEMENT</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>What problem exists today:</strong> Disconnected project tracking, heavily manual employee onboarding and management, lack of centralized visibility across the organization, significant difficulties tracking and approving daily timesheets, and poor auditability of critical system events.</li>
+        <li><strong>Who is affected:</strong> Administrators, Reporting Managers, Employees, and Project Stakeholders.</li>
+        <li><strong>Why current solutions fail:</strong> Spreadsheets are prone to human error and data loss. Email-based tracking lacks structure and transparency. Manual timesheet approvals create bottlenecks. A lack of accountability in disparate tools prevents leadership from making data-driven decisions.</li>
+    </ul>
+
+    <h2 class="section-title">3. SOLUTION WE PROVIDE</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>What we are building:</strong> A centralized project management platform delivering a unified experience for the entire organization.</li>
+        <li><strong>How it solves the problem:</strong> SPMS integrates Employee Management, Reporting Manager Management, Project Tracking, Timesheet Management, and Activity Logs into a single pane of glass with granular Administrative Oversight and strict Role-Based Access Control.</li>
+        <li><strong>Key differentiators:</strong> A deeply integrated ecosystem where employee hierarchies seamlessly map to project assignments and daily timesheet constraints. Zero fragmentation between tracking hours, viewing enterprise templates, and monitoring real-time system audit logs.</li>
+    </ul>
+
+    <h2 class="section-title">4. STAKEHOLDERS</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>Product Owner:</strong> Platform Steering Committee</li>
+        <li><strong>Technical Team:</strong> Enterprise Architecture Group</li>
+        <li><strong>Development Team:</strong> In-house SPMS Engineering Team</li>
+        <li><strong>Operations Team:</strong> Internal HR and IT Operations</li>
+        <li><strong>Business Management:</strong> Executive Leadership and Directors</li>
+        <li><strong>End Users:</strong> Reporting Managers, Employees, and Interns</li>
+    </ul>
+
+    <h2 class="section-title">5. USER ROLES</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>Super Admin:</strong> Full system access, capable of managing all users, templates, projects, configuring global settings, and viewing full audit logs.</li>
+        <li><strong>Admin:</strong> Administrative operations including managing employees, projects, and overseeing timesheet approval queues.</li>
+        <li><strong>Reporting Manager:</strong> Project and team oversight, capable of viewing assigned projects and approving/rejecting direct reports' timesheets.</li>
+        <li><strong>Employee:</strong> Project participation, maintaining daily To-Do lists, downloading master templates, and submitting daily timesheets.</li>
+    </ul>
+
+    <h2 class="section-title">6. REQUIREMENTS</h2>
+    <hr class="section-divider">
+
+    <h3>Functional Requirements</h3>
+    <ul>
+        <li><strong>Authentication:</strong> Secure Login and Logout, JWT Session Handling, and strict Role-Based Access Control protecting all routes.</li>
+        <li><strong>Employee Management:</strong> Capable to Create, Edit, Delete, and View detailed employee profiles and assignments.</li>
+        <li><strong>Reporting Manager Management:</strong> Ability to Create, Assign, and Manage hierarchal Teams.</li>
+        <li><strong>Project Management:</strong> Create and Edit Projects, handle Team Assignment, track Project Details, Status Tracking, Timeline Tracking, and secure Document Management (S3/R2).</li>
+        <li><strong>Timesheet Management:</strong> Create and Submit consolidated daily Timesheets. Managers can Review Timesheets (Approve/Reject) with mandatory feedback. System maintains Historical Tracking.</li>
+        <li><strong>Activity Logs:</strong> System-generated Audit Trail recording all User Actions and providing Administrative Monitoring capabilities.</li>
+        <li><strong>Dashboard:</strong> Real-time Metrics, Insights, and Operational Visibility widgets summarizing company performance.</li>
+        <li><strong>Templates:</strong> Super Admin capabilities for Template Creation and Template Management; employee access for viewing/downloading.</li>
+    </ul>
+
+    <h3>Non-Functional Requirements</h3>
+    <ul>
+        <li><strong>Performance:</strong> Fast Page Load Times utilizing optimized React state to prevent re-render thrashing. API Response Times must be highly optimized.</li>
+        <li><strong>Security:</strong> Data encrypted in transit. Role-based endpoints preventing IDOR. Secure presigned URLs for all document access.</li>
+        <li><strong>Scalability:</strong> Stateless backend architecture supporting seamless vertical and horizontal scaling.</li>
+        <li><strong>Availability:</strong> Designed for 99.9% uptime, accessible securely from modern web browsers.</li>
+        <li><strong>Maintainability:</strong> Clean, modular component architecture ensuring rapid feature iteration and easy onboarding for future developers.</li>
+        <li><strong>Responsiveness:</strong> Fluid UI adapting seamlessly to desktop, tablet, and mobile web viewports.</li>
+    </ul>
+
+    <h2 class="section-title">7. PHASES</h2>
+    <hr class="section-divider">
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 25%;">Phase</th>
+                <th style="width: 35%;">Focus</th>
+                <th style="width: 40%;">Key Deliverables</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Phase 1: Foundation</strong></td>
+                <td>Core platform security, user base management, and identity.</td>
+                <td>
+                    • Authentication<br>
+                    • Role-Based Access Control (RBAC)<br>
+                    • Employee Management
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Phase 2: Core Operations</strong></td>
+                <td>Enabling daily tracking of work and project assignments.</td>
+                <td>
+                    • Project Management<br>
+                    • Reporting Managers<br>
+                    • Timesheets
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Phase 3: Advanced Operations</strong></td>
+                <td>Enhancing oversight, auditing, and enterprise documentation.</td>
+                <td>
+                    • Activity Logs<br>
+                    • Dashboard Analytics<br>
+                    • Template Management
+                </td>
+            </tr>
+            <tr>
+                <td><strong>Phase 4: Optimization & Scaling</strong></td>
+                <td>Hardening the system for enterprise-level data processing.</td>
+                <td>
+                    • Performance Improvements<br>
+                    • Reporting Enhancements<br>
+                    • Future Integrations
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 class="section-title">8. TECH STACK</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>Frontend:</strong> Next.js (App Router), React, Tailwind CSS</li>
+        <li><strong>Backend:</strong> Python, FastAPI</li>
+        <li><strong>Database:</strong> Relational SQL Database (PostgreSQL/SQLite via SQLAlchemy ORM)</li>
+        <li><strong>Hosting / Deployment Platforms:</strong> Cloud-native hosting for API, Vercel/CDN for Frontend</li>
+        <li><strong>Libraries & Frameworks:</strong> Shadcn UI, Zustand, Framer Motion, Pydantic, Passlib, python-jose</li>
+    </ul>
+
+    <h2 class="section-title">9. TIMELINE & MILESTONES</h2>
+    <hr class="section-divider">
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 25%;">Milestone</th>
+                <th style="width: 50%;">Deliverable</th>
+                <th style="width: 25%;">Duration / Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>M1: Requirements & Design</strong></td>
+                <td>Architecture planning, UI/UX Mockups, Scope Sign-off</td>
+                <td>Week 1 - Week 2</td>
+            </tr>
+            <tr>
+                <td><strong>M2: Backend Foundation</strong></td>
+                <td>Database schema, core REST APIs, Auth, and RBAC</td>
+                <td>Week 3 - Week 5</td>
+            </tr>
+            <tr>
+                <td><strong>M3: Frontend Development</strong></td>
+                <td>UI components, API binding, state management, Dashboards</td>
+                <td>Week 6 - Week 9</td>
+            </tr>
+            <tr>
+                <td><strong>M4: Integration</strong></td>
+                <td>Timesheets logic, Document S3 integration, Activity Logs</td>
+                <td>Week 10 - Week 11</td>
+            </tr>
+            <tr>
+                <td><strong>M5: Testing & QA</strong></td>
+                <td>Bug fixing, User Acceptance Testing, Security Audits</td>
+                <td>Week 12</td>
+            </tr>
+            <tr>
+                <td><strong>M6: Production Deployment</strong></td>
+                <td>Production provisioning, MVP Launch, CI/CD setup</td>
+                <td>Week 13</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 class="section-title">10. RISKS & DEPENDENCIES</h2>
+    <hr class="section-divider">
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 30%;">Risk / Dependency</th>
+                <th style="width: 30%;">Impact</th>
+                <th style="width: 40%;">Mitigation Strategy</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Scope Expansion</strong></td>
+                <td>High: Will delay the MVP launch date and exhaust budget.</td>
+                <td>Strictly enforce the PRD sign-off. Relegate unapproved features (Payroll, Face ID) to Future Roadmap.</td>
+            </tr>
+            <tr>
+                <td><strong>Infrastructure Dependencies</strong></td>
+                <td>Medium: S3/Database outages can halt application workflow.</td>
+                <td>Implement robust cloud architecture with multi-AZ redundancy and automated DB backups.</td>
+            </tr>
+            <tr>
+                <td><strong>User Adoption</strong></td>
+                <td>High: Lack of adoption renders timesheet data useless.</td>
+                <td>Provide comprehensive onboarding, intuitive UI, and mandate daily usage via management policy.</td>
+            </tr>
+            <tr>
+                <td><strong>Data Quality</strong></td>
+                <td>Medium: Incorrect timesheet logging damages project analytics.</td>
+                <td>Enforce mandatory manager review and feedback loops to reject flawed submissions.</td>
+            </tr>
+            <tr>
+                <td><strong>Security Risks</strong></td>
+                <td>High: Unauthorized access to enterprise artifacts or PII.</td>
+                <td>Implement strict RBAC, JWT expirations, and audit logs for continuous monitoring.</td>
+            </tr>
+            <tr>
+                <td><strong>Scaling Challenges</strong></td>
+                <td>Medium: System lag during end-of-day timesheet submission spikes.</td>
+                <td>Optimize database indexing, implement aggregated API endpoints, and utilize connection pooling.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 class="section-title">11. SUCCESS METRICS (KPIS)</h2>
+    <hr class="section-divider">
+
+    <ul>
+        <li><strong>Adoption:</strong> Achieve high Active Users daily count and 100% Employee Participation within the first 30 days.</li>
+        <li><strong>Productivity:</strong> 95%+ Timesheet Completion Rate ensuring Project Tracking Accuracy.</li>
+        <li><strong>System Performance:</strong> Consistently low Page Load Times and highly optimized API Response Times under load.</li>
+        <li><strong>Administrative Efficiency:</strong> Measurable Reduction in Manual Work compared to legacy spreadsheet methods.</li>
+    </ul>
+
+    <h2 class="section-title" style="margin-top: 60px;">12. PROJECT SIGN-OFF & AUTHORIZATIONS</h2>
+    <hr class="section-divider">
+
+    <p>By signing below, the stakeholders acknowledge that they have reviewed, understood, and agreed to the product specifications, phases, and requirements detailed within this Product Requirements Document.</p>
+
+    <!-- Sign-off Blocks Row 1 -->
+    <div class="signoff-grid">
+        <div class="signoff-box">
+            <div class="signoff-header">PRODUCT OWNER</div>
+            <div class="signoff-body">
+                <div style="display: flex; justify-content: space-between; margin-top: 60px; margin-bottom: 24px;">
+                    <div style="width: 60%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">SIGNATURE</div>
+                    <div style="width: 30%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">DATE</div>
+                </div>
+                <div style="font-size: 12px; font-weight: 700; color: #111;">
+                    Name: <span style="display: inline-block; width: 80%; border-bottom: 1px solid #e2e8f0;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="signoff-box">
+            <div class="signoff-header">BUSINESS SPONSOR</div>
+            <div class="signoff-body">
+                <div style="display: flex; justify-content: space-between; margin-top: 60px; margin-bottom: 24px;">
+                    <div style="width: 60%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">SIGNATURE</div>
+                    <div style="width: 30%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">DATE</div>
+                </div>
+                <div style="font-size: 12px; font-weight: 700; color: #111;">
+                    Name: <span style="display: inline-block; width: 80%; border-bottom: 1px solid #e2e8f0;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sign-off Blocks Row 2 -->
+    <div class="signoff-grid">
+        <div class="signoff-box">
+            <div class="signoff-header">TECHNICAL LEAD</div>
+            <div class="signoff-body">
+                <div style="display: flex; justify-content: space-between; margin-top: 60px; margin-bottom: 24px;">
+                    <div style="width: 60%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">SIGNATURE</div>
+                    <div style="width: 30%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">DATE</div>
+                </div>
+                <div style="font-size: 12px; font-weight: 700; color: #111;">
+                    Name: <span style="display: inline-block; width: 80%; border-bottom: 1px solid #e2e8f0;"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="signoff-box">
+            <div class="signoff-header">PROJECT MANAGER</div>
+            <div class="signoff-body">
+                <div style="display: flex; justify-content: space-between; margin-top: 60px; margin-bottom: 24px;">
+                    <div style="width: 60%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">SIGNATURE</div>
+                    <div style="width: 30%; border-top: 1px solid #111; padding-top: 8px; font-size: 11px; font-weight: 700;">DATE</div>
+                </div>
+                <div style="font-size: 12px; font-weight: 700; color: #111;">
+                    Name: <span style="display: inline-block; width: 80%; border-bottom: 1px solid #e2e8f0;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
