@@ -10,7 +10,7 @@ interface AttendanceRecord {
   id: number;
   date: string;
   status: string;
-  timesheet_status?: string;
+  timesheet_status?: string | null;
 }
 
 interface AttendanceCalendarProps {
