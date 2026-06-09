@@ -123,18 +123,18 @@ export default function SetupAccountPage() {
             <div className="bg-slate-900 p-3 rounded-2xl shadow-xl shadow-slate-900/20 mb-4">
               <ShieldCheck className="h-8 w-8 text-white" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900 uppercase">Account Setup</h1>
-            <p className="text-slate-500 font-medium text-xs mt-2 uppercase tracking-widest text-center">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account Setup</h1>
+            <p className="text-slate-500 font-medium text-xs mt-2 tracking-wider text-center">
               Please secure your account to continue
             </p>
           </div>
 
           <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white/80 backdrop-blur-xl">
             <CardHeader className="space-y-1 p-8 pb-4 border-b border-slate-100 bg-white">
-              <CardTitle className="text-lg font-black uppercase tracking-tight text-slate-900">
+              <CardTitle className="text-lg font-bold tracking-tight text-slate-900">
                 Welcome, {user.full_name}
               </CardTitle>
-              <CardDescription className="text-xs font-bold text-slate-500 uppercase tracking-widest">
+              <CardDescription className="text-xs font-bold text-slate-500 tracking-wider">
                 Update your email and password
               </CardDescription>
             </CardHeader>
@@ -147,7 +147,7 @@ export default function SetupAccountPage() {
                     name="new_email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500">Corporate Email</FormLabel>
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-500">Corporate Email</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -159,7 +159,7 @@ export default function SetupAccountPage() {
                             />
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px] font-bold uppercase tracking-widest" />
+                        <FormMessage className="text-xs font-bold tracking-wider" />
                       </FormItem>
                     )}
                   />
@@ -169,7 +169,7 @@ export default function SetupAccountPage() {
                     name="new_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500">New Password</FormLabel>
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-500">New Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
@@ -191,7 +191,7 @@ export default function SetupAccountPage() {
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px] font-bold uppercase tracking-widest" />
+                        <FormMessage className="text-xs font-bold tracking-wider" />
                       </FormItem>
                     )}
                   />
@@ -201,7 +201,7 @@ export default function SetupAccountPage() {
                     name="confirm_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-500">Confirm Password</FormLabel>
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-500">Confirm Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
@@ -223,7 +223,7 @@ export default function SetupAccountPage() {
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px] font-bold uppercase tracking-widest" />
+                        <FormMessage className="text-xs font-bold tracking-wider" />
                       </FormItem>
                     )}
                   />
@@ -231,7 +231,7 @@ export default function SetupAccountPage() {
                   <Button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-900/20 transition-all group"
+                    className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider shadow-xl shadow-slate-900/20 transition-all group"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +248,7 @@ export default function SetupAccountPage() {
               <div className="mt-6 text-center">
                 <button 
                   onClick={handleLogout}
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+                  className="text-xs font-bold tracking-wider text-slate-400 hover:text-slate-900 transition-colors"
                 >
                   Cancel and Sign Out
                 </button>

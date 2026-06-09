@@ -64,7 +64,8 @@ export function AttendanceWidget() {
 
   const formatTime = (iso: string) => {
     if (!iso) return '—';
-    return new Date(iso).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+    const dateStr = iso.endsWith('Z') || iso.includes('+') ? iso : `${iso}Z`;
+    return new Date(dateStr).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -74,8 +75,8 @@ export function AttendanceWidget() {
 
   if (loading) {
     return (
-      <Card className="rounded-2xl border-slate-200 shadow-sm p-5 flex items-center justify-center h-[160px]">
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+      <Card className="rounded-xl border-border shadow-sm p-5 flex items-center justify-center h-[160px]">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </Card>
     );
   }
@@ -85,15 +86,15 @@ export function AttendanceWidget() {
 
   return (
     <>
-      <Card className="rounded-2xl border-slate-200 shadow-sm p-5 hover:shadow-md transition-shadow">
+      <Card className="rounded-xl border-border shadow-sm p-5 hover:shadow-md transition-shadow">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-indigo-50">
-              <Fingerprint className="h-4 w-4 text-indigo-600" />
+              <Fingerprint className="h-4 w-4 text-primary" />
             </div>
             <div>
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900">Attendance Today</h3>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+              <h3 className="text-xs font-black uppercase tracking-wider text-foreground">Attendance Today</h3>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                 {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short' })}
               </p>
             </div>
@@ -108,19 +109,19 @@ export function AttendanceWidget() {
         {todayAttendance ? (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-slate-50 rounded-xl p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Clock In</div>
-                <div className="text-sm font-black text-slate-900">{formatTime(todayAttendance.clock_in_time)}</div>
+              <div className="bg-muted rounded-xl p-3">
+                <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Clock In</div>
+                <div className="text-sm font-black text-foreground">{formatTime(todayAttendance.clock_in_time)}</div>
               </div>
-              <div className="bg-slate-50 rounded-xl p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Clock Out</div>
-                <div className="text-sm font-black text-slate-900">
+              <div className="bg-muted rounded-xl p-3">
+                <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Clock Out</div>
+                <div className="text-sm font-black text-foreground">
                   {todayAttendance.clock_out_time ? formatTime(todayAttendance.clock_out_time) : 'Pending'}
                 </div>
               </div>
-              <div className="bg-slate-50 rounded-xl p-3">
-                <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Hours</div>
-                <div className="text-sm font-black text-slate-900">
+              <div className="bg-muted rounded-xl p-3">
+                <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Hours</div>
+                <div className="text-sm font-black text-foreground">
                   {todayAttendance.working_hours ? `${todayAttendance.working_hours}h` : '—'}
                 </div>
               </div>

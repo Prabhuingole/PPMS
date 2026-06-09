@@ -45,8 +45,31 @@ async def upload_document(
         if not is_member:
             raise HTTPException(status_code=403, detail="Not authorized to upload to this project")
 
-    # Upload to R2
-    file_extension = os.path.splitext(file.filename)[1]
+    ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".csv", ".xlsx", ".docx", ".zip"}
+    ALLOWED_MIMES = {
+        "application/pdf", 
+        "image/jpeg", 
+        "image/png", 
+        "text/csv", 
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+        "application/zip",
+        "application/x-zip-compressed"
+    }
+    
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Unsupported file extension. Allowed: pdf, jpg, jpeg, png, csv, xlsx, docx, zip")
+        
+    if file.content_type not in ALLOWED_MIMES:
+        raise HTTPException(status_code=400, detail="Unsupported MIME type")
+        
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+
     unique_key = f"projects/{project_id}/{uuid.uuid4()}{file_extension}"
     
     storage.upload_file(file.file, unique_key, content_type=file.content_type)

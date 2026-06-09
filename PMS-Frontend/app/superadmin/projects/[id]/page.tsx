@@ -37,7 +37,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { format, differenceInDays } from 'date-fns';
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { useAuthStore } from '@/store/authStore';
 import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 import { toast } from 'sonner';
@@ -52,16 +54,12 @@ const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, use
     const fetchTasks = async () => {
       try {
         setLoading(true);
-        const pagesRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/notes/admin/projects/${projectId}/users/${userId}/pages`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const pagesRes = await api.get(`/notes/admin/projects/${projectId}/users/${userId}/pages`);
         
         const pagesWithTasks = pagesRes.data.filter((p: any) => p.checklist_total > 0);
         
         const taskPromises = pagesWithTasks.map((p: any) => 
-          axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/notes/admin/pages/${p.id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+          api.get(`/notes/admin/pages/${p.id}`)
         );
         
         const pageDetailsResponses = await Promise.all(taskPromises);
@@ -88,13 +86,13 @@ const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, use
     fetchTasks();
   }, [projectId, userId, token]);
 
-  if (loading) return <div className="p-4 flex justify-center"><Loader2 className="h-4 w-4 animate-spin text-slate-400" /></div>;
+  if (loading) return <div className="p-4 flex justify-center"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>;
   if (tasks.length === 0) return null;
 
   return (
-    <div className="space-y-2 mt-3 pt-3 border-t border-slate-200">
+    <div className="space-y-2 mt-3 pt-3 border-t border-border">
       {tasks.map(task => (
-         <div key={task.id} className="flex items-start gap-3 p-3 bg-white rounded-lg border border-slate-200">
+         <div key={task.id} className="flex items-start gap-3 p-3 bg-background rounded-lg border border-border">
            <div className="mt-0.5 shrink-0">
              {task.is_completed ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -103,8 +101,8 @@ const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, use
              )}
            </div>
            <div className="flex-1 min-w-0">
-             <p className={`text-sm ${task.is_completed ? 'text-slate-500 line-through' : 'text-slate-800'}`}>{task.text}</p>
-             <p className="text-[10px] text-slate-400 mt-1">From page: {task.page_title}</p>
+             <p className={`text-sm ${task.is_completed ? 'text-muted-foreground line-through' : 'text-foreground'}`}>{task.text}</p>
+             <p className="text-[10px] text-muted-foreground mt-1">From page: {task.page_title}</p>
            </div>
          </div>
       ))}
@@ -135,9 +133,7 @@ export default function ProjectDetailsPage() {
   const fetchTimesheets = async (page: number) => {
     if (!token || !projectId) return;
     try {
-      const tsRes = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/project/${projectId}?page=${page}&limit=10`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const tsRes = await api.get(`/timesheets/project/${projectId}?page=${page}&limit=10`);
       if (tsRes.data.items) {
         setTimesheets(tsRes.data.items);
         setTotalTimesheets(tsRes.data.total || 0);
@@ -157,21 +153,11 @@ export default function ProjectDetailsPage() {
     try {
       setLoading(true);
       const [projRes, docRes, mgrRes, empRes, userTasksRes] = await Promise.all([
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/project/${projectId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/reporting-managers/?status_filter=active&limit=1000`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/employees/?status_filter=true&limit=1000`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/notes/admin/projects/${projectId}/users`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }).catch(() => ({ data: [] }))
+        api.get(`/projects/${projectId}`),
+        api.get(`/documents/project/${projectId}`),
+        api.get(`/reporting-managers/?status_filter=active&limit=1000`),
+        api.get(`/employees/?status_filter=true&limit=1000`),
+        api.get(`/notes/admin/projects/${projectId}/users`).catch(() => ({ data: [] }))
       ]);
 
       setProject(projRes.data);
@@ -221,9 +207,8 @@ export default function ProjectDetailsPage() {
 
   const handleDownloadDoc = async (docId: number, filename: string) => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/download/${docId}?inline=true`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.get(
+        `/documents/download/${docId}?inline=true`
       );
       if (res.data.url) {
         const a = document.createElement('a');
@@ -242,9 +227,7 @@ export default function ProjectDetailsPage() {
     if (!docToDelete) return;
     setIsDeleting(true);
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/${docToDelete}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/documents/${docToDelete}`);
       toast.success('Document deleted successfully');
       setDocuments(prev => prev.filter(d => d.id !== docToDelete));
       setDocToDelete(null);
@@ -258,7 +241,7 @@ export default function ProjectDetailsPage() {
 
   if (loading || !project) {
     return (
-      <div className="flex-1 p-8 bg-slate-50 flex items-center justify-center min-h-[calc(100vh-4rem)]">
+      <div className="flex-1 p-8 bg-muted/30 flex items-center justify-center min-h-[calc(100vh-4rem)]">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
@@ -266,9 +249,9 @@ export default function ProjectDetailsPage() {
 
   if (!project) {
     return (
-      <div className="flex-1 p-8 bg-slate-50 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)]">
+      <div className="flex-1 p-8 bg-muted/30 flex flex-col items-center justify-center min-h-[calc(100vh-4rem)]">
         <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-        <h2 className="text-xl font-bold text-slate-800">Project Not Found</h2>
+        <h2 className="text-xl font-bold text-foreground">Project Not Found</h2>
         <Button onClick={() => router.push('/superadmin/projects')} className="mt-4">
           Return to Projects
         </Button>
@@ -279,12 +262,12 @@ export default function ProjectDetailsPage() {
 
 
   return (
-    <div className="flex-1 p-4 sm:p-8 bg-slate-50 overflow-y-auto">
+    <div className="flex-1 p-4 sm:p-8 bg-muted/30 overflow-y-auto">
       <div className="mb-4">
         <Button 
           variant="ghost" 
           onClick={() => router.push(backConfig.path)}
-          className="text-slate-500 hover:text-slate-800 -ml-2 h-8 px-2 mb-2"
+          className="text-muted-foreground hover:text-foreground -ml-2 h-8 px-2 mb-2"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
           <span className="text-xs font-bold uppercase tracking-widest">
@@ -293,16 +276,16 @@ export default function ProjectDetailsPage() {
         </Button>
       </div>
 
-      <Card className="rounded-3xl shadow-sm border border-slate-100 bg-white overflow-hidden mb-8">
+      <Card className="rounded-xl shadow-sm border border-border bg-background overflow-hidden mb-8">
         {/* Header Section */}
-        <div className="bg-slate-50/50 border-b border-slate-100 px-6 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-start justify-between gap-4">
+        <div className="bg-muted/30 border-b border-border px-6 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{project.name}</h1>
+              <h1 className="text-3xl font-black text-foreground tracking-tight">{project.name}</h1>
               <Badge className={
                 project.status === 'active' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0' :
                 project.status === 'on-hold' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-0' :
-                'bg-slate-100 text-slate-700 hover:bg-slate-200 border-0'
+                'bg-muted text-muted-foreground hover:bg-slate-200 border-0'
               }>
                 {project.status === 'active' ? <CheckCircle2 className="w-3 h-3 mr-1" /> :
                  project.status === 'on-hold' ? <PauseCircle className="w-3 h-3 mr-1" /> :
@@ -310,8 +293,8 @@ export default function ProjectDetailsPage() {
                 {project.status.toUpperCase()}
               </Badge>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 font-medium">
-              <div className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-md border border-slate-200 shadow-sm">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground font-medium">
+              <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
                 <Briefcase className="h-4 w-4 text-blue-500" />
                 <span className="font-mono text-xs">{project.code}</span>
               </div>
@@ -326,7 +309,7 @@ export default function ProjectDetailsPage() {
           <Button 
             onClick={() => setIsEditModalOpen(true)}
             variant="outline"
-            className="border-slate-200 text-slate-600 bg-white hover:bg-slate-50 shadow-sm shrink-0"
+            className="border-border text-slate-600 bg-background hover:bg-muted shadow-sm shrink-0"
           >
             Edit Project Details
           </Button>
@@ -339,63 +322,70 @@ export default function ProjectDetailsPage() {
             {/* Project Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Team Size</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Team Size</span>
                 <div className="flex items-end gap-1.5">
-                  <span className="text-xl font-black text-slate-800">{project.members?.length || 0}</span>
-                  <span className="text-sm font-semibold text-slate-400 mb-0.5">Members</span>
+                  <span className="text-xl font-black text-foreground">{project.members?.length || 0}</span>
+                  <span className="text-sm font-semibold text-muted-foreground mb-0.5">Members</span>
                 </div>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Documents</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Documents</span>
                 <div className="flex items-end gap-1.5">
-                  <span className="text-xl font-black text-slate-800">{documents.length}</span>
-                  <span className="text-sm font-semibold text-slate-400 mb-0.5">Files</span>
+                  <span className="text-xl font-black text-foreground">{documents.length}</span>
+                  <span className="text-sm font-semibold text-muted-foreground mb-0.5">Files</span>
                 </div>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Duration</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Duration</span>
                 <div className="flex items-end gap-1.5">
-                  <span className="text-xl font-black text-slate-800">
+                  <span className="text-xl font-black text-foreground">
                     {project.start_date && project.end_date 
                       ? differenceInDays(new Date(project.end_date), new Date(project.start_date))
                       : '-'}
                   </span>
-                  <span className="text-sm font-semibold text-slate-400 mb-0.5">Days</span>
+                  <span className="text-sm font-semibold text-muted-foreground mb-0.5">Days</span>
                 </div>
               </div>
               <div className="col-span-2 md:col-span-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Timeline</span>
-                <span className="text-sm font-semibold text-slate-800 block">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Timeline</span>
+                <span className="text-sm font-semibold text-foreground block">
                   {project.start_date ? format(new Date(project.start_date), 'MMM d, yy') : 'N/A'} - {project.end_date ? format(new Date(project.end_date), 'MMM d, yy') : 'N/A'}
                 </span>
               </div>
             </div>
 
-            <div className="h-px bg-slate-100" />
+            <div className="h-px bg-muted" />
 
             {/* Time Tracking */}
             <div>
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
                 <Clock className="h-5 w-5 text-blue-500" />
                 Time Tracking
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Allocated Hours</span>
-                  <span className="text-2xl font-black text-slate-800">{project.total_hours || 0}</span>
+                <div className="p-4 rounded-xl bg-muted/30 border border-border flex flex-col overflow-hidden">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Allocated Hours</span>
+                  <span className="text-2xl font-black text-foreground break-all">
+                    {Number((project.total_hours || 0).toFixed(2))}
+                    <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
+                  </span>
                 </div>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Consumed Hours</span>
-                  <span className="text-2xl font-black text-slate-800">{project.total_hours_worked || 0}</span>
+                <div className="p-4 rounded-xl bg-muted/30 border border-border flex flex-col overflow-hidden">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Consumed Hours</span>
+                  <span className="text-2xl font-black text-foreground break-all">
+                    {Number((project.total_hours_worked || 0).toFixed(2))}
+                    <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
+                  </span>
                 </div>
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 flex flex-col relative overflow-hidden">
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex flex-col relative overflow-hidden">
                   <div className="absolute right-0 bottom-0 opacity-10 transform translate-x-1/4 translate-y-1/4">
                     <Clock className="w-16 h-16 text-emerald-600" />
                   </div>
                   <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1 relative z-10">Remaining Hours</span>
                   <div className="flex items-end gap-1 relative z-10">
-                    <span className={`text-2xl font-black ${(project.total_hours_remaining ?? 0) < 0 ? "text-red-600" : "text-emerald-700"}`}>
-                      {(project.total_hours_remaining ?? 0) < 0 ? (project.total_hours_remaining || 0) * -1 : (project.total_hours_remaining || 0)}
+                    <span className={`text-2xl font-black break-all ${(project.total_hours_remaining ?? 0) < 0 ? "text-red-600" : "text-emerald-700"}`}>
+                      {Number((((project.total_hours_remaining ?? 0) < 0) ? (project.total_hours_remaining || 0) * -1 : (project.total_hours_remaining || 0)).toFixed(2))}
+                      <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
                     </span>
                     {(project.total_hours_remaining ?? 0) < 0 && <span className="text-[10px] font-black uppercase text-red-600 mb-1">Over</span>}
                   </div>
@@ -403,58 +393,58 @@ export default function ProjectDetailsPage() {
               </div>
             </div>
 
-            <div className="h-px bg-slate-100" />
+            <div className="h-px bg-muted" />
 
             {/* Project Description */}
             <div>
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
                 <FileText className="h-5 w-5 text-indigo-500" />
                 Project Description
               </h3>
               {project.description ? (
                 <p className="text-slate-600 leading-relaxed whitespace-pre-wrap break-words text-sm">{project.description}</p>
               ) : (
-                <p className="text-slate-400 italic text-sm">No description provided for this project.</p>
+                <p className="text-muted-foreground italic text-sm">No description provided for this project.</p>
               )}
             </div>
 
-            <div className="h-px bg-slate-100" />
+            <div className="h-px bg-muted" />
 
             {/* Documents */}
             <div>
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
                 <FileText className="h-5 w-5 text-indigo-500" /> 
                 Project Documents
-                <Badge variant="outline" className="font-mono text-[10px] ml-2 bg-slate-50">{documents.length}</Badge>
+                <Badge variant="outline" className="font-mono text-[10px] ml-2 bg-muted/30">{documents.length}</Badge>
               </h3>
               {documents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {documents.map((doc: any) => (
                     <div 
                       key={doc.id} 
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100/60 hover:bg-white hover:shadow-sm transition-all group"
+                      className="flex items-center justify-between p-3 rounded-xl bg-muted/30 border border-border/60 hover:bg-background hover:shadow-sm transition-all group"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0 font-bold text-[8px]">
+                        <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center text-primary shrink-0 font-bold text-[8px]">
                           {doc.doc_type || 'DOC'}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-slate-800 truncate" title={doc.display_name}>
+                          <span className="text-xs font-bold text-foreground truncate" title={doc.display_name}>
                             {doc.display_name}
                           </span>
-                          <span className="text-[9px] text-slate-400 font-medium">
+                          <span className="text-[9px] text-muted-foreground font-medium">
                             {doc.preparation_date ? format(new Date(doc.preparation_date), 'dd MMM yyyy') : 'No Date'}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button type="button" size="icon" variant="ghost" onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')} className="h-6 w-6 rounded-md hover:bg-emerald-50 text-slate-400 hover:text-emerald-600" title="View Document">
+                      <div className="flex items-center gap-0.5 shrink-0 ">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')} className="h-6 w-6 rounded-md hover:bg-emerald-50 text-muted-foreground hover:text-emerald-600" title="View Document">
                           <Eye className="h-3 w-3" />
                         </Button>
-                        <Button type="button" size="icon" variant="ghost" onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)} className="h-6 w-6 rounded-md hover:bg-blue-50 text-slate-400 hover:text-blue-600" title="Download Document">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)} className="h-6 w-6 rounded-md hover:bg-blue-50 text-muted-foreground hover:text-blue-600" title="Download Document">
                           <Download className="h-3 w-3" />
                         </Button>
-                        <Button type="button" size="icon" variant="ghost" onClick={() => setDocToDelete(doc.id)} className="h-6 w-6 rounded-md hover:bg-red-50 text-slate-400 hover:text-red-600" title="Delete Document">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => setDocToDelete(doc.id)} className="h-6 w-6 rounded-md hover:bg-red-50 text-muted-foreground hover:text-red-600" title="Delete Document">
                           <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
@@ -462,9 +452,9 @@ export default function ProjectDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="p-6 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <div className="p-6 text-center bg-muted/30 rounded-xl border border-dashed border-border">
                   <File className="h-6 w-6 text-slate-300 mx-auto mb-2" />
-                  <p className="text-xs font-medium text-slate-500">No documents uploaded yet.</p>
+                  <p className="text-xs font-medium text-muted-foreground">No documents uploaded yet.</p>
                 </div>
               )}
             </div>
@@ -474,14 +464,14 @@ export default function ProjectDetailsPage() {
           <div className="space-y-8">
             {/* Reporting Manager */}
             <div>
-              <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-4">
+              <h3 className="font-bold text-foreground flex items-center gap-2 mb-4">
                 <UserCheck className="h-5 w-5 text-emerald-500" />
                 Reporting Manager
               </h3>
               {project.reporting_manager ? (
                 <div 
                   onClick={() => router.push(`/superadmin/reporting-managers/${project.reporting_manager.id}?backPath=/superadmin/projects/${project.id}`)}
-                  className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100 cursor-pointer hover:bg-white hover:shadow-sm transition-all group"
+                  className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border cursor-pointer hover:bg-background hover:shadow-sm transition-all group"
                 >
                   <Avatar className="h-12 w-12 border-2 border-emerald-100 group-hover:border-emerald-300 transition-colors">
                     <AvatarFallback className="bg-emerald-50 text-emerald-700 font-bold group-hover:bg-emerald-100 transition-colors">
@@ -489,18 +479,18 @@ export default function ProjectDetailsPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{project.reporting_manager.full_name}</h4>
-                    <p className="text-xs font-medium text-slate-500 truncate">{project.reporting_manager.email}</p>
+                    <h4 className="text-sm font-bold text-foreground truncate group-hover:text-blue-600 transition-colors">{project.reporting_manager.full_name}</h4>
+                    <p className="text-xs font-medium text-muted-foreground truncate">{project.reporting_manager.email}</p>
                     {project.reporting_manager.designation && (
-                      <Badge variant="secondary" className="mt-1 text-[9px] bg-white border border-slate-200 text-slate-600">
+                      <Badge variant="secondary" className="mt-1 text-[9px] bg-background border border-border text-slate-600">
                         {project.reporting_manager.designation}
                       </Badge>
                     )}
                   </div>
                 </div>
               ) : (
-                <div className="p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <p className="text-xs font-medium text-slate-400 italic">No reporting manager assigned.</p>
+                <div className="p-4 text-center bg-muted/30 rounded-xl border border-dashed border-border">
+                  <p className="text-xs font-medium text-muted-foreground italic">No reporting manager assigned.</p>
                 </div>
               )}
             </div>
@@ -508,14 +498,14 @@ export default function ProjectDetailsPage() {
             {/* Team Members */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <h3 className="font-bold text-foreground flex items-center gap-2">
                   <Users className="h-5 w-5 text-blue-500" />
                   Team Members
                 </h3>
-                <Badge variant="outline" className="font-mono text-[10px] bg-slate-50">{project.members?.length || 0}</Badge>
+                <Badge variant="outline" className="font-mono text-[10px] bg-muted/30">{project.members?.length || 0}</Badge>
               </div>
               
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden">
+              <div className="bg-muted/30 border border-border rounded-xl overflow-hidden">
                 {project.members && project.members.length > 0 ? (
                   <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
                     {project.members.map((member: any) => {
@@ -526,25 +516,25 @@ export default function ProjectDetailsPage() {
                         <div 
                           key={member.id} 
                           onClick={() => router.push(`/superadmin/employees/${member.id}`)}
-                          className="p-3 flex items-start gap-3 hover:bg-white transition-colors cursor-pointer group"
+                          className="p-3 flex items-start gap-3 hover:bg-background transition-colors cursor-pointer group"
                         >
-                          <Avatar className="h-10 w-10 border border-slate-200 group-hover:border-blue-300 transition-colors shrink-0">
+                          <Avatar className="h-10 w-10 border border-border group-hover:border-blue-300 transition-colors shrink-0">
                             <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm group-hover:bg-blue-100 transition-colors">
                               {member.full_name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-slate-800 truncate group-hover:text-blue-600 transition-colors">{member.full_name}</p>
-                            <p className="text-xs font-medium text-slate-500 truncate mb-1">{member.email}</p>
+                            <p className="text-sm font-bold text-foreground truncate group-hover:text-blue-600 transition-colors">{member.full_name}</p>
+                            <p className="text-xs font-medium text-muted-foreground truncate mb-1">{member.email}</p>
                             <div className="flex flex-wrap items-center gap-1.5">
                               {member.designation && (
-                                <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-slate-400 bg-white group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
+                                <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-muted-foreground bg-background group-hover:border-blue-200 group-hover:text-blue-500 transition-colors">
                                   {member.designation}
                                 </Badge>
                               )}
                               {hasTasks && (
-                                <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 bg-slate-100/80 px-1.5 py-0.5 rounded-sm">
-                                  <CheckCircle2 className={`w-3 h-3 ${uTask.completed_tasks === uTask.total_tasks ? 'text-emerald-500' : 'text-slate-400'}`} />
+                                <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-slate-100/80 px-1.5 py-0.5 rounded-sm">
+                                  <CheckCircle2 className={`w-3 h-3 ${uTask.completed_tasks === uTask.total_tasks ? 'text-emerald-500' : 'text-muted-foreground'}`} />
                                   <span>{uTask.completed_tasks}/{uTask.total_tasks} Tasks</span>
                                 </div>
                               )}
@@ -556,7 +546,7 @@ export default function ProjectDetailsPage() {
                   </div>
                 ) : (
                   <div className="p-6 text-center">
-                    <p className="text-xs italic text-slate-400">No team members assigned</p>
+                    <p className="text-xs italic text-muted-foreground">No team members assigned</p>
                   </div>
                 )}
               </div>
@@ -566,27 +556,27 @@ export default function ProjectDetailsPage() {
       </Card>
 
       {/* Employee To-Do Lists Section */}
-      <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white mb-8">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+      <Card className="border-0 shadow-sm rounded-xl overflow-hidden bg-background mb-8">
+        <CardHeader className="bg-muted/30 border-b border-border px-6 py-5">
+          <h3 className="font-bold text-foreground flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Employee To-Do Lists
           </h3>
         </CardHeader>
-        <CardContent className="p-6 bg-slate-50/50">
+        <CardContent className="p-6 bg-muted/30">
           {userTasks && userTasks.filter(u => u.total_tasks > 0).length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userTasks.filter(u => u.total_tasks > 0).map(u => (
-                <div key={u.user_id} className="bg-slate-50 rounded-2xl border border-slate-200 p-4">
+                <div key={u.user_id} className="bg-muted/30 rounded-xl border border-border p-4">
                   <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-slate-200 shrink-0">
+                    <Avatar className="h-10 w-10 border border-border shrink-0">
                       <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm">
                         {u.user_name.charAt(0)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-800 truncate">{u.user_name}</p>
-                      <div className="flex items-center gap-1 text-[10px] font-medium text-slate-500 mt-0.5">
-                        <CheckCircle2 className={`w-3 h-3 ${u.completed_tasks === u.total_tasks ? 'text-emerald-500' : 'text-slate-400'}`} />
+                      <p className="text-sm font-bold text-foreground truncate">{u.user_name}</p>
+                      <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground mt-0.5">
+                        <CheckCircle2 className={`w-3 h-3 ${u.completed_tasks === u.total_tasks ? 'text-emerald-500' : 'text-muted-foreground'}`} />
                         <span>{u.completed_tasks}/{u.total_tasks} Tasks Completed</span>
                       </div>
                     </div>
@@ -596,7 +586,7 @@ export default function ProjectDetailsPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center p-8 text-slate-500">
+            <div className="text-center p-8 text-muted-foreground">
               <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3 opacity-50" />
               <p className="text-sm font-medium">No tasks assigned to employees for this project.</p>
             </div>
@@ -605,9 +595,9 @@ export default function ProjectDetailsPage() {
       </Card>
 
       {/* Activity & Timesheets Section */}
-      <Card className="border-0 shadow-sm rounded-3xl overflow-hidden bg-white mb-8">
-        <CardHeader className="bg-slate-50/50 border-b border-slate-100 px-6 py-5">
-          <h3 className="font-bold text-slate-800 flex items-center gap-2">
+      <Card className="border-0 shadow-sm rounded-xl overflow-hidden bg-background mb-8">
+        <CardHeader className="bg-muted/30 border-b border-border px-6 py-5">
+          <h3 className="font-bold text-foreground flex items-center gap-2">
             <Clock className="w-5 h-5 text-emerald-500" /> Timesheet Logs
           </h3>
         </CardHeader>
@@ -616,19 +606,19 @@ export default function ProjectDetailsPage() {
             <>
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-50/50">
-                  <TableRow className="hover:bg-transparent border-slate-100">
-                    <TableHead className="font-black text-xs text-slate-500 uppercase tracking-widest pl-6">Date</TableHead>
-                    <TableHead className="font-black text-xs text-slate-500 uppercase tracking-widest">Team Member</TableHead>
-                    <TableHead className="font-black text-xs text-slate-500 uppercase tracking-widest">Task</TableHead>
-                    <TableHead className="font-black text-xs text-slate-500 uppercase tracking-widest">Hours</TableHead>
-                    <TableHead className="font-black text-xs text-slate-500 uppercase tracking-widest pr-6">Status</TableHead>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="pl-6">Date</TableHead>
+                    <TableHead>Team Member</TableHead>
+                    <TableHead>Task</TableHead>
+                    <TableHead>Hours</TableHead>
+                    <TableHead className="pr-6">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {timesheets.map((ts) => (
-                        <TableRow key={ts.id} className="border-slate-50 hover:bg-slate-50/80 transition-colors">
-                          <TableCell className="font-medium text-slate-700 text-sm align-top py-4 pl-6">
+                        <TableRow key={ts.id} className="transition-colors">
+                          <TableCell className="font-medium text-muted-foreground text-sm align-top py-4 pl-6">
                             {format(new Date(ts.date), 'dd MMM yyyy')}
                           </TableCell>
                           <TableCell className="align-top py-4">
@@ -638,14 +628,14 @@ export default function ProjectDetailsPage() {
                                   {ts.user_name?.charAt(0) || 'U'}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-sm font-semibold text-slate-800">{ts.user_name}</span>
+                              <span className="text-sm font-semibold text-foreground">{ts.user_name}</span>
                             </div>
                           </TableCell>
                           <TableCell className="max-w-[300px] align-top py-4">
-                            <div className="text-sm font-medium text-slate-700 break-words whitespace-pre-wrap">
+                            <div className="text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">
                               {ts.task_title}
                             </div>
-                            <div className="text-xs text-slate-400 break-words whitespace-pre-wrap mt-1">
+                            <div className="text-xs text-muted-foreground break-words whitespace-pre-wrap mt-1">
                               {ts.description}
                             </div>
                           </TableCell>
@@ -669,8 +659,8 @@ export default function ProjectDetailsPage() {
                   </Table>
                 </div>
                 {totalPages > 1 && (
-                  <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/30">
-                    <span className="text-xs text-slate-500 font-medium">
+                  <div className="p-4 border-t border-border flex items-center justify-between bg-muted/50/30">
+                    <span className="text-xs text-muted-foreground font-medium">
                       Showing {Math.min((currentPage - 1) * 10 + 1, totalTimesheets)} to {Math.min(currentPage * 10, totalTimesheets)} of {totalTimesheets} entries
                     </span>
                     <div className="flex gap-2">
@@ -679,7 +669,7 @@ export default function ProjectDetailsPage() {
                         size="sm"
                         disabled={currentPage === 1}
                         onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        className="bg-background border-border text-slate-600 hover:bg-muted"
                       >
                         Previous
                       </Button>
@@ -688,7 +678,7 @@ export default function ProjectDetailsPage() {
                         size="sm"
                         disabled={currentPage === totalPages || totalPages === 0}
                         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        className="bg-background border-border text-slate-600 hover:bg-muted"
                       >
                         Next
                       </Button>
@@ -699,8 +689,8 @@ export default function ProjectDetailsPage() {
             ) : (
               <div className="p-12 text-center flex flex-col items-center">
                 <Clock className="h-12 w-12 text-slate-300 mb-4" />
-                <h3 className="text-lg font-bold text-slate-700">No Activity Logged</h3>
-                <p className="text-sm text-slate-500 mt-1 max-w-md">There are no timesheets submitted for this project yet.</p>
+                <h3 className="text-lg font-bold text-foreground">No Activity Logged</h3>
+                <p className="text-sm text-muted-foreground mt-1 max-w-md">There are no timesheets submitted for this project yet.</p>
               </div>
             )}
           </CardContent>

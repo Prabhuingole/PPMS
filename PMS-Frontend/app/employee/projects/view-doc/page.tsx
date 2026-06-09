@@ -18,7 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { useAuthStore } from '@/store/authStore';
 
 export default function DocumentViewerPage() {
@@ -38,28 +40,33 @@ export default function DocumentViewerPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    if (!token || !docId) return;
+    let activeToken = token;
+    if (!activeToken && typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;)\s*auth_token=([^;]+)/);
+      if (match) activeToken = match[1];
+    }
+    
+    if (!activeToken || !docId) return;
 
     const fetchDocument = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/download/${docId}?inline=true`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const res = await api.get(
+          `/documents/download/${docId}?inline=true`
         );
         setDocUrl(res.data.url);
         setDocName(res.data.filename);
 
         const lowerName = res.data.filename.toLowerCase();
         if (lowerName.endsWith('.docx')) {
-           const blobRes = await axios.get(res.data.url, { responseType: 'blob' });
-           setDocxBlob(blobRes.data);
+           const blobRes = await fetch(res.data.url).then(r => r.blob());
+           setDocxBlob(blobRes);
         } else if (lowerName.endsWith('.html') || lowerName.endsWith('.htm')) {
-           const textRes = await axios.get(res.data.url, { responseType: 'text' });
-           setHtmlContent(textRes.data);
+           const textRes = await fetch(res.data.url).then(r => r.text());
+           setHtmlContent(textRes);
         } else if (lowerName.endsWith('.csv') || lowerName.endsWith('.txt') || lowerName.endsWith('.md')) {
-           const textRes = await axios.get(res.data.url, { responseType: 'text' });
-           setTextContent(textRes.data);
+           const textRes = await fetch(res.data.url).then(r => r.text());
+           setTextContent(textRes);
         }
       } catch (error: any) {
         console.error(error);
@@ -74,11 +81,11 @@ export default function DocumentViewerPage() {
 
   if (!docId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-card text-foreground p-6">
         <FileText className="h-16 w-16 text-red-400 mb-4 animate-bounce" />
         <h1 className="text-2xl font-black uppercase tracking-wider">Invalid Access</h1>
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2">No document ID was provided in the URL</p>
-        <Button onClick={() => window.close()} className="mt-8 bg-slate-800 hover:bg-slate-700 font-bold uppercase text-[10px] tracking-widest px-6 h-10 rounded-xl">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-2">No document ID was provided in the URL</p>
+        <Button onClick={() => window.close()} className="mt-8 bg-muted hover:bg-muted/80 font-bold uppercase text-[10px] tracking-widest px-6 h-10 rounded-xl">
           Close Window
         </Button>
       </div>
@@ -87,20 +94,20 @@ export default function DocumentViewerPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-card text-foreground p-6">
         <Loader2 className="h-12 w-12 text-indigo-500 animate-spin mb-4" />
-        <h1 className="text-xs font-black uppercase tracking-widest text-slate-400">Securing Link & Fetching File...</h1>
+        <h1 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Securing Link & Fetching File...</h1>
       </div>
     );
   }
 
   if (!docUrl) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white p-6">
-        <FileText className="h-16 w-16 text-slate-600 mb-4" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-card text-foreground p-6">
+        <FileText className="h-16 w-16 text-muted-foreground mb-4" />
         <h1 className="text-xl font-black uppercase tracking-wider">File Not Found</h1>
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-2">Could not retrieve the attachment details</p>
-        <Button onClick={() => window.close()} className="mt-8 bg-slate-800 hover:bg-slate-700 font-bold uppercase text-[10px] tracking-widest px-6 h-10 rounded-xl">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mt-2">Could not retrieve the attachment details</p>
+        <Button onClick={() => window.close()} className="mt-8 bg-muted hover:bg-muted/80 font-bold uppercase text-[10px] tracking-widest px-6 h-10 rounded-xl">
           Close Window
         </Button>
       </div>
@@ -171,9 +178,8 @@ export default function DocumentViewerPage() {
 
   const handleDownload = async () => {
     try {
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/documents/download/${docId}?inline=false`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.get(
+        `/documents/download/${docId}?inline=false`
       );
       const a = document.createElement('a');
       a.href = res.data.url || res.request?.responseURL || docUrl;
@@ -187,7 +193,7 @@ export default function DocumentViewerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col overflow-x-hidden text-slate-200 select-none">
+    <div className="min-h-screen bg-background flex flex-col overflow-x-hidden text-foreground select-none">
       <style jsx global>{`
         @media print {
           body, html {
@@ -228,26 +234,26 @@ export default function DocumentViewerPage() {
         }
       `}</style>
 
-      <header className="no-print bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-xl">
+      <header className="no-print bg-card border-b border-border px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-50 shadow-xl">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <Button 
             onClick={() => window.close()} 
             variant="ghost" 
-            className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl px-3 h-10 flex items-center gap-2 border border-slate-800"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl px-3 h-10 flex items-center gap-2 border border-border"
           >
             <ArrowLeft className="h-4 w-4" />
             <span className="text-[10px] font-black uppercase tracking-widest">Close</span>
           </Button>
           <div className="flex flex-col">
-            <h2 className="text-sm font-black tracking-tight text-white max-w-[280px] md:max-w-[400px] truncate" title={docName}>
+            <h2 className="text-sm font-black tracking-tight text-foreground max-w-[280px] md:max-w-[400px] truncate" title={docName}>
               {docName}
             </h2>
             <div className="flex items-center gap-2 mt-0.5">
-              <Badge className="bg-indigo-950 text-indigo-400 border border-indigo-900 text-[8px] font-black uppercase tracking-widest px-2 py-0.5">
+              <Badge className="bg-primary/10 text-primary border border-primary/20 text-[8px] font-black uppercase tracking-widest px-2 py-0.5">
                 Secure Viewer
               </Badge>
-              <span className="text-slate-600 text-xs font-bold">•</span>
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+              <span className="text-muted-foreground text-xs font-bold">•</span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                 {isPdf ? 'PDF Document' : isImage ? 'Image File' : isDocx ? 'Word Document' : isHtml ? 'HTML Interactive Form' : isCsv ? 'CSV Spreadsheet' : isTxt ? 'Text Document' : 'Attachment File'}
               </span>
             </div>
@@ -256,21 +262,21 @@ export default function DocumentViewerPage() {
 
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           {isImage && (
-            <div className="flex items-center gap-1.5 bg-slate-950/60 rounded-xl px-2 py-1 border border-slate-800">
+            <div className="flex items-center gap-1.5 bg-background/60 rounded-xl px-2 py-1 border border-border">
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setZoom(z => Math.max(z - 25, 50))} 
-                className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
-              <span className="text-[10px] font-bold font-mono text-slate-400 w-10 text-center">{zoom}%</span>
+              <span className="text-[10px] font-bold font-mono text-muted-foreground w-10 text-center">{zoom}%</span>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setZoom(z => Math.min(z + 25, 300))} 
-                className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg"
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
@@ -278,7 +284,7 @@ export default function DocumentViewerPage() {
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setRotation(r => (r + 90) % 360)} 
-                className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg border-l border-slate-800 pl-1.5 ml-1"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg border-l border-border pl-1.5 ml-1"
                 title="Rotate Image"
               >
                 <RotateCw className="h-3.5 w-3.5" />
@@ -290,7 +296,7 @@ export default function DocumentViewerPage() {
             {isHtml && (
               <Button 
                 onClick={handleSaveFilledForm}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center gap-2"
+                className="bg-emerald-600 hover:bg-emerald-700 text-foreground rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center gap-2"
               >
                 <Save className="h-3.5 w-3.5" />
                 Save Filled Form
@@ -298,7 +304,7 @@ export default function DocumentViewerPage() {
             )}
             <Button 
               onClick={handlePrint} 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-indigo-500/10 flex items-center gap-2"
+              className="bg-primary hover:bg-indigo-700 text-foreground rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all shadow-md hover:shadow-indigo-500/10 flex items-center gap-2"
             >
               <Printer className="h-3.5 w-3.5" />
               Print / Save as PDF
@@ -306,7 +312,7 @@ export default function DocumentViewerPage() {
             <Button 
               onClick={handleDownload} 
               variant="outline"
-              className="border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-300 hover:text-white hover:bg-slate-900 rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"
+              className="border-border hover:border-border bg-background text-foreground/80 hover:text-foreground hover:bg-card rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"
             >
               <Download className="h-3.5 w-3.5" />
               Download Original
@@ -315,10 +321,10 @@ export default function DocumentViewerPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4 md:p-8 bg-slate-950 overflow-y-auto">
+      <main className="flex-1 flex items-center justify-center p-4 md:p-8 bg-background overflow-y-auto">
         <div className="print-container w-full max-w-5xl flex justify-center items-center">
           {isPdf ? (
-            <Card className="w-full bg-slate-900 border-slate-800 overflow-hidden shadow-2xl rounded-2xl no-print">
+            <Card className="w-full bg-card border-border overflow-hidden shadow-2xl rounded-xl no-print">
               <iframe 
                 src={`${docUrl}#toolbar=0`} 
                 className="w-full h-[82vh] border-0"
@@ -326,11 +332,11 @@ export default function DocumentViewerPage() {
               />
             </Card>
           ) : isDocx ? (
-            <Card className="w-full bg-white text-black overflow-hidden shadow-2xl rounded-2xl min-h-[82vh] p-8 no-print">
+            <Card className="w-full bg-background text-black overflow-hidden shadow-2xl rounded-xl min-h-[82vh] p-8 no-print">
                <div ref={docxRef} className="w-full h-full overflow-y-auto" />
             </Card>
           ) : isHtml ? (
-            <Card className="w-full bg-white text-black overflow-hidden shadow-2xl rounded-2xl min-h-[82vh] no-print relative">
+            <Card className="w-full bg-background text-black overflow-hidden shadow-2xl rounded-xl min-h-[82vh] no-print relative">
                <iframe ref={iframeRef} srcDoc={htmlContent} className="w-full h-[82vh] border-0" title={docName} />
             </Card>
           ) : isImage ? (
@@ -345,20 +351,20 @@ export default function DocumentViewerPage() {
                 <img 
                   src={docUrl} 
                   alt={docName}
-                  className="max-h-[75vh] object-contain rounded-2xl shadow-2xl border border-slate-800 bg-slate-900"
+                  className="max-h-[75vh] object-contain rounded-xl shadow-2xl border border-border bg-card"
                 />
               </div>
-              <p className="no-print mt-6 text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+              <p className="no-print mt-6 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 Scroll to zoom in/out or rotate using the toolbar controls
               </p>
             </div>
           ) : isCsv ? (
-            <Card className="w-full bg-white text-black overflow-hidden shadow-2xl rounded-2xl min-h-[82vh] p-8 no-print overflow-x-auto">
+            <Card className="w-full bg-background text-black overflow-hidden shadow-2xl rounded-xl min-h-[82vh] p-8 no-print overflow-x-auto">
                <table className="w-full text-left border-collapse text-xs whitespace-nowrap">
                  <thead>
-                   <tr>
+                   <tr className="bg-muted/50 h-10">
                      {textContent.split('\n')[0]?.split(',').map((header, i) => (
-                       <th key={i} className="border-b-2 border-slate-200 p-3 font-black bg-slate-50 uppercase tracking-wider text-[10px] text-slate-500">{header}</th>
+                       <th key={i} className="border-b border-border px-4 font-medium text-xs text-muted-foreground">{header}</th>
                      ))}
                    </tr>
                  </thead>
@@ -366,9 +372,9 @@ export default function DocumentViewerPage() {
                    {textContent.split('\n').slice(1).map((row, i) => {
                      if (!row.trim()) return null;
                      return (
-                       <tr key={i} className="hover:bg-slate-50/50 border-b border-slate-100 transition-colors">
+                       <tr key={i} className="hover:bg-muted/50 border-b border-border transition-colors h-14">
                          {row.split(',').map((cell, j) => (
-                           <td key={j} className="p-3 border-r border-slate-50 last:border-0 font-medium text-slate-700">{cell}</td>
+                           <td key={j} className="px-4 align-middle text-sm text-muted-foreground">{cell}</td>
                          ))}
                        </tr>
                      );
@@ -377,27 +383,27 @@ export default function DocumentViewerPage() {
                </table>
             </Card>
           ) : isTxt ? (
-            <Card className="w-full bg-slate-900 border-slate-800 text-slate-300 overflow-hidden shadow-2xl rounded-2xl min-h-[82vh] p-8 no-print">
+            <Card className="w-full bg-card border-border text-foreground/80 overflow-hidden shadow-2xl rounded-xl min-h-[82vh] p-8 no-print">
                <pre className="w-full h-full overflow-auto whitespace-pre-wrap font-mono text-sm leading-relaxed">{textContent}</pre>
             </Card>
           ) : (
-            <Card className="bg-slate-900 border-slate-800 p-12 text-center rounded-2xl max-w-md w-full shadow-2xl">
+            <Card className="bg-card border-border p-12 text-center rounded-xl max-w-md w-full shadow-2xl">
               <FileText className="h-16 w-16 text-indigo-500 mx-auto mb-6" />
-              <h3 className="text-lg font-black text-white uppercase tracking-wider">{docName.split('.').pop()?.toUpperCase()} File</h3>
-              <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest mt-2 leading-relaxed">
+              <h3 className="text-lg font-black text-foreground uppercase tracking-wider">{docName.split('.').pop()?.toUpperCase()} File</h3>
+              <p className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mt-2 leading-relaxed">
                 This file format cannot be previewed directly inside the browser.
               </p>
               <div className="mt-8 flex flex-col gap-3">
                 <Button 
                   onClick={handleDownload}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-11 w-full font-black text-[10px] uppercase tracking-widest shadow-lg"
+                  className="bg-primary hover:bg-indigo-700 text-foreground rounded-xl h-11 w-full font-black text-[10px] uppercase tracking-widest shadow-lg"
                 >
                   <Download className="mr-2 h-4 w-4" /> Download & View Original
                 </Button>
                 <Button 
                   onClick={() => window.open(docUrl, '_blank')}
                   variant="outline"
-                  className="border-slate-800 hover:border-slate-700 bg-slate-950 text-slate-300 rounded-xl h-11 w-full font-black text-[10px] uppercase tracking-widest"
+                  className="border-border hover:border-border bg-background text-foreground/80 rounded-xl h-11 w-full font-black text-[10px] uppercase tracking-widest"
                 >
                   <ExternalLink className="mr-2 h-4 w-4" /> Open In Native Tab
                 </Button>
@@ -421,3 +427,4 @@ export default function DocumentViewerPage() {
     </div>
   );
 }
+

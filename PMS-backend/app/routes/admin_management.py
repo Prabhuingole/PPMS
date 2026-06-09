@@ -62,6 +62,7 @@ def create_admin(
     db.commit()
     db.refresh(new_user)
     
+    print(f"Adding task to send welcome email to {payload.email}")
     background_tasks.add_task(
         send_temporary_password_email,
         to_email=payload.email,
@@ -116,6 +117,17 @@ def get_admins(
         "page": page,
         "pages": pages
     }
+
+@router.get("/{user_id}", response_model=EmployeeResponse)
+def get_admin(
+    user_id: int,
+    db: Session = Depends(get_db),
+    admin: User = require_superadmin
+):
+    user = db.query(User).filter(User.id == user_id, User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN])).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return user
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_admin(

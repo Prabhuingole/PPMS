@@ -17,7 +17,9 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { toast } from 'sonner';
 import { DocumentTemplate } from '@/types';
 import { motion } from 'motion/react';
@@ -40,9 +42,7 @@ export default function EmployeeTemplatesPage() {
 
   const fetchTemplates = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/templates/`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/templates/`);
       setTemplates(response.data);
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -58,7 +58,7 @@ export default function EmployeeTemplatesPage() {
 
   const handleDownload = async (docType: string, filename: string) => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/templates/download/${docType}`, {
+      const response = await api.get(`/templates/download/${docType}`, {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
@@ -83,8 +83,8 @@ export default function EmployeeTemplatesPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mb-4" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Accessing Artifact Library...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Accessing Artifact Library...</p>
       </div>
     );
   }
@@ -97,20 +97,20 @@ export default function EmployeeTemplatesPage() {
            <Button 
              variant="ghost" 
              onClick={() => router.back()}
-             className="group text-slate-500 hover:text-indigo-600 font-semibold text-sm px-0 mb-2"
+             className="group text-muted-foreground hover:text-primary font-semibold text-sm px-0 mb-2"
            >
              <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
              Back to Stream
            </Button>
-           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Master Templates</h1>
-           <p className="text-slate-500 text-sm font-medium mt-1">Official Governance Artifacts & Standards</p>
+           <h1 className="text-3xl font-bold text-foreground tracking-tight">Master Templates</h1>
+           <p className="text-muted-foreground text-sm font-medium mt-1">Official Governance Artifacts & Standards</p>
         </div>
 
         <div className="relative w-full md:w-80 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           <Input 
             placeholder="Filter standards..." 
-            className="pl-11 h-11 rounded-xl bg-white border-slate-200 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium shadow-sm"
+            className="pl-11 h-11 rounded-xl bg-background border-border outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm font-medium shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -126,24 +126,24 @@ export default function EmployeeTemplatesPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.05 }}
           >
-            <Card className="flex flex-col h-full border-slate-200 shadow-sm hover:shadow-md transition-all bg-white rounded-2xl group overflow-hidden">
-              <CardHeader className="p-5 pb-3 border-b border-slate-100">
+            <Card className="flex flex-col h-full border-border shadow-sm hover:shadow-md transition-all bg-background rounded-xl group overflow-hidden">
+              <CardHeader className="p-5 pb-3 border-b border-border">
                 <div className="mb-4">
-                  <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600 w-fit">
+                  <div className="p-3 bg-indigo-50 rounded-xl text-primary w-fit">
                     <BookOpen className="h-6 w-6" />
                   </div>
                 </div>
-                <CardTitle className="text-lg font-bold text-slate-900 leading-tight mb-1 truncate" title={template.doc_type}>
+                <CardTitle className="text-lg font-bold text-foreground leading-tight mb-1 truncate" title={template.doc_type}>
                   {template.doc_type}
                 </CardTitle>
-                <p className="text-sm font-medium text-slate-500 truncate" title={docTypeFullNames[template.doc_type] || 'Standard Template'}>
+                <p className="text-sm font-medium text-muted-foreground truncate" title={docTypeFullNames[template.doc_type] || 'Standard Template'}>
                   {docTypeFullNames[template.doc_type] || 'Standard Template'}
                 </p>
               </CardHeader>
               <CardContent className="p-5 pt-4 flex-grow flex flex-col justify-between space-y-5">
                 
                 {template.html_content && (
-                   <div className="bg-slate-50/80 p-3.5 rounded-xl max-h-32 overflow-y-auto overflow-x-hidden border border-slate-100">
+                   <div className="bg-slate-50/80 p-3.5 rounded-xl max-h-32 overflow-y-auto overflow-x-hidden border border-border">
                      <p className="text-sm text-slate-600 font-medium leading-relaxed break-words whitespace-pre-wrap">
                         {template.html_content}
                      </p>
@@ -162,9 +162,7 @@ export default function EmployeeTemplatesPage() {
                                newWindow.document.write('<div style="font-family:sans-serif;padding:20px;text-align:center;">Loading document viewer...</div>');
                             }
                             try {
-                              const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/templates/download/${encodeURIComponent(template.doc_type)}?inline=true`, {
-                                headers: { Authorization: `Bearer ${token}` }
-                              });
+                              const response = await api.get(`/templates/download/${encodeURIComponent(template.doc_type)}?inline=true`);
                               if (response.data?.url) {
                                  if (newWindow) {
                                     newWindow.location.href = response.data.url;
@@ -180,7 +178,7 @@ export default function EmployeeTemplatesPage() {
                               toast.error('Failed to view document');
                             }
                           }}
-                          className="flex-1 h-10 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+                          className="flex-1 h-10 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
                         >
                           <ExternalLink className="h-4 w-4 mr-2" />
                           View Document
@@ -188,7 +186,7 @@ export default function EmployeeTemplatesPage() {
                         <Button 
                           variant="outline"
                           onClick={() => handleDownload(template.doc_type, template.filename!)}
-                          className="flex-1 h-10 rounded-lg border-slate-200 text-slate-700 text-sm font-semibold hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                          className="flex-1 h-10 rounded-lg border-border text-foreground text-sm font-semibold hover:bg-muted hover:text-primary transition-colors"
                         >
                            <Download className="h-4 w-4 mr-2" />
                            Download
@@ -203,9 +201,9 @@ export default function EmployeeTemplatesPage() {
       </div>
 
       {filteredTemplates.length === 0 && (
-         <div className="flex flex-col items-center justify-center py-20 bg-slate-50 rounded-[40px] border border-dashed border-slate-200">
+         <div className="flex flex-col items-center justify-center py-20 bg-muted/30 rounded-[40px] border border-dashed border-border">
             <BookOpen className="h-12 w-12 text-slate-200 mb-4" />
-            <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-xs">No Standards Found</p>
+            <p className="text-muted-foreground font-black uppercase tracking-[0.2em] text-xs">No Standards Found</p>
          </div>
       )}
     </div>

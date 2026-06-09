@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { SettingsLayout } from '@/components/layout/SettingsLayout';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -22,7 +23,9 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { useRouter } from 'next/navigation';
 import { UAParser } from 'ua-parser-js';
 
@@ -52,10 +55,7 @@ export default function SettingsPage() {
     if (!token) return;
     setIsSessionsLoading(true);
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await axios.get(`${api}/auth/sessions`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            const res = await api.get(`/auth/sessions`);
       setSessions(res.data);
     } catch (err) {
       console.error("Failed to fetch sessions", err);
@@ -114,16 +114,11 @@ export default function SettingsPage() {
 
     setIsSaving(true);
     try {
-      const response = await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/update-profile`,
+      const response = await api.put(
+        `/auth/update-profile`,
         {
           full_name: formData.full_name,
           email: formData.email
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
         }
       );
 
@@ -152,10 +147,9 @@ export default function SettingsPage() {
 
   const handleToggleMFA = async (checked: boolean) => {
     try {
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/update-profile`,
-        { is_mfa_enabled: checked },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(
+        `/auth/update-profile`,
+        { is_mfa_enabled: checked }
       );
       updateUser({ is_mfa_enabled: checked } as any);
       toast.success(checked ? "Two-Factor Authentication Enabled" : "Two-Factor Authentication Disabled");
@@ -183,16 +177,11 @@ export default function SettingsPage() {
     }
     setIsSaving(true);
     try {
-      await axios.put(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/update-password`,
+      await api.put(
+        `/auth/update-password`,
         {
           current_password: currentPassword,
           new_password: newPassword
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
         }
       );
       toast.success("Password updated successfully!");
@@ -217,10 +206,7 @@ export default function SettingsPage() {
 
   const handleLogoutAll = async () => {
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      await axios.delete(`${api}/auth/sessions/all`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            await api.delete(`/auth/sessions/all`);
       toast.success("Logged out from all other devices successfully");
       fetchSessions();
     } catch (error) {
@@ -230,10 +216,7 @@ export default function SettingsPage() {
 
   const handleRevokeSession = async (sessionId: string) => {
     try {
-      const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      await axios.delete(`${api}/auth/sessions/${sessionId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+            await api.delete(`/auth/sessions/${sessionId}`);
       toast.success("Session revoked successfully");
       fetchSessions();
     } catch (error) {
@@ -242,35 +225,29 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight text-slate-900 uppercase leading-none">Settings</h2>
-          <p className="text-slate-500 font-medium text-sm mt-2">Manage your profile and account security.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {activeTab === 'profile' && (
-            <Button 
-              onClick={handleSave}
-              disabled={isSaving}
-              className="bg-slate-900 text-white hover:bg-slate-800 h-11 rounded-xl px-6 shadow-xl shadow-slate-900/10 font-bold text-[10px] uppercase tracking-widest transition-all hover:-translate-y-1 w-full sm:w-auto sm:min-w-[140px]"
-            >
-              {isSaving ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Saving...</span>
-                </div>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-        {/* Simple Navigation */}
-        <div className="lg:col-span-3 flex lg:flex-col gap-2 sm:gap-3 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+    <SettingsLayout
+      title="Settings"
+      description="Manage your profile and account security."
+      headerActions={
+        activeTab === 'profile' && (
+          <Button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className="bg-primary text-white hover:bg-indigo-700 h-9 rounded-md px-4 font-semibold text-sm transition-all"
+          >
+            {isSaving ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Saving...</span>
+              </div>
+            ) : (
+              "Save Changes"
+            )}
+          </Button>
+        )
+      }
+      navigation={
+        <div className="flex lg:flex-col gap-2 sm:gap-3 overflow-x-auto overflow-y-hidden lg:overflow-visible pb-2 lg:pb-0 scroll-smooth snap-x">
            {[
              { id: 'profile', icon: User, label: 'Profile', desc: 'Your personal information' },
              { id: 'security', icon: Lock, label: 'Security', desc: 'Password and protection' },
@@ -279,279 +256,275 @@ export default function SettingsPage() {
                key={item.id}
                onClick={() => setActiveTab(item.id as any)}
                className={cn(
-                  "min-w-[160px] lg:min-w-0 w-full text-left p-3 sm:p-4 rounded-xl transition-all group border flex-shrink-0 lg:flex-shrink",
+                  "flex-shrink-0 snap-start flex items-center gap-3 lg:w-full text-left p-3 sm:p-4 rounded-xl transition-all group border lg:flex-shrink",
                  activeTab === item.id 
-                   ? "bg-white shadow-lg shadow-slate-200/40 border-slate-200" 
-                   : "bg-transparent border-transparent hover:bg-slate-100/50"
+                   ? "bg-background shadow-sm border-border" 
+                   : "bg-transparent border-transparent hover:bg-muted"
                )}
              >
-                <div className="flex items-start gap-3">
-                   <div className={cn(
-                     "p-2.5 rounded-lg transition-colors",
-                     activeTab === item.id ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-slate-900 group-hover:shadow-sm"
-                   )}>
-                      <item.icon className="h-4 w-4" />
-                   </div>
-                   <div>
-                      <h3 className={cn(
-                        "text-xs font-black uppercase tracking-widest",
-                        activeTab === item.id ? "text-slate-900" : "text-slate-600 group-hover:text-slate-900"
-                      )}>{item.label}</h3>
-                      <p className="text-[10px] text-slate-400 mt-0.5">{item.desc}</p>
-                   </div>
+                <div className={cn(
+                  "p-2.5 rounded-lg transition-colors shrink-0",
+                  activeTab === item.id ? "bg-indigo-50 text-primary" : "bg-muted text-muted-foreground group-hover:bg-background group-hover:text-foreground group-hover:shadow-sm"
+                )}>
+                   <item.icon className="h-4 w-4" />
+                </div>
+                <div className="whitespace-nowrap pr-2">
+                   <h3 className={cn(
+                     "text-sm font-semibold",
+                     activeTab === item.id ? "text-foreground" : "text-slate-600 group-hover:text-foreground"
+                   )}>{item.label}</h3>
+                   <p className="text-xs text-muted-foreground mt-0.5 hidden lg:block">{item.desc}</p>
                 </div>
              </button>
            ))}
         </div>
-
-        {/* Content Area */}
-        <div className="lg:col-span-9">
-           {activeTab === 'profile' && (
-             <motion.div
-               initial={{ opacity: 0, y: 5 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0 }}
-             >
-                <Card className="border-none rounded-[1.5rem] shadow-xl shadow-slate-200/40 bg-white overflow-hidden">
-                   <CardHeader className="p-4 sm:p-8 border-b border-slate-100 bg-slate-50/50">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 shadow-inner">
-                          <UserCircle className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg font-black text-slate-900 uppercase tracking-tight">Personal Details</CardTitle>
-                          <CardDescription className="text-xs font-medium mt-1">
-                             Update your name and email address
-                          </CardDescription>
-                        </div>
-                      </div>
-                   </CardHeader>
-                   <CardContent className="p-4 sm:p-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-2xl">
-                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                              <User className="h-3 w-3 text-indigo-500" /> Full Name
-                            </Label>
-                            <Input 
-                              name="full_name"
-                              value={formData.full_name}
-                              onChange={handleChange}
-                              placeholder="Enter your full name" 
-                              className="h-12 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-xs font-bold shadow-sm" 
-                            />
-                         </div>
-                         <div className="space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                              <Mail className="h-3 w-3 text-indigo-500" /> Email Address
-                            </Label>
-                            <Input 
-                              name="email"
-                              value={formData.email}
-                              onChange={handleChange}
-                              type="email" 
-                              placeholder="your.email@example.com" 
-                              className="h-12 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-xs font-bold shadow-sm" 
-                            />
-                         </div>
-                      </div>
-                   </CardContent>
-                </Card>
-             </motion.div>
-           )}
-
-           {activeTab === 'security' && (
-             <motion.div
-               initial={{ opacity: 0, y: 5 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ duration: 0 }}
-               className="space-y-6 sm:space-y-8"
-             >
-                <Card className="border-none rounded-[1.5rem] shadow-xl shadow-slate-200/40 bg-white overflow-hidden">
-                   <CardHeader className="p-4 sm:p-8 border-b border-slate-100 bg-slate-50/50">
-                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-900/20">
-                          <ShieldCheck className="h-6 w-6" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg font-black text-slate-900 uppercase tracking-tight">Security Credentials</CardTitle>
-                          <CardDescription className="text-xs font-medium mt-1">
-                             Update your password and protect your account
-                          </CardDescription>
-                        </div>
-                      </div>
-                   </CardHeader>
-                    <CardContent className="p-4 sm:p-8 space-y-6">
-                       <div className="grid grid-cols-1 gap-6 w-full sm:max-w-md">
-                         <div className="space-y-2">
-                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                               Current Password
-                             </Label>
-                             <div className="relative">
-                               <Input 
-                                 type={showCurrentPassword ? "text" : "password"} 
-                                 value={currentPassword}
-                                 onChange={(e) => setCurrentPassword(e.target.value)}
-                                 placeholder="••••••••" 
-                                 className="h-12 pr-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-xs font-bold shadow-sm w-full" 
-                               />
-                               <button
-                                 type="button"
-                                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center"
-                               >
-                                 {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                               </button>
-                             </div>
-                          </div>
-                          <div className="space-y-2">
-                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                               New Password
-                             </Label>
-                             <div className="relative">
-                               <Input 
-                                 type={showNewPassword ? "text" : "password"} 
-                                 value={newPassword}
-                                 onChange={(e) => setNewPassword(e.target.value)}
-                                 placeholder="••••••••" 
-                                 className="h-12 pr-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-xs font-bold shadow-sm w-full" 
-                               />
-                               <button
-                                 type="button"
-                                 onClick={() => setShowNewPassword(!showNewPassword)}
-                                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center"
-                               >
-                                 {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                               </button>
-                             </div>
-                          </div>
-                          <div className="space-y-2">
-                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                               Confirm New Password
-                             </Label>
-                             <div className="relative">
-                               <Input 
-                                 type={showConfirmPassword ? "text" : "password"} 
-                                 value={confirmPassword}
-                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                 placeholder="••••••••" 
-                                 className="h-12 pr-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-xs font-bold shadow-sm w-full" 
-                               />
-                               <button
-                                 type="button"
-                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none flex items-center justify-center"
-                               >
-                                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                               </button>
-                             </div>
-                          </div>
-                      </div>
-                      <div className="pt-6 border-t border-slate-100">
-                         <Button 
-                           onClick={handleUpdatePassword}
-                           disabled={isSaving}
-                           className="bg-slate-900 text-white hover:bg-slate-800 h-11 rounded-xl px-8 font-bold text-[10px] uppercase tracking-widest transition-all"
-                         >
-                            {isSaving ? "Updating..." : "Update Password"}
-                         </Button>
-                      </div>
-                   </CardContent>
-                 </Card>
-
-                 <Card className="border-none rounded-[1.5rem] shadow-xl shadow-slate-200/40 bg-white overflow-hidden p-4 sm:p-8 flex flex-col items-start gap-6 border border-white mt-6">
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center space-x-4 sm:space-x-6">
-                        <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
-                           <ShieldCheck className="h-6 w-6" />
-                        </div>
-                        <div>
-                           <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight">Two-Factor Authentication</h4>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Require a 6-digit OTP sent to your email.</p>
-                        </div>
-                     </div>
-                     <Switch 
-                         checked={user?.is_mfa_enabled || false} 
-                         onCheckedChange={handleToggleMFA} 
-                     />
+      }
+    >
+       {activeTab === 'profile' && (
+         <motion.div
+           initial={{ opacity: 0, y: 5 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.2 }}
+         >
+            <Card className="rounded-xl shadow-sm border-border bg-background overflow-hidden">
+               <CardHeader className="p-6 border-b border-border bg-background">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-lg bg-indigo-50 text-primary flex items-center justify-center border border-indigo-100">
+                      <UserCircle className="h-6 w-6" />
                     </div>
-                 </Card>
-
-                 <Card className="border-none rounded-[1.5rem] shadow-xl shadow-slate-200/40 bg-white overflow-hidden p-4 sm:p-8 flex flex-col items-start gap-6 border border-white mt-6">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-4">
-                      <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                        <div className="p-3 bg-red-50 rounded-xl text-red-600 flex-shrink-0">
-                           <LogOut className="h-6 w-6" />
-                        </div>
-                        <div className="min-w-0">
-                           <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight truncate">Active Sessions</h4>
-                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 truncate">Logged in on other devices? You can sign out here.</p>
-                        </div>
+                    <div>
+                      <CardTitle className="text-lg font-bold text-foreground">Personal Details</CardTitle>
+                      <CardDescription className="text-sm mt-1">
+                         Update your name and email address
+                      </CardDescription>
+                    </div>
+                  </div>
+               </CardHeader>
+               <CardContent className="p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-2xl">
+                     <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" /> Full Name
+                        </Label>
+                        <Input 
+                          name="full_name"
+                          value={formData.full_name}
+                          onChange={handleChange}
+                          placeholder="Enter your full name" 
+                          className="h-10 rounded-md border-border focus:bg-background transition-all text-sm" 
+                        />
                      </div>
-                      <Button 
-                        onClick={handleLogoutAll}
-                        className="bg-white text-red-600 hover:bg-red-50 border border-red-100 rounded-xl h-9 px-4 font-black text-[9px] uppercase tracking-widest shadow-sm w-full md:w-auto flex-shrink-0"
-                      >
-                         Revoke All Others
+                     <div className="space-y-2">
+                        <Label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" /> Email Address
+                        </Label>
+                        <Input 
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          type="email" 
+                          placeholder="your.email@example.com" 
+                          className="h-10 rounded-md border-border focus:bg-background transition-all text-sm" 
+                        />
+                     </div>
+                  </div>
+               </CardContent>
+            </Card>
+         </motion.div>
+       )}
+
+       {activeTab === 'security' && (
+         <motion.div
+           initial={{ opacity: 0, y: 5 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.2 }}
+           className="space-y-6"
+         >
+            <Card className="rounded-xl shadow-sm border-border bg-background overflow-hidden">
+               <CardHeader className="p-6 border-b border-border bg-background">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-lg bg-muted text-muted-foreground flex items-center justify-center border border-border">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg font-bold text-foreground">Security Credentials</CardTitle>
+                      <CardDescription className="text-sm mt-1">
+                         Update your password and protect your account
+                      </CardDescription>
+                    </div>
+                  </div>
+               </CardHeader>
+                <CardContent className="p-6 space-y-6">
+                   <div className="grid grid-cols-1 gap-6 w-full sm:max-w-md">
+                     <div className="space-y-2">
+                         <Label className="text-sm font-semibold text-foreground">
+                           Current Password
+                         </Label>
+                         <div className="relative">
+                           <Input 
+                             type={showCurrentPassword ? "text" : "password"} 
+                             value={currentPassword}
+                             onChange={(e) => setCurrentPassword(e.target.value)}
+                             placeholder="••••••••" 
+                             className="h-10 pr-10 rounded-md border-border transition-all text-sm w-full" 
+                           />
+                           <button
+                             type="button"
+                             onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-600 focus:outline-none flex items-center justify-center"
+                           >
+                             {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </button>
+                         </div>
+                      </div>
+                      <div className="space-y-2">
+                         <Label className="text-sm font-semibold text-foreground">
+                           New Password
+                         </Label>
+                         <div className="relative">
+                           <Input 
+                             type={showNewPassword ? "text" : "password"} 
+                             value={newPassword}
+                             onChange={(e) => setNewPassword(e.target.value)}
+                             placeholder="••••••••" 
+                             className="h-10 pr-10 rounded-md border-border transition-all text-sm w-full" 
+                           />
+                           <button
+                             type="button"
+                             onClick={() => setShowNewPassword(!showNewPassword)}
+                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-600 focus:outline-none flex items-center justify-center"
+                           >
+                             {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </button>
+                         </div>
+                      </div>
+                      <div className="space-y-2">
+                         <Label className="text-sm font-semibold text-foreground">
+                           Confirm New Password
+                         </Label>
+                         <div className="relative">
+                           <Input 
+                             type={showConfirmPassword ? "text" : "password"} 
+                             value={confirmPassword}
+                             onChange={(e) => setConfirmPassword(e.target.value)}
+                             placeholder="••••••••" 
+                             className="h-10 pr-10 rounded-md border-border transition-all text-sm w-full" 
+                           />
+                           <button
+                             type="button"
+                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-slate-600 focus:outline-none flex items-center justify-center"
+                           >
+                             {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                           </button>
+                         </div>
+                      </div>
+                  </div>
+                  <div className="pt-6 border-t border-border">
+                     <Button 
+                       onClick={handleUpdatePassword}
+                       disabled={isSaving}
+                       className="bg-slate-900 text-white hover:bg-slate-800 h-9 rounded-md px-6 font-semibold text-sm transition-all"
+                     >
+                        {isSaving ? "Updating..." : "Update Password"}
                      </Button>
-                    </div>
+                  </div>
+               </CardContent>
+             </Card>
 
-                    <div className="w-full space-y-3">
-                      {isSessionsLoading ? (
-                        <div className="py-4 flex justify-center text-slate-400"><Loader2 className="h-5 w-5 animate-spin" /></div>
-                      ) : sessions.length === 0 ? (
-                        <div className="py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest text-center">No active sessions found</div>
-                      ) : (
-                        sessions.map((session) => (
-                          <div key={session.session_id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 gap-4 hover:bg-white hover:border-slate-200 transition-colors">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-slate-800">
-                                  {(() => {
-                                    if (!session.device_info || session.device_info === 'Unknown Device') return 'Unknown Device';
-                                    const parser = new UAParser(session.device_info);
-                                    const browser = parser.getBrowser();
-                                    const os = parser.getOS();
-                                    const device = parser.getDevice();
-                                    
-                                    const browserStr = browser.name ? `${browser.name} ${browser.version?.split('.')[0] || ''}` : '';
-                                    const osStr = os.name ? `${os.name} ${os.version || ''}` : '';
-                                    const isMobile = os.name === 'iOS' || os.name === 'Android' || device.type === 'mobile';
-                                    const deviceType = device.vendor || device.model ? `${device.vendor || ''} ${device.model || ''}`.trim() : (isMobile ? 'Mobile Device' : 'Desktop/Laptop');
-                                    
-                                    return [browserStr, osStr, deviceType].filter(Boolean).join(' • ') || session.device_info;
-                                  })()}
-                                </span>
-                                {session.is_current && (
-                                  <span className="bg-emerald-100 text-emerald-700 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md">This Device</span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{session.ip_address}</span>
-                                <span className="text-slate-300">•</span>
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                  Last active: {new Date(session.last_active_at).toLocaleString()}
-                                </span>
-                              </div>
-                            </div>
-                            {!session.is_current && (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleRevokeSession(session.session_id)}
-                                className="h-8 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all w-full sm:w-auto"
-                              >
-                                Revoke
-                              </Button>
+             <Card className="rounded-xl shadow-sm border-border bg-background overflow-hidden p-6 flex flex-col items-start gap-6">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600 border border-blue-100">
+                       <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <div>
+                       <h4 className="text-base font-bold text-foreground">Two-Factor Authentication</h4>
+                       <p className="text-sm text-muted-foreground mt-0.5">Require a 6-digit OTP sent to your email.</p>
+                    </div>
+                 </div>
+                 <Switch 
+                     checked={user?.is_mfa_enabled || false} 
+                     onCheckedChange={handleToggleMFA} 
+                 />
+                </div>
+             </Card>
+
+             <Card className="rounded-xl shadow-sm border-border bg-background overflow-hidden p-6 flex flex-col items-start gap-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <div className="p-2 bg-red-50 rounded-lg text-red-600 border border-red-100 flex-shrink-0">
+                       <LogOut className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                       <h4 className="text-base font-bold text-foreground truncate">Active Sessions</h4>
+                       <p className="text-sm text-muted-foreground mt-0.5 truncate">Logged in on other devices? You can sign out here.</p>
+                    </div>
+                 </div>
+                  <Button 
+                    onClick={handleLogoutAll}
+                    variant="outline"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200 rounded-md h-9 px-4 font-semibold text-sm w-full sm:w-auto flex-shrink-0"
+                  >
+                     Revoke All Others
+                 </Button>
+                </div>
+
+                <div className="w-full space-y-3">
+                  {isSessionsLoading ? (
+                    <div className="py-4 flex justify-center text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" /></div>
+                  ) : sessions.length === 0 ? (
+                    <div className="py-4 text-sm text-muted-foreground text-center">No active sessions found</div>
+                  ) : (
+                    sessions.map((session) => (
+                      <div key={session.session_id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg border border-border bg-slate-50/50 gap-4 hover:bg-muted transition-colors">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-foreground">
+                              {(() => {
+                                if (!session.device_info || session.device_info === 'Unknown Device') return 'Unknown Device';
+                                const parser = new UAParser(session.device_info);
+                                const browser = parser.getBrowser();
+                                const os = parser.getOS();
+                                const device = parser.getDevice();
+                                
+                                const browserStr = browser.name ? `${browser.name} ${browser.version?.split('.')[0] || ''}` : '';
+                                const osStr = os.name ? `${os.name} ${os.version || ''}` : '';
+                                const isMobile = os.name === 'iOS' || os.name === 'Android' || device.type === 'mobile';
+                                const deviceType = device.vendor || device.model ? `${device.vendor || ''} ${device.model || ''}`.trim() : (isMobile ? 'Mobile Device' : 'Desktop/Laptop');
+                                
+                                return [browserStr, osStr, deviceType].filter(Boolean).join(' • ') || session.device_info;
+                              })()}
+                            </span>
+                            {session.is_current && (
+                              <span className="bg-emerald-100 text-emerald-700 text-xs font-semibold px-2 py-0.5 rounded-full">This Device</span>
                             )}
                           </div>
-                        ))
-                      )}
-                    </div>
-                </Card>
-             </motion.div>
-           )}
-        </div>
-      </div>
-    </div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-muted-foreground">{session.ip_address}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="text-xs text-muted-foreground">
+                              Last active: {new Date(session.last_active_at).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        {!session.is_current && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleRevokeSession(session.session_id)}
+                            className="h-8 rounded-md text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition-all w-full sm:w-auto"
+                          >
+                            Revoke
+                          </Button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+            </Card>
+         </motion.div>
+       )}
+    </SettingsLayout>
   );
 }

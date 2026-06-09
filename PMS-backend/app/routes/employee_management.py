@@ -58,6 +58,7 @@ def create_employee(
     db.refresh(new_user)
     
     # Dispatch welcome email asynchronously
+    print(f"Adding task to send welcome email to {payload.email}")
     background_tasks.add_task(
         send_temporary_password_email,
         to_email=payload.email,

@@ -115,8 +115,8 @@ export default function SuperadminNotesPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
-        <p className="text-slate-500 font-medium animate-pulse uppercase tracking-widest text-[10px]">Loading Projects...</p>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium animate-pulse uppercase tracking-widest text-[10px]">Loading Projects...</p>
       </div>
     );
   }
@@ -127,14 +127,14 @@ export default function SuperadminNotesPage() {
       <div className="space-y-8 max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase">Project To Do Lists</h2>
-             <p className="text-slate-500 font-medium text-sm">Oversight and management of project-based employee tasks</p>
+             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-foreground uppercase">Project To Do Lists</h2>
+             <p className="text-muted-foreground font-medium text-sm">Oversight and management of project-based employee tasks</p>
           </div>
           <div className="relative w-full md:w-80">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search projects..." 
-              className="h-12 pl-11 rounded-2xl bg-white border-slate-200 outline-none focus:border-indigo-400 transition-all text-xs font-bold shadow-sm" 
+              className="h-12 pl-11 rounded-xl bg-background border-border outline-none focus:border-indigo-400 transition-all text-xs font-bold shadow-sm" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -149,34 +149,34 @@ export default function SuperadminNotesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => setSelectedProject(proj)}
-              className="bg-white p-6 rounded-3xl border border-slate-200 hover:border-indigo-300 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all cursor-pointer group"
+              className="bg-background p-6 rounded-xl border border-border hover:border-indigo-300 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all cursor-pointer group"
             >
               <div className="flex items-center space-x-4 mb-6">
-                <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-50 text-indigo-600 flex items-center justify-center border border-indigo-100 group-hover:scale-105 transition-transform">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 text-primary flex items-center justify-center border border-indigo-100 group-hover:scale-105 transition-transform">
                   <Briefcase className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-black text-slate-800 uppercase tracking-tight truncate group-hover:text-indigo-600 transition-colors">
+                  <span className="text-sm font-black text-slate-800 uppercase tracking-tight truncate group-hover:text-primary transition-colors">
                     {proj.project_name}
                   </span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest truncate mt-0.5">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate mt-0.5">
                     {proj.project_code}
                   </span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center group-hover:bg-indigo-50/50 transition-colors">
+                <div className="bg-muted/30 p-3 rounded-xl border border-border flex flex-col items-center justify-center text-center group-hover:bg-indigo-50/50 transition-colors">
                   <span className="text-lg font-black text-slate-800">{proj.page_count}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Lists</span>
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Lists</span>
                 </div>
-                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 flex flex-col items-center justify-center text-center group-hover:bg-emerald-50/50 transition-colors">
+                <div className="bg-muted/30 p-3 rounded-xl border border-border flex flex-col items-center justify-center text-center group-hover:bg-emerald-50/50 transition-colors">
                   <span className="text-lg font-black text-slate-800">{proj.completed_tasks}/{proj.total_tasks}</span>
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Tasks Done</span>
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Tasks Done</span>
                 </div>
               </div>
 
-              <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-50 pt-4">
+              <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t border-slate-50 pt-4">
                 <Clock className="h-3 w-3 mr-1.5" />
                 {proj.last_activity ? `Updated ${formatDistanceToNow(new Date(proj.last_activity))} ago` : 'No activity yet'}
               </div>
@@ -184,12 +184,12 @@ export default function SuperadminNotesPage() {
           ))}
           
           {projects.length === 0 && (
-            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-white rounded-3xl border-2 border-dashed border-slate-200">
-              <div className="p-4 bg-slate-50 rounded-2xl mb-4">
+            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-background rounded-xl border-2 border-dashed border-border">
+              <div className="p-4 bg-muted/30 rounded-xl mb-4">
                 <Search className="h-8 w-8 text-slate-300" />
               </div>
               <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-1">No Projects Found</h3>
-              <p className="text-sm font-medium text-slate-500">Try adjusting your search criteria</p>
+              <p className="text-sm font-medium text-muted-foreground">Try adjusting your search criteria</p>
             </div>
           )}
         </div>
@@ -202,10 +202,10 @@ export default function SuperadminNotesPage() {
   const unpinnedPages = pages.filter(p => !p.is_pinned);
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col bg-slate-50 min-w-0">
+    <div className="h-[calc(100vh-8rem)] flex flex-col bg-muted/30 min-w-0">
       
       {/* Header bar */}
-      <div className="h-16 shrink-0 bg-white border-b border-slate-200 flex items-center justify-between px-6 shadow-sm z-10">
+      <div className="h-16 shrink-0 bg-background border-b border-border flex items-center justify-between px-6 shadow-sm z-10">
         <div className="flex items-center space-x-4">
           <Button 
             variant="ghost" 
@@ -215,20 +215,20 @@ export default function SuperadminNotesPage() {
               setActivePageId(null);
               setActivePage(null);
             }}
-            className="text-slate-500 hover:text-indigo-600 font-bold text-[10px] uppercase tracking-widest"
+            className="text-muted-foreground hover:text-primary font-bold text-[10px] uppercase tracking-widest"
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
           </Button>
           <div className="h-6 w-px bg-slate-200" />
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black">
+            <div className="h-8 w-8 rounded-lg bg-indigo-50 text-primary flex items-center justify-center font-black">
               <Briefcase className="h-4 w-4" />
             </div>
             <div>
               <span className="text-xs font-black text-slate-800 uppercase tracking-tight block leading-none">
                 {selectedProject.project_name}
               </span>
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                 Read-only View
               </span>
             </div>
@@ -239,13 +239,13 @@ export default function SuperadminNotesPage() {
       <div className="flex-1 flex overflow-hidden">
         
         {/* LEFT SIDEBAR: USERS IN PROJECT */}
-        <div className="w-full max-w-[240px] bg-slate-50/50 border-r border-slate-200 flex flex-col shrink-0">
-          <div className="p-4 border-b border-slate-200">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Employees with Lists</h2>
+        <div className="w-full max-w-[240px] bg-slate-50/50 border-r border-border flex flex-col shrink-0">
+          <div className="p-4 border-b border-border">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Employees with Lists</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {projectUsers.length === 0 ? (
-              <p className="text-xs text-slate-400 italic text-center py-4">No employees have created lists for this project yet.</p>
+              <p className="text-xs text-muted-foreground italic text-center py-4">No employees have created lists for this project yet.</p>
             ) : (
               projectUsers.map(user => (
                 <button
@@ -254,13 +254,13 @@ export default function SuperadminNotesPage() {
                   className={cn(
                     "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group",
                     selectedUserId === user.user_id 
-                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" 
-                      : "hover:bg-slate-200/50 text-slate-700"
+                      ? "bg-primary text-white shadow-md shadow-indigo-200" 
+                      : "hover:bg-slate-200/50 text-muted-foreground"
                   )}
                 >
                   <User className={cn(
                     "h-4 w-4 mr-3 shrink-0",
-                    selectedUserId === user.user_id ? "text-indigo-200" : "text-slate-400 group-hover:text-indigo-500"
+                    selectedUserId === user.user_id ? "text-indigo-200" : "text-muted-foreground group-hover:text-indigo-500"
                   )} />
                   <div className="flex flex-col min-w-0">
                     <span className="text-[13px] font-bold truncate">
@@ -268,7 +268,7 @@ export default function SuperadminNotesPage() {
                     </span>
                     <span className={cn(
                       "text-[9px] font-bold uppercase tracking-widest truncate",
-                      selectedUserId === user.user_id ? "text-indigo-200" : "text-slate-400"
+                      selectedUserId === user.user_id ? "text-indigo-200" : "text-muted-foreground"
                     )}>
                       {user.page_count} Lists
                     </span>
@@ -280,15 +280,15 @@ export default function SuperadminNotesPage() {
         </div>
 
         {/* MIDDLE SIDEBAR: USER'S PAGES */}
-        <div className="w-full max-w-[280px] bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto">
+        <div className="w-full max-w-[280px] bg-background border-r border-border flex flex-col shrink-0 overflow-y-auto">
           <div className="p-4 space-y-6">
             {!selectedUserId ? (
-              <p className="text-xs text-slate-400 italic text-center py-8">Select an employee</p>
+              <p className="text-xs text-muted-foreground italic text-center py-8">Select an employee</p>
             ) : (
               <>
                 {pinnedPages.length > 0 && (
                   <div>
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2 flex items-center">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 px-2 flex items-center">
                       <Pin className="h-3 w-3 mr-1" /> Pinned
                     </h3>
                     <div className="space-y-0.5">
@@ -305,11 +305,11 @@ export default function SuperadminNotesPage() {
                 )}
 
                 <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2 flex items-center">
+                  <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 px-2 flex items-center">
                     All Lists
                   </h3>
                   {unpinnedPages.length === 0 && pinnedPages.length === 0 ? (
-                    <p className="px-2 text-[10px] text-slate-400 font-medium italic">Empty workspace</p>
+                    <p className="px-2 text-[10px] text-muted-foreground font-medium italic">Empty workspace</p>
                   ) : (
                     <div className="space-y-0.5">
                       {unpinnedPages.map(page => (
@@ -329,44 +329,44 @@ export default function SuperadminNotesPage() {
         </div>
 
         {/* MAIN VIEWER */}
-        <div className="flex-1 bg-white overflow-y-auto">
+        <div className="flex-1 bg-background overflow-y-auto">
           {activePage ? (
             <div className="px-8 md:px-16 py-12 pb-32 max-w-3xl mx-auto">
               
-              <div className="flex items-center space-x-3 mb-8 pb-8 border-b border-slate-100">
+              <div className="flex items-center space-x-3 mb-8 pb-8 border-b border-border">
                 <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
                   To Do List
                 </div>
-                <div className="flex items-center text-[10px] font-bold text-slate-400">
+                <div className="flex items-center text-[10px] font-bold text-muted-foreground">
                   <Clock className="h-3 w-3 mr-1.5" />
                   Last edited {formatDistanceToNow(new Date(activePage.updated_at + (activePage.updated_at.endsWith('Z') ? '' : 'Z')), { addSuffix: true })}
                 </div>
               </div>
 
-              <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-8 break-words">
+              <h1 className="text-4xl font-black tracking-tight text-foreground mb-8 break-words">
                 {activePage.title}
               </h1>
 
               {activePage.content ? (
-                <div className="text-base leading-relaxed text-slate-700 whitespace-pre-wrap font-medium mb-16">
+                <div className="text-base leading-relaxed text-muted-foreground whitespace-pre-wrap font-medium mb-16">
                   {activePage.content}
                 </div>
               ) : (
-                <div className="text-sm font-medium text-slate-400 italic mb-16">
+                <div className="text-sm font-medium text-muted-foreground italic mb-16">
                   No description written.
                 </div>
               )}
 
               {activePage.checklist_items.length > 0 && (
-                <div className="pt-8 border-t border-slate-100">
+                <div className="pt-8 border-t border-border">
                   <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 flex items-center mb-6">
-                    <CheckSquare className="h-4 w-4 mr-2 text-indigo-600" /> Task List
+                    <CheckSquare className="h-4 w-4 mr-2 text-primary" /> Task List
                   </h3>
                   
                   <div className="space-y-3">
                     {activePage.checklist_items.map((item) => (
                       <div key={item.id} className="flex items-start opacity-90 cursor-default">
-                        <div className="mt-0.5 mr-3 shrink-0 text-slate-400">
+                        <div className="mt-0.5 mr-3 shrink-0 text-muted-foreground">
                           {item.is_completed ? (
                             <CheckSquare2 className="h-5 w-5 text-indigo-500" />
                           ) : (
@@ -375,7 +375,7 @@ export default function SuperadminNotesPage() {
                         </div>
                         <span className={cn(
                           "flex-1 text-sm font-medium pt-0.5",
-                          item.is_completed ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700"
+                          item.is_completed ? "text-muted-foreground line-through decoration-slate-300" : "text-muted-foreground"
                         )}>
                           {item.text}
                         </span>
@@ -388,10 +388,10 @@ export default function SuperadminNotesPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-16 h-16 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-muted/30 rounded-xl border border-border flex items-center justify-center mb-4">
                 <File className="h-8 w-8 text-slate-300" />
               </div>
-              <p className="text-sm font-black text-slate-500 uppercase tracking-widest">Select a list to view</p>
+              <p className="text-sm font-black text-muted-foreground uppercase tracking-widest">Select a list to view</p>
             </div>
           )}
         </div>
@@ -405,18 +405,18 @@ function PageListItem({ page, isActive, onClick }: { page: any, isActive: boolea
     <div 
       className={cn(
         "flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all border border-transparent",
-        isActive ? "bg-slate-50 border-slate-200 shadow-sm" : "hover:bg-slate-50"
+        isActive ? "bg-muted/30 border-border shadow-sm" : "hover:bg-muted"
       )}
       onClick={onClick}
     >
       <div className="flex flex-col min-w-0 pr-2">
         <span className={cn(
           "text-[13px] truncate transition-colors",
-          isActive ? "font-bold text-indigo-700" : "font-medium text-slate-700"
+          isActive ? "font-bold text-indigo-700" : "font-medium text-foreground"
         )}>
           {page.title || 'Untitled To Do List'}
         </span>
-        <div className="flex items-center mt-1 space-x-2 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+        <div className="flex items-center mt-1 space-x-2 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
           <span>{format(new Date(page.updated_at), 'MMM d')}</span>
           {page.checklist_total > 0 && (
             <span className="flex items-center before:content-['·'] before:mr-2">

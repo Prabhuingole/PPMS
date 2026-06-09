@@ -16,14 +16,23 @@ export const metadata: Metadata = {
   description: 'Enterprise Project Management System',
 };
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans antialiased", inter.variable)}>
-      <body suppressHydrationWarning className="bg-slate-50 text-slate-900">
-        <AxiosInterceptor />
-        <WebSocketProvider />
-        {children}
-        <Toaster position="top-right" />
+      <body suppressHydrationWarning className="bg-muted/30 text-foreground">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AxiosInterceptor />
+          <WebSocketProvider />
+          {children}
+          <Toaster position="top-right" />
+        </ThemeProvider>
       </body>
     </html>
   );

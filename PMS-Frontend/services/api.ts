@@ -10,7 +10,16 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    let token = useAuthStore.getState().token;
+    
+    // Fallback to cookie if token is lost in new tab (empty sessionStorage)
+    if (!token && typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|;)\s*auth_token=([^;]+)/);
+      if (match) {
+        token = match[1];
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -22,6 +31,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Skip global interceptor logic for auth routes (handled locally)
+    if (error.config?.url?.includes('/auth/login') || 
+        error.config?.url?.includes('/auth/verify-mfa') || 
+        error.config?.url?.includes('/auth/forgot-password') || 
+        error.config?.url?.includes('/auth/update-password')) {
+       return Promise.reject(error);
+    }
+
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
       window.location.href = '/login';

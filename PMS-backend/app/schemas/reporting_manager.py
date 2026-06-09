@@ -10,12 +10,6 @@ class ReportingManagerBase(BaseModel):
     designation: Optional[str] = None
     status: str = "active"
 
-    @field_validator('email')
-    def validate_gmail(cls, v):
-        if v and not v.lower().endswith('@gmail.com'):
-            raise ValueError('Email must be a valid @gmail.com address')
-        return v
-
 class ReportingManagerCreate(ReportingManagerBase):
     pass
 
@@ -25,12 +19,6 @@ class ReportingManagerUpdate(BaseModel):
     mobile_number: Optional[str] = None
     designation: Optional[str] = None
     status: Optional[str] = None
-
-    @field_validator('email')
-    def validate_gmail(cls, v):
-        if v and not v.lower().endswith('@gmail.com'):
-            raise ValueError('Email must be a valid @gmail.com address')
-        return v
 
 class ManagedProjectBase(BaseModel):
     id: int

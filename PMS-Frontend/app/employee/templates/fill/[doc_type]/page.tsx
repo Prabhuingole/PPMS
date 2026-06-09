@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { 
   ArrowLeft, 
   Printer, 
@@ -33,9 +35,8 @@ export default function FillHTMLTemplatePage() {
         const typeStr = Array.isArray(doc_type) ? doc_type[0] : doc_type;
         const decodedType = decodeURIComponent(typeStr);
         
-        const tmplRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/templates/${encodeURIComponent(decodedType)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const tmplRes = await api.get(
+          `/templates/${encodeURIComponent(decodedType)}`
         );
         
         const tmplData = tmplRes.data;
@@ -48,15 +49,14 @@ export default function FillHTMLTemplatePage() {
         }
 
         // Fetch HTML content from S3 / Download URL
-        const downloadRes = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/templates/download/${encodeURIComponent(decodedType)}?inline=true`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const downloadRes = await api.get(
+          `/templates/download/${encodeURIComponent(decodedType)}?inline=true`
         );
 
         const htmlUrl = downloadRes.data.url;
         
         // Fetch the raw HTML text
-        const htmlRes = await axios.get(htmlUrl);
+        const htmlRes = await api.get(htmlUrl);
         setHtmlContent(htmlRes.data);
 
       } catch (error) {
@@ -77,8 +77,8 @@ export default function FillHTMLTemplatePage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-10 w-10 animate-spin text-indigo-600 mb-4" />
-        <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Loading Interactive Form...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Loading Interactive Form...</p>
       </div>
     );
   }
@@ -89,7 +89,7 @@ export default function FillHTMLTemplatePage() {
         <div className="p-6 bg-red-50 rounded-full text-red-600">
           <FileText className="h-12 w-12" />
         </div>
-        <p className="text-slate-700 font-black uppercase tracking-widest text-sm">Form Not Available</p>
+        <p className="text-foreground font-black uppercase tracking-widest text-sm">Form Not Available</p>
         <Button onClick={() => router.back()} variant="outline" className="mt-4">
           <ArrowLeft className="h-4 w-4 mr-2" /> Go Back
         </Button>
@@ -98,7 +98,7 @@ export default function FillHTMLTemplatePage() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-slate-50 overflow-y-auto flex flex-col print:static print:h-auto print:bg-white print:block">
+    <div className="fixed inset-0 z-[100] bg-muted/30 overflow-y-auto flex flex-col print:static print:h-auto print:bg-background print:block">
       {/* Background ambient design */}
       <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-multiply print:hidden"></div>
       <div className="fixed top-0 right-0 -translate-y-12 translate-x-1/3 w-[800px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none print:hidden"></div>
@@ -106,15 +106,15 @@ export default function FillHTMLTemplatePage() {
 
       {/* Main Form Content - Will be printed */}
       <div className="flex-grow flex items-start justify-center p-4 sm:p-8 md:p-12 print:p-0 relative z-10">
-        <div className="bg-white rounded-[40px] print:rounded-none shadow-2xl shadow-slate-200/50 w-full max-w-5xl min-h-[800px] p-8 sm:p-12 md:p-16 print:p-0 relative overflow-hidden group/paper transition-all">
+        <div className="bg-background rounded-[40px] print:rounded-none shadow-2xl shadow-slate-200/50 w-full max-w-5xl min-h-[800px] p-8 sm:p-12 md:p-16 print:p-0 relative overflow-hidden group/paper transition-all">
           
           {/* Subtle Paper Texture Gradient */}
           <div className="absolute inset-0 bg-gradient-to-b from-slate-50/20 to-transparent pointer-events-none print:hidden"></div>
 
           {/* Elegant header separator on print or screen */}
           <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-8">
-             <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">{template.doc_type}</h2>
-             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Official Document Render</p>
+             <h2 className="text-xl font-black uppercase tracking-tight text-foreground">{template.doc_type}</h2>
+             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Official Document Render</p>
           </div>
           
           {/* Inject raw HTML inside a form tag so reset buttons work */}

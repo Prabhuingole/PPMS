@@ -305,10 +305,10 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center p-3 bg-blue-600 rounded-2xl shadow-xl shadow-blue-200 mb-4">
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-slate-900 uppercase">
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
             SAMBHAV<span className="text-blue-600">PMS</span>
           </h1>
-          <p className="text-slate-400 font-medium text-xs tracking-widest uppercase">
+          <p className="text-slate-400 font-medium text-xs tracking-wider">
             Project Management System
           </p>
         </div>
@@ -349,7 +349,7 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
                           New Password
                         </FormLabel>
                         <FormControl>
@@ -369,7 +369,7 @@ export default function LoginPage() {
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px]" />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -378,7 +378,7 @@ export default function LoginPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
                           Confirm Password
                         </FormLabel>
                         <FormControl>
@@ -398,7 +398,7 @@ export default function LoginPage() {
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px]" />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -423,7 +423,7 @@ export default function LoginPage() {
             ) : viewMode === 'forgot' ? (
               <form onSubmit={onForgotSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <label className="text-xs font-bold tracking-wider text-slate-400">
                     Corporate Email
                   </label>
                   <div className="relative">
@@ -467,7 +467,7 @@ export default function LoginPage() {
             ) : mfaRequired ? (
               <form onSubmit={onVerifyMfa} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <label className="text-xs font-bold tracking-wider text-slate-400">
                     Verification Code (OTP)
                   </label>
                   <div className="relative">
@@ -519,7 +519,7 @@ export default function LoginPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
                           Corporate Email
                         </FormLabel>
                         <FormControl>
@@ -532,7 +532,7 @@ export default function LoginPage() {
                             />
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px]" />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -543,7 +543,7 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
                           Access Password
                         </FormLabel>
                         <FormControl>
@@ -563,7 +563,7 @@ export default function LoginPage() {
                             </button>
                           </div>
                         </FormControl>
-                        <FormMessage className="text-[10px]" />
+                        <FormMessage className="text-xs" />
                       </FormItem>
                     )}
                   />
@@ -630,7 +630,7 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-8 sm:mt-12 text-center">
-          <p className="text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+          <p className="text-slate-400 text-xs font-bold tracking-wider">
             Protected by Sambhav Security &bull;
           </p>
         </div>

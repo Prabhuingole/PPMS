@@ -20,7 +20,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-
+import { ThemeToggle } from '@/components/theme-toggle';
 export function Navbar() {
   const { user, isAuthenticated, logout, _hasHydrated, token } = useAuthStore();
   const pathname = usePathname();
@@ -123,12 +123,12 @@ export function Navbar() {
   const { toggleSidebar } = useUIStore();
 
   return (
-    <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 shadow-sm shadow-slate-100">
+    <header className="h-16 bg-background border-b border-border flex items-center justify-between px-4 md:px-8 sticky top-0 z-30">
       <div className="flex items-center space-x-2 md:space-x-4">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="md:hidden text-slate-600 hover:bg-slate-100"
+          className="md:hidden text-muted-foreground hover:text-foreground hover:bg-muted"
           onClick={toggleSidebar}
         >
           <Menu className="h-5 w-5" />
@@ -136,9 +136,10 @@ export function Navbar() {
       </div>
 
       <div className="flex items-center space-x-2 md:space-x-4">
+        <ThemeToggle />
         <Popover>
           <PopoverTrigger className="relative group cursor-pointer outline-none border-none bg-transparent">
-            <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors relative">
+            <div className="w-10 h-10 bg-muted/30 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors relative">
               <Bell className="h-5 w-5" />
               {notifications.length > 0 && (
                 <span className="absolute top-0 right-0 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white border-2 border-white">
@@ -147,11 +148,11 @@ export function Navbar() {
               )}
             </div>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-0 rounded-xl shadow-xl border-slate-200" sideOffset={8}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
+          <PopoverContent align="end" className="w-80 p-0 rounded-xl shadow-xl border-border" sideOffset={8}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/50 rounded-t-xl">
               <div className="flex flex-col">
-                <span className="font-bold text-slate-900 text-sm">Notifications</span>
-                <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                <span className="font-bold text-foreground text-sm">Notifications</span>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                   {notifications.length} Unread
                 </span>
               </div>
@@ -161,13 +162,13 @@ export function Navbar() {
                     variant="ghost" 
                     size="sm" 
                     onClick={markAllAsRead}
-                    className="h-8 text-xs text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 font-semibold px-2"
+                    className="h-8 text-xs text-primary hover:text-indigo-700 hover:bg-indigo-50 font-semibold px-2"
                   >
                     <CheckSquare className="mr-1.5 h-3.5 w-3.5" />
                     Clear All
                   </Button>
                 )}
-                <PopoverClose className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-slate-100 h-8 w-8 text-slate-400 hover:text-slate-600">
+                <PopoverClose className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted h-8 w-8 text-muted-foreground hover:text-foreground">
                   <X className="h-4 w-4" />
                 </PopoverClose>
               </div>
@@ -176,19 +177,19 @@ export function Navbar() {
             <div className="max-h-[350px] overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                  <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
-                    <Bell className="h-5 w-5 text-slate-300" />
+                  <div className="w-12 h-12 bg-muted/30 rounded-full flex items-center justify-center mb-3">
+                    <Bell className="h-5 w-5 text-muted-foreground/50" />
                   </div>
-                  <p className="text-sm font-medium text-slate-600">All caught up!</p>
-                  <p className="text-xs text-slate-400 mt-1">No new notifications to show.</p>
+                  <p className="text-sm font-medium text-foreground">All caught up!</p>
+                  <p className="text-xs text-muted-foreground mt-1">No new notifications to show.</p>
                 </div>
               ) : (
-                <div className="flex flex-col divide-y divide-slate-50">
+                <div className="flex flex-col divide-y divide-border">
                   {notifications.map((notif) => (
                     <div 
                       key={notif.id} 
                       onClick={() => handleNotificationClick(notif)}
-                      className="flex items-start gap-3 p-4 hover:bg-slate-50 transition-colors group relative cursor-pointer"
+                      className="flex items-start gap-3 p-4 hover:bg-muted transition-colors group relative cursor-pointer"
                     >
                       <div className="shrink-0 mt-0.5">
                         {notif.type === 'success' ? (
@@ -204,15 +205,15 @@ export function Navbar() {
                             <AlertCircle className="h-4 w-4 text-red-600" />
                           </div>
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <Info className="h-4 w-4 text-indigo-600" />
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Info className="h-4 w-4 text-primary" />
                           </div>
                         )}
                       </div>
                       
                       <div className="flex-1 min-w-0 pr-6">
                         <div className="flex items-center flex-wrap gap-2 mb-0.5">
-                          <p className="text-sm font-semibold text-slate-900 truncate">
+                          <p className="text-sm font-semibold text-foreground truncate">
                             {notif.title}
                           </p>
                           {notif.priority && notif.priority !== 'LOW' && (
@@ -226,10 +227,10 @@ export function Navbar() {
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed line-clamp-2">
+                        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
                           {notif.message}
                         </p>
-                        <p className="text-[10px] font-medium text-slate-400 mt-2 flex items-center">
+                        <p className="text-[10px] font-medium text-muted-foreground mt-2 flex items-center">
                           <Clock className="mr-1 h-3 w-3" />
                           {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </p>
@@ -242,7 +243,7 @@ export function Navbar() {
                           e.stopPropagation();
                           markAsRead(notif.id);
                         }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full"
                         title="Dismiss"
                       >
                         <X className="h-4 w-4" />
@@ -257,25 +258,25 @@ export function Navbar() {
 
         <DropdownMenu>
           <DropdownMenuTrigger className="rounded-full outline-none">
-            <Avatar className="h-10 w-10 border-2 border-slate-100 hover:border-slate-200 transition-all cursor-pointer">
-              <AvatarFallback className="bg-slate-900 text-white font-bold text-xs">
+            <Avatar className="h-10 w-10 border-2 border-border hover:border-border transition-all cursor-pointer">
+              <AvatarFallback className="bg-muted text-muted-foreground font-bold text-xs">
                 {user?.full_name?.charAt(0) || 'A'}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl shadow-xl border-slate-200">
+          <DropdownMenuContent align="end" className="w-56 mt-2 rounded-xl shadow-xl border-border">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-semibold text-slate-900">
+              <DropdownMenuLabel className="font-semibold text-foreground">
                 <p>{user?.full_name}</p>
-                <p className="text-[10px] text-slate-500 font-normal">{user?.email}</p>
+                <p className="text-[10px] text-muted-foreground font-normal">{user?.email}</p>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="py-2.5 cursor-pointer" onClick={() => router.push(profilePath)}>
-              <User className="mr-2 h-4 w-4 text-slate-400" /> Profile
+              <User className="mr-2 h-4 w-4 text-muted-foreground" /> Profile
             </DropdownMenuItem>
             <DropdownMenuItem className="py-2.5 cursor-pointer" onClick={() => router.push(settingsPath)}>
-              <SettingsIcon className="mr-2 h-4 w-4 text-slate-400" /> Settings
+              <SettingsIcon className="mr-2 h-4 w-4 text-muted-foreground" /> Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 

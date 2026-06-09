@@ -24,12 +24,12 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { createEmployeeSchema, updateEmployeeSchema, profileUpdateSchema } from '@/lib/validators/employee';
+import { EnterpriseModalHeader } from '@/components/ui/enterprise-modal-header';
+import { EnterpriseModalFooter } from '@/components/ui/enterprise-modal-footer';
+import { FormSection } from '@/components/ui/form-section';
+import { FormGrid } from '@/components/ui/form-grid';
 
 type FormMode = 'create' | 'edit' | 'profile_edit';
 
@@ -90,50 +90,38 @@ export function EmployeeForm({
 
   const content = (
     <>
-      <div className="bg-slate-900 p-6 text-white relative overflow-hidden shrink-0">
-        <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-          <Users className="w-24 h-24" />
-        </div>
-        <DialogHeader className="relative z-10">
-          <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">
-            {isCreate ? 'Add Employee' : isProfileEdit ? 'Edit Profile Details' : 'Edit Employee Details'}
-          </DialogTitle>
-          <DialogDescription className="text-slate-400 font-medium text-xs mt-1">
-            {isProfileEdit 
-              ? 'Update your personal and professional information.' 
-              : `Configure parameters for the ${isCreate ? 'new' : 'existing'} human resource inside the network.`}
-          </DialogDescription>
-        </DialogHeader>
-      </div>
+      <EnterpriseModalHeader
+        title={isCreate ? 'Add Employee' : isProfileEdit ? 'Edit Profile Details' : 'Edit Employee Details'}
+        subtitle={isProfileEdit 
+          ? 'Update your personal and professional information.' 
+          : `Configure parameters for the ${isCreate ? 'new' : 'existing'} human resource inside the network.`}
+        icon={Users}
+        intent="normal"
+      />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col h-full max-h-[80vh]">
           {/* Scrollable form content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50/30">
+          <div className="flex-1 overflow-y-auto p-6 bg-background">
             
-            {/* Section 1: Identity Information */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <div className="h-4 w-1 bg-indigo-500 rounded-full" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Identity Information</h4>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormSection title="Personal Information">
+              <FormGrid>
                   <FormField
                     control={form.control}
                     name="employee_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Identifier <span className="text-rose-500">*</span></FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">Identifier <span className="text-destructive">*</span></FormLabel>
                         <FormControl>
                           <Input
                             placeholder="SAM001"
                             {...field}
                             readOnly={isCreate}
                             disabled={mode === 'edit' || mode === 'profile_edit'} // usually ID cannot be edited once created
-                            className="h-10 rounded-lg border-slate-100 bg-slate-50 cursor-not-allowed text-slate-500 font-bold"
+                            className="h-10 bg-muted cursor-not-allowed text-muted-foreground"
                           />
                         </FormControl>
-                        <FormMessage className="text-[10px]" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -142,34 +130,29 @@ export function EmployeeForm({
                     name="full_name"
                     render={({ field }) => (
                       <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Name <span className="text-rose-500">*</span></FormLabel>
+                      <FormLabel className="text-sm font-semibold text-foreground">Full Name <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} className="h-10 rounded-lg border-slate-200 bg-white focus-visible:bg-white focus-visible:ring-indigo-500 transition-colors font-semibold text-sm shadow-sm" />
+                        <Input placeholder="John Doe" {...field} className="h-10" />
                       </FormControl>
-                      <FormMessage className="text-[10px]" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
+              </FormGrid>
+            </FormSection>
 
-            {/* Section 2: Contact Information */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <div className="h-4 w-1 bg-emerald-500 rounded-full" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Contact Information</h4>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormSection title="Contact Information">
+              <FormGrid>
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Email Address <span className="text-rose-500">*</span></FormLabel>
+                      <FormLabel className="text-sm font-semibold text-foreground">Email Address <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="name@gmail.com" {...field} className="h-10 rounded-lg border-slate-200 bg-white focus-visible:bg-white focus-visible:ring-emerald-500 transition-colors font-semibold text-sm shadow-sm" />
+                        <Input placeholder="name@gmail.com" {...field} className="h-10" />
                       </FormControl>
-                      <FormMessage className="text-[10px]" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -178,7 +161,7 @@ export function EmployeeForm({
                   name="mobile_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mobile Number <span className="text-rose-500">*</span></FormLabel>
+                      <FormLabel className="text-sm font-semibold text-foreground">Mobile Number <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input
                           placeholder="9876543210"
@@ -188,42 +171,37 @@ export function EmployeeForm({
                             const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                             field.onChange(value);
                           }}
-                          className="h-10 rounded-lg border-slate-200 bg-white focus-visible:bg-white focus-visible:ring-emerald-500 transition-colors font-semibold text-sm shadow-sm"
+                          className="h-10"
                         />
                       </FormControl>
-                      <FormMessage className="text-[10px]" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
+              </FormGrid>
+            </FormSection>
 
-            {/* Section 3: Professional Details */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-                <div className="h-4 w-1 bg-amber-500 rounded-full" />
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Professional Details</h4>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <FormSection title="Professional Information">
+              <FormGrid>
                 {!isProfileEdit && (
                   <FormField
                     control={form.control}
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">User Type <span className="text-rose-500">*</span></FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">User Type <span className="text-destructive">*</span></FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || defaultValues?.role}>
                           <FormControl>
-                            <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white focus-visible:bg-white focus-visible:ring-amber-500 transition-colors font-semibold text-sm shadow-sm">
+                            <SelectTrigger className="h-10">
                               <SelectValue placeholder="Select type" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent className="rounded-xl border-slate-100 shadow-xl">
-                            <SelectItem value="employee" className="rounded-lg py-2">Employee</SelectItem>
-                            <SelectItem value="intern" className="rounded-lg py-2">Intern</SelectItem>
+                          <SelectContent>
+                            <SelectItem value="employee">Employee</SelectItem>
+                            <SelectItem value="intern">Intern</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage className="text-[10px]" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -232,26 +210,26 @@ export function EmployeeForm({
                   control={form.control}
                   name="designation"
                   render={({ field }) => (
-                    <FormItem className={isProfileEdit ? "sm:col-span-2" : ""}>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Designation <span className="text-rose-500">*</span></FormLabel>
+                    <FormItem className={isProfileEdit ? "md:col-span-2" : ""}>
+                      <FormLabel className="text-sm font-semibold text-foreground">Designation <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="Software Engineer" {...field} className="h-10 rounded-lg border-slate-200 bg-white focus-visible:bg-white focus-visible:ring-amber-500 transition-colors font-semibold text-sm shadow-sm" />
+                        <Input placeholder="Software Engineer" {...field} className="h-10" />
                       </FormControl>
-                      <FormMessage className="text-[10px]" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
+              </FormGrid>
+            </FormSection>
 
             {isCreate && (
-              <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100/50 flex items-start gap-4">
-                <div className="bg-indigo-100 p-2 rounded-xl shrink-0">
-                  <AlertCircle className="h-5 w-5 text-indigo-600" />
+              <div className="bg-primary/5 p-4 rounded-lg border border-primary/10 flex items-start gap-4">
+                <div className="bg-primary/10 p-2 rounded-md shrink-0">
+                  <AlertCircle className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h5 className="text-[11px] font-black text-indigo-900 uppercase tracking-widest">Security Protocol</h5>
-                  <p className="text-xs font-semibold text-indigo-700/80 mt-1 leading-relaxed">
+                  <h5 className="text-sm font-semibold text-primary">Security Protocol</h5>
+                  <p className="text-sm text-primary/80 mt-1">
                     A secure temporary password will be auto-generated and dispatched to the resource's email inbox immediately upon creation.
                   </p>
                 </div>
@@ -259,22 +237,22 @@ export function EmployeeForm({
             )}
           </div>
 
-          <DialogFooter className="p-4 border-t border-slate-100 bg-white shrink-0 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] z-10">
+          <EnterpriseModalFooter>
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               onClick={() => {
                 if (onCancel) onCancel();
                 if (onOpenChange) onOpenChange(false);
               }}
-              className="rounded-lg h-10 px-4 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-slate-900"
+              className="h-10 px-4"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || (!isDirty && !isCreate)}
-              className="bg-slate-900 hover:bg-slate-800 text-white rounded-lg h-10 px-6 font-black uppercase tracking-widest text-[10px] shadow-sm transition-all"
+              className="h-10 px-6"
             >
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
@@ -290,7 +268,7 @@ export function EmployeeForm({
                 </div>
               )}
             </Button>
-          </DialogFooter>
+          </EnterpriseModalFooter>
         </form>
       </Form>
     </>
@@ -301,7 +279,7 @@ export function EmployeeForm({
   if (onOpenChange) {
     return (
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[700px] rounded-[24px] p-0 overflow-hidden border-none shadow-2xl flex flex-col">
+        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-border gap-0">
           {content}
         </DialogContent>
       </Dialog>
@@ -309,7 +287,7 @@ export function EmployeeForm({
   }
 
   return (
-    <div className="bg-white rounded-[24px] overflow-hidden shadow-xl border border-slate-100 flex flex-col h-full">
+    <div className="bg-background rounded-xl overflow-hidden shadow-sm border border-border flex flex-col h-full">
       {content}
     </div>
   );

@@ -5,11 +5,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { AttendanceLegend } from '@/components/employee/AttendanceLegend';
 
 interface AttendanceRecord {
   id: number;
   date: string;
-  status: string;
+  status?: string;
   timesheet_status?: string | null;
 }
 
@@ -71,13 +72,13 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
   };
 
   return (
-    <Card className="rounded-2xl border-slate-200 shadow-sm p-4 md:p-6 bg-white">
+    <Card className="rounded-xl border-border shadow-sm p-4 md:p-6 bg-card">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">
+        <h3 className="text-sm font-black uppercase tracking-wider text-foreground">
           {monthNames[month - 1]} {year}
         </h3>
         <Button variant="ghost" size="icon" className="rounded-xl" onClick={nextMonth}>
@@ -88,7 +89,7 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
       {/* Day headers */}
       <div className="grid grid-cols-7 gap-1 mb-2">
         {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-          <div key={d} className="text-center text-[9px] font-black uppercase tracking-widest text-slate-400 py-1">
+          <div key={d} className="text-center text-[9px] font-black uppercase tracking-widest text-muted-foreground py-1">
             {d}
           </div>
         ))}
@@ -124,9 +125,9 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
                 isClickable ? "cursor-pointer hover:scale-105" : "",
                 color ? `${getColorClasses(color)} ring-2` : '',
                 showRed ? 'bg-red-100 text-red-600 ring-2 ring-red-300/30' : '',
-                !color && !showRed ? 'text-slate-600 hover:bg-slate-50' : '',
-                isToday && !color ? 'ring-2 ring-indigo-500 text-indigo-600 font-black' : '',
-                isToday && color ? 'ring-offset-2 ring-offset-white' : ''
+                !color && !showRed ? 'text-muted-foreground hover:bg-muted' : '',
+                isToday && !color ? 'ring-2 ring-indigo-500 text-primary font-black' : '',
+                isToday && color ? 'ring-offset-2 ring-offset-background' : ''
               )}
             >
               {day}
@@ -136,18 +137,8 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
       </div>
 
       {/* Legend */}
-      <div className="mt-6 pt-4 border-t border-slate-100 grid grid-cols-2 gap-2">
-        {[
-          { color: 'bg-emerald-500', label: 'Attendance + Timesheet Complete' },
-          { color: 'bg-amber-400', label: 'Attendance Complete, Timesheet Missing' },
-          { color: 'bg-orange-500', label: 'Currently Working' },
-          { color: 'bg-red-200', label: 'Absent' },
-        ].map(item => (
-          <div key={item.label} className="flex items-center gap-2">
-            <div className={cn("w-3 h-3 rounded-full shrink-0", item.color)} />
-            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{item.label}</span>
-          </div>
-        ))}
+      <div className="mt-6 pt-4 border-t border-border">
+        <AttendanceLegend />
       </div>
     </Card>
   );

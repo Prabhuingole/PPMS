@@ -18,6 +18,10 @@ import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 import { notesService } from '@/services/notesService';
 import { projectService } from '@/services/projectService';
 import { NotePage, NoteChecklistItem, Project } from '@/types';
+import { WorkspaceLayout } from '@/components/layout/WorkspaceLayout';
+import { WorkspacePane } from '@/components/layout/WorkspacePane';
+import { WorkspaceHeader } from '@/components/layout/WorkspaceHeader';
+import { WorkspaceContent } from '@/components/layout/WorkspaceContent';
 
 export default function EmployeeNotesPage() {
   const { token } = useAuthStore();
@@ -28,6 +32,7 @@ export default function EmployeeNotesPage() {
   const [activePageId, setActivePageId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -129,8 +134,8 @@ export default function EmployeeNotesPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
-        <p className="text-slate-500 font-medium animate-pulse uppercase tracking-widest text-[10px]">Loading Workspace...</p>
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground font-medium animate-pulse uppercase tracking-widest text-[10px]">Loading Workspace...</p>
       </div>
     );
   }
@@ -138,148 +143,246 @@ export default function EmployeeNotesPage() {
   const pinnedPages = pages.filter(p => p.is_pinned);
   const unpinnedPages = pages.filter(p => !p.is_pinned);
 
-  return (
-    <div className="h-[calc(100vh-8rem)] flex bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200 overflow-hidden min-w-0">
-      
-      {/* LEFT SIDEBAR: PROJECTS */}
-      <div className="w-full max-w-[240px] bg-slate-50/50 border-r border-slate-200 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-200">
-          <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-400">My Projects</h2>
-        </div>
-        <div className="flex-1 overflow-y-auto p-3 space-y-1">
-          {projects.length === 0 ? (
-            <p className="text-xs text-slate-400 italic text-center py-4">No assigned projects</p>
-          ) : (
-            projects.map(project => (
-              <button
-                key={project.id}
-                onClick={() => {
-                  setSelectedProjectId(project.id);
-                  setActivePageId(null);
-                }}
-                className={cn(
-                  "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group",
-                  selectedProjectId === project.id 
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200" 
-                    : "hover:bg-slate-200/50 text-slate-700"
-                )}
-              >
-                <Briefcase className={cn(
-                  "h-4 w-4 mr-3 shrink-0",
-                  selectedProjectId === project.id ? "text-indigo-200" : "text-slate-400 group-hover:text-indigo-500"
-                )} />
-                <span className="text-[13px] font-bold truncate">
-                  {project.name}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
+  const renderPrimarySidebar = () => (
+    <WorkspacePane
+      width="md"
+      background="muted"
+      header={
+        <h2 className="text-xs font-semibold text-muted-foreground">My Projects</h2>
+      }
+    >
+      <div className="space-y-1">
+        {projects.length === 0 ? (
+          <p className="text-xs text-muted-foreground italic text-center py-4">No assigned projects</p>
+        ) : (
+          projects.map(project => (
+            <button
+              key={project.id}
+              onClick={() => {
+                setSelectedProjectId(project.id);
+                setActivePageId(null);
+              }}
+              className={cn(
+                "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group",
+                selectedProjectId === project.id 
+                  ? "bg-primary text-white shadow-md shadow-indigo-200" 
+                  : "hover:bg-muted text-muted-foreground"
+              )}
+            >
+              <Briefcase className={cn(
+                "h-4 w-4 mr-3 shrink-0",
+                selectedProjectId === project.id ? "text-indigo-200" : "text-muted-foreground group-hover:text-indigo-500"
+              )} />
+              <span className="text-[13px] font-bold truncate">
+                {project.name}
+              </span>
+            </button>
+          ))
+        )}
       </div>
+    </WorkspacePane>
+  );
 
-      {/* MIDDLE SIDEBAR: TO DO LISTS IN PROJECT */}
-      <div className="w-full max-w-[280px] bg-slate-50/30 border-r border-slate-200 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-200 space-y-3">
+  const renderSecondarySidebar = () => (
+    <WorkspacePane
+      width="lg"
+      background="subtle"
+      header={
+        <div className="space-y-3">
           <Button 
             onClick={() => handleCreatePage()}
             disabled={!selectedProjectId}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-100 rounded-xl h-10 font-bold tracking-wide text-xs"
+            className="w-full bg-primary hover:bg-indigo-700 text-white shadow-sm rounded-xl h-10 font-bold tracking-wide text-xs"
           >
             <Plus className="h-4 w-4 mr-2" /> New To Do List
           </Button>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search lists..." 
-              className="pl-9 h-9 text-xs rounded-lg bg-white border-slate-200 focus:border-indigo-400 focus:ring-0"
+              className="pl-9 h-9 text-xs rounded-lg bg-background border-border focus:border-indigo-400 focus:ring-0"
             />
           </div>
         </div>
+      }
+    >
+      <div className="space-y-6">
+        {!selectedProjectId ? (
+          <p className="text-xs text-muted-foreground italic text-center py-8">Select a project first</p>
+        ) : (
+          <>
+            {pinnedPages.length > 0 && (
+              <div>
+                <h3 className="text-xs font-semibold text-muted-foreground mb-2 px-2 flex items-center">
+                  <Pin className="h-3 w-3 mr-1" /> Pinned
+                </h3>
+                <div className="space-y-0.5">
+                  {pinnedPages.map(page => (
+                    <PageSidebarItem 
+                      key={page.id} 
+                      page={page} 
+                      isActive={activePageId === page.id}
+                      onClick={() => setActivePageId(page.id)}
+                      onPin={(e) => handleTogglePin(page, e)}
+                      onDelete={(e) => handleDeletePage(page.id, e)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-6">
-          {!selectedProjectId ? (
-            <p className="text-xs text-slate-400 italic text-center py-8">Select a project first</p>
-          ) : (
-            <>
-              {/* Pinned Section */}
-              {pinnedPages.length > 0 && (
-                <div>
-                  <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2 flex items-center">
-                    <Pin className="h-3 w-3 mr-1" /> Pinned
-                  </h3>
-                  <div className="space-y-0.5">
-                    {pinnedPages.map(page => (
-                      <PageSidebarItem 
-                        key={page.id} 
-                        page={page} 
-                        isActive={activePageId === page.id}
-                        onClick={() => setActivePageId(page.id)}
-                        onPin={(e) => handleTogglePin(page, e)}
-                        onDelete={(e) => handleDeletePage(page.id, e)}
-                      />
-                    ))}
-                  </div>
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground mb-2 px-2 flex items-center">
+                Lists
+              </h3>
+              {unpinnedPages.length === 0 ? (
+                <p className="px-2 text-[10px] text-muted-foreground font-medium italic mb-2">No lists created yet.</p>
+              ) : (
+                <div className="space-y-0.5">
+                  {unpinnedPages.map(page => (
+                    <PageSidebarItem 
+                      key={page.id} 
+                      page={page} 
+                      isActive={activePageId === page.id}
+                      onClick={() => setActivePageId(page.id)}
+                      onPin={(e) => handleTogglePin(page, e)}
+                      onDelete={(e) => handleDeletePage(page.id, e)}
+                    />
+                  ))}
                 </div>
               )}
-
-              {/* All Lists */}
-              <div>
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-2 flex items-center">
-                  Lists
-                </h3>
-                {unpinnedPages.length === 0 ? (
-                  <p className="px-2 text-[10px] text-slate-400 font-medium italic mb-2">No lists created yet.</p>
-                ) : (
-                  <div className="space-y-0.5">
-                    {unpinnedPages.map(page => (
-                      <PageSidebarItem 
-                        key={page.id} 
-                        page={page} 
-                        isActive={activePageId === page.id}
-                        onClick={() => setActivePageId(page.id)}
-                        onPin={(e) => handleTogglePin(page, e)}
-                        onDelete={(e) => handleDeletePage(page.id, e)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* MAIN EDITOR */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white relative">
-        {activePageId ? (
-          <MainEditor 
-            pageId={activePageId} 
-            onPageUpdated={() => setRefreshTrigger(prev => prev + 1)} 
-          />
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/30">
-            <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-4">
-              <CheckSquare className="h-8 w-8 text-slate-300" />
             </div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight mb-2">Select a To Do List</h3>
-            <p className="text-slate-500 text-sm font-medium max-w-sm">
-              Choose a list from the sidebar or create a new one for the selected project.
-            </p>
-            {selectedProjectId && (
-              <Button 
-                onClick={() => handleCreatePage()}
-                className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-lg shadow-indigo-100"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Create New List
-              </Button>
-            )}
-          </div>
+          </>
         )}
       </div>
+    </WorkspacePane>
+  );
 
-    </div>
+  const renderMobileSidebar = () => {
+    if (!selectedProjectId) {
+      return (
+        <WorkspacePane width="sm" className="h-full w-full border-r-0">
+          <div className="p-4 border-b border-border sticky top-0 bg-slate-50/50 z-10 flex items-center justify-between">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Projects</h2>
+          </div>
+          <div className="p-3 space-y-1 overflow-y-auto">
+            {projects.map(proj => (
+              <button
+                key={proj.id}
+                onClick={() => setSelectedProjectId(proj.id)}
+                className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-left hover:bg-slate-200/50 text-muted-foreground"
+              >
+                <div className="flex items-center flex-1 min-w-0">
+                  <Briefcase className="h-4 w-4 mr-3 shrink-0 text-muted-foreground" />
+                  <span className="text-[13px] font-bold truncate">{proj.name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </WorkspacePane>
+      );
+    }
+    
+    return (
+      <WorkspacePane width="md" background="subtle" className="h-full w-full border-r-0">
+        <div className="p-4 border-b border-border sticky top-0 bg-slate-50/30 z-10 space-y-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setSelectedProjectId(null)}
+            className="text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground -ml-2 h-7"
+          >
+            ← Back to Projects
+          </Button>
+          <div className="flex items-center justify-between">
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Lists</h2>
+            <Button onClick={handleCreatePage} size="icon" variant="ghost" className="h-6 w-6 text-primary hover:text-indigo-700 hover:bg-indigo-50 rounded-lg">
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="p-3 space-y-6 overflow-y-auto">
+          {pinnedPages.length > 0 && (
+            <div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 px-2 flex items-center">
+                <Pin className="h-3 w-3 mr-1" /> Pinned
+              </h3>
+              <div className="space-y-0.5">
+                {pinnedPages.map(page => (
+                  <PageSidebarItem 
+                    key={page.id} page={page} isActive={activePageId === page.id}
+                    onClick={() => { setActivePageId(page.id); setMobileMenuOpen(false); }}
+                    onPin={(e) => handleTogglePin(page, e)}
+                    onDelete={(e) => handleDeletePage(page.id, e)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2 px-2 flex items-center">All Lists</h3>
+            {unpinnedPages.length === 0 && pinnedPages.length === 0 ? (
+              <p className="px-2 text-[10px] text-muted-foreground font-medium italic">Empty workspace</p>
+            ) : (
+              <div className="space-y-0.5">
+                {unpinnedPages.map(page => (
+                  <PageSidebarItem 
+                    key={page.id} page={page} isActive={activePageId === page.id}
+                    onClick={() => { setActivePageId(page.id); setMobileMenuOpen(false); }}
+                    onPin={(e) => handleTogglePin(page, e)}
+                    onDelete={(e) => handleDeletePage(page.id, e)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </WorkspacePane>
+    );
+  };
+
+  return (
+    <WorkspaceLayout
+      primarySidebar={renderPrimarySidebar()}
+      secondarySidebar={renderSecondarySidebar()}
+      mobileSidebar={renderMobileSidebar()}
+      mobileMenuOpen={mobileMenuOpen}
+      onMobileMenuOpenChange={setMobileMenuOpen}
+    >
+      {activePageId ? (
+        <MainEditor 
+          pageId={activePageId} 
+          onPageUpdated={() => setRefreshTrigger(prev => prev + 1)} 
+        />
+      ) : (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/30">
+          <div className="w-16 h-16 bg-background rounded-xl shadow-sm border border-border flex items-center justify-center mb-4">
+            <CheckSquare className="h-8 w-8 text-slate-300" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 tracking-tight mb-2">Select a To Do List</h3>
+          <p className="text-muted-foreground text-sm font-medium max-w-sm">
+            Choose a list from the sidebar or create a new one for the selected project.
+          </p>
+          <Button 
+            className="md:hidden mt-4" 
+            variant="outline" 
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            Open Navigation
+          </Button>
+          {selectedProjectId && (
+            <Button 
+              onClick={() => handleCreatePage()}
+              className="mt-6 bg-primary hover:bg-indigo-700 text-white rounded-xl shadow-sm"
+            >
+              <Plus className="h-4 w-4 mr-2" /> Create New List
+            </Button>
+          )}
+        </div>
+      )}
+    </WorkspaceLayout>
   );
 }
 
@@ -294,19 +397,19 @@ function PageSidebarItem({ page, isActive, onClick, onPin, onDelete }: {
     <div 
       className={cn(
         "group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all border border-transparent",
-        isActive ? "bg-white border-slate-200 shadow-sm" : "hover:bg-slate-200/50"
+        isActive ? "bg-background border-border shadow-sm" : "hover:bg-slate-200/50"
       )}
       onClick={onClick}
     >
       <div className="flex flex-col min-w-0 pr-2">
         <span className={cn(
           "text-[13px] truncate transition-colors",
-          isActive ? "font-bold text-indigo-700" : "font-medium text-slate-700 group-hover:text-slate-900"
+          isActive ? "font-bold text-indigo-700" : "font-medium text-foreground group-hover:text-foreground"
         )}>
           {page.title || 'Untitled To Do List'}
         </span>
         {page.checklist_total > 0 && (
-          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center">
+          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 flex items-center">
             <CheckSquare className="h-2.5 w-2.5 mr-1" />
             {page.checklist_completed}/{page.checklist_total} Done
           </span>
@@ -315,13 +418,13 @@ function PageSidebarItem({ page, isActive, onClick, onPin, onDelete }: {
 
       <DropdownMenu>
         <DropdownMenuTrigger className="h-6 w-6 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-md shrink-0 hover:bg-slate-200/50">
-          <MoreVertical className="h-3 w-3 text-slate-400" />
+          <MoreVertical className="h-3 w-3 text-muted-foreground" />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40 rounded-xl border-slate-100 shadow-xl">
-          <DropdownMenuItem onClick={onPin} className="text-xs font-medium cursor-pointer rounded-lg focus:bg-slate-50">
-            <Pin className="h-3.5 w-3.5 mr-2 text-slate-400" /> {page.is_pinned ? 'Unpin' : 'Pin to Top'}
+        <DropdownMenuContent align="end" className="w-40 rounded-xl border-border shadow-xl">
+          <DropdownMenuItem onClick={onPin} className="text-xs font-medium cursor-pointer rounded-lg focus:bg-muted/30">
+            <Pin className="h-3.5 w-3.5 mr-2 text-muted-foreground" /> {page.is_pinned ? 'Unpin' : 'Pin to Top'}
           </DropdownMenuItem>
-          <DropdownMenuSeparator className="bg-slate-100" />
+          <DropdownMenuSeparator className="bg-muted" />
           <DropdownMenuItem onClick={onDelete} className="text-xs font-bold text-red-600 focus:text-red-700 cursor-pointer rounded-lg focus:bg-red-50">
             <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
           </DropdownMenuItem>
@@ -467,56 +570,60 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
 
   return (
     <>
-      <div className="h-14 border-b border-slate-100 flex items-center justify-between px-6 shrink-0 bg-white/50 backdrop-blur-xl z-10 sticky top-0">
-        <div className="flex items-center space-x-3">
-          <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
-            To Do List
-          </div>
-          <div className="flex items-center text-[10px] font-bold text-slate-400">
-            <Clock className="h-3 w-3 mr-1.5" />
-            Last edited {formatDistanceToNow(new Date(activePage.updated_at + (activePage.updated_at.endsWith('Z') ? '' : 'Z')), { addSuffix: true })}
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <AnimatePresence>
-            {isSaving && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex items-center text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full"
-              >
-                <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> Saving
-              </motion.div>
-            )}
-          </AnimatePresence>
-          {!isSaving && (
-            <div className="flex items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2.5 py-1">
-              <Check className="h-3 w-3 mr-1.5 text-emerald-500" /> Saved
+      <WorkspaceHeader
+        left={
+          <>
+            <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
+              To Do List
             </div>
-          )}
-        </div>
-      </div>
+            <div className="flex items-center text-[10px] font-bold text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1.5" />
+              Last edited {formatDistanceToNow(new Date(activePage.updated_at + (activePage.updated_at.endsWith('Z') ? '' : 'Z')), { addSuffix: true })}
+            </div>
+          </>
+        }
+        right={
+          <>
+            <AnimatePresence>
+              {isSaving && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="flex items-center text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full"
+                >
+                  <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> Saving
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {!isSaving && (
+              <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest px-2.5 py-1">
+                <Check className="h-3 w-3 mr-1.5 text-emerald-500" /> Saved
+              </div>
+            )}
+          </>
+        }
+      />
 
-      <div className="flex-1 overflow-y-auto px-8 md:px-16 py-12 pb-32">
+      <WorkspaceContent className="px-8 md:px-16 py-12 pb-32">
         <div className="max-w-3xl mx-auto space-y-6">
           <LocalInput 
             initialValue={activePage.title}
             onChange={(val: string) => handleContentChange('title', val)}
             placeholder="Untitled To Do List"
-            className="w-full text-4xl font-black tracking-tight text-slate-900 border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0"
+            className="w-full text-4xl font-black tracking-tight text-foreground border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0"
           />
 
           <LocalTextarea 
             initialValue={activePage.content || ''}
             onChange={(val: string) => handleContentChange('content', val)}
             placeholder="Add a brief description..."
-            className="w-full min-h-[60px] text-base leading-relaxed text-slate-700 border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0 resize-none font-medium"
+            className="w-full min-h-[60px] text-base leading-relaxed text-muted-foreground border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0 resize-none font-medium"
           />
 
-          <div className="pt-6 border-t border-slate-100 mt-6">
-            <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 flex items-center mb-6">
-              <CheckSquare className="h-4 w-4 mr-2 text-indigo-600" /> Task List
+          <div className="pt-6 border-t border-border mt-6">
+            <h3 className="text-sm font-semibold text-slate-800 flex items-center mb-6">
+              <CheckSquare className="h-4 w-4 mr-2 text-primary" /> Task List
             </h3>
             
             <div className="space-y-2 mb-6">
@@ -524,17 +631,17 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
                 <div key={item.id} className="flex items-start group">
                   <button 
                     onClick={() => handleToggleChecklist(item.id)}
-                    className="mt-0.5 mr-3 shrink-0 text-slate-300 hover:text-indigo-600 transition-colors"
+                    className="mt-0.5 mr-3 shrink-0 text-slate-300 hover:text-primary transition-colors"
                   >
                     {item.is_completed ? (
-                      <CheckSquare2 className="h-5 w-5 text-indigo-600" />
+                      <CheckSquare2 className="h-5 w-5 text-primary" />
                     ) : (
                       <Square className="h-5 w-5" />
                     )}
                   </button>
                   <span className={cn(
                     "flex-1 text-sm font-medium pt-0.5 outline-none transition-all",
-                    item.is_completed ? "text-slate-400 line-through decoration-slate-300" : "text-slate-700"
+                    item.is_completed ? "text-muted-foreground line-through decoration-slate-300" : "text-muted-foreground"
                   )}>
                     {item.text}
                   </span>
@@ -542,14 +649,14 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
                     variant="ghost"
                     size="icon"
                     onClick={() => handleDeleteChecklist(item.id)}
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 rounded-full"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 rounded-full"
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               ))}
               {activePage.checklist_items.length === 0 && (
-                <p className="text-xs text-slate-400 italic">No tasks added yet.</p>
+                <p className="text-xs text-muted-foreground italic">No tasks added yet.</p>
               )}
             </div>
 
@@ -564,7 +671,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
             </div>
           </div>
         </div>
-      </div>
+      </WorkspaceContent>
     </>
   );
 }

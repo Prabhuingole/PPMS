@@ -161,26 +161,26 @@ export default function ReportingManagerProfilePage() {
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
       {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-30 bg-slate-50/80 backdrop-blur-md border-b border-slate-200/60 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="sticky top-0 z-30 bg-slate-50/80 backdrop-blur-md border-b border-border/60 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => router.push(backPath)}
-            className="h-10 w-10 rounded-full hover:bg-slate-200/50 text-slate-500 hover:text-slate-900 transition-colors"
+            className="h-10 w-10 rounded-full hover:bg-slate-200/50 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">Manager Profile</h1>
-            <p className="text-xs font-medium text-slate-500">Profile & Assigned Projects</p>
+            <h1 className="text-xl font-bold text-foreground tracking-tight leading-tight">Manager Profile</h1>
+            <p className="text-xs font-medium text-muted-foreground">Profile & Assigned Projects</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <Button 
             variant="outline" 
             onClick={handleEditClick}
-            className="h-10 rounded-xl bg-white border-slate-200 text-slate-700 font-bold text-xs uppercase tracking-widest hover:bg-slate-50"
+            className="h-10 rounded-xl bg-background border-border text-foreground font-bold text-xs tracking-wider hover:bg-muted"
           >
             <Edit2 className="h-4 w-4 mr-2" />
             Edit Profile
@@ -190,11 +190,11 @@ export default function ReportingManagerProfilePage() {
 
       <div className="max-w-6xl mx-auto px-6 mt-6 space-y-6">
         {/* Hero Profile Card */}
-        <Card className="border border-slate-200/60 shadow-sm rounded-2xl bg-white overflow-hidden">
+        <Card className="border border-border/60 shadow-sm rounded-xl bg-background overflow-hidden">
           <CardContent className="p-6 sm:p-8">
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
               <Avatar className="h-24 w-24 sm:h-32 sm:w-32 ring-1 ring-slate-200 shadow-sm">
-                <AvatarFallback className="bg-slate-100 text-slate-600 text-3xl sm:text-4xl font-semibold uppercase tracking-tight">
+                <AvatarFallback className="bg-muted text-slate-600 text-3xl sm:text-4xl font-semibold tracking-tight">
                   {manager.full_name?.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                 </AvatarFallback>
               </Avatar>
@@ -202,27 +202,27 @@ export default function ReportingManagerProfilePage() {
               <div className="flex-1 space-y-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
-                    <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-md font-medium text-[11px] uppercase tracking-wider">
+                    <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-md font-medium text-xs tracking-wider">
                       Reporting Manager
                     </Badge>
                   </div>
-                  <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
                     {manager.full_name}
                   </h2>
                 </div>
 
                 <div className="flex flex-wrap gap-y-3 gap-x-6 text-sm font-medium text-slate-600">
                   <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-slate-400" />
+                    <Briefcase className="h-4 w-4 text-muted-foreground" />
                     <span>{manager.designation || 'Specialist'}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-slate-400" />
+                    <User className="h-4 w-4 text-muted-foreground" />
                     <span>ID: #{manager.id}</span>
                   </div>
                   {manager.updated_at && (
                     <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-slate-400" />
+                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
                       <span>Updated: {format(new Date(manager.updated_at), 'MMM d, yyyy')}</span>
                     </div>
                   )}
@@ -230,10 +230,10 @@ export default function ReportingManagerProfilePage() {
               </div>
               
               {/* Stats Block */}
-              <div className="flex gap-6 pt-6 md:pt-0 md:pl-8 md:border-l border-slate-100 w-full md:w-auto">
+              <div className="flex gap-6 pt-6 md:pt-0 md:pl-8 md:border-l border-border w-full md:w-auto">
                 <div className="flex flex-col">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Projects</span>
-                  <span className="text-3xl font-bold text-slate-900 tracking-tight">{assignedProjectsCount}</span>
+                  <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Projects</span>
+                  <span className="text-3xl font-bold text-foreground tracking-tight">{assignedProjectsCount}</span>
                 </div>
               </div>
             </div>
@@ -242,9 +242,9 @@ export default function ReportingManagerProfilePage() {
 
         {/* Information Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border border-slate-200/60 shadow-sm rounded-2xl bg-white">
+          <Card className="border border-border/60 shadow-sm rounded-xl bg-background">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-slate-500">Identity Information</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wider text-muted-foreground">Identity Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <InfoRow label="Full Name" value={manager.full_name} />
@@ -253,26 +253,26 @@ export default function ReportingManagerProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="border border-slate-200/60 shadow-sm rounded-2xl bg-white">
+          <Card className="border border-border/60 shadow-sm rounded-xl bg-background">
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold uppercase tracking-wider text-slate-500">Contact Information</CardTitle>
+              <CardTitle className="text-sm font-semibold tracking-wider text-muted-foreground">Contact Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <InfoRow label="Email Address" value={manager.email} icon={<Mail className="h-4 w-4 text-slate-400" />} />
-              <InfoRow label="Mobile Number" value={manager.mobile_number || 'Not provided'} icon={<Phone className="h-4 w-4 text-slate-400" />} />
+              <InfoRow label="Email Address" value={manager.email} icon={<Mail className="h-4 w-4 text-muted-foreground" />} />
+              <InfoRow label="Mobile Number" value={manager.mobile_number || 'Not provided'} icon={<Phone className="h-4 w-4 text-muted-foreground" />} />
             </CardContent>
           </Card>
         </div>
 
         {/* Managed Projects Section */}
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-slate-900 tracking-tight px-1">Managed Projects</h3>
-          <Card className="border border-slate-200/60 shadow-sm rounded-2xl bg-white overflow-hidden">
+          <h3 className="text-lg font-bold text-foreground tracking-tight px-1">Managed Projects</h3>
+          <Card className="border border-border/60 shadow-sm rounded-xl bg-background overflow-hidden">
             <Table>
-              <TableHeader className="bg-slate-50/50">
-                <TableRow className="border-slate-100 hover:bg-transparent">
-                  <TableHead className="h-12 text-xs font-semibold text-slate-500 uppercase tracking-wider">Project Details</TableHead>
-                  <TableHead className="h-12 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</TableHead>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Project Details</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,23 +281,23 @@ export default function ReportingManagerProfilePage() {
                     <TableRow 
                       key={project.id} 
                       onClick={() => router.push(`/superadmin/projects/${project.id}?backPath=/superadmin/reporting-managers/${manager.id}`)}
-                      className="border-slate-100 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                      className="transition-colors cursor-pointer"
                     >
                       <TableCell className="py-4">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">{project.name}</span>
-                          <span className="text-xs text-slate-500 mt-0.5">{project.code}</span>
+                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{project.name}</span>
+                          <span className="text-xs text-muted-foreground mt-0.5">{project.code}</span>
                         </div>
                       </TableCell>
                       <TableCell className="py-4">
                         <Badge 
                           variant="outline" 
                           className={cn(
-                            "uppercase text-[10px] font-semibold tracking-wider px-2 py-0.5 border-none rounded-md",
+                            " text-xs font-semibold tracking-wider px-2 py-0.5 border-none rounded-md",
                             project.status === 'active' ? "bg-emerald-50 text-emerald-700" :
                             project.status === 'completed' ? "bg-indigo-50 text-indigo-700" :
                             project.status === 'on-hold' ? "bg-amber-50 text-amber-700" :
-                            "bg-slate-100 text-slate-600"
+                            "bg-muted text-slate-600"
                           )}
                         >
                           {project.status}
@@ -310,7 +310,7 @@ export default function ReportingManagerProfilePage() {
                     <TableCell colSpan={2} className="h-48 text-center">
                       <div className="flex flex-col items-center justify-center space-y-3">
                         <Briefcase className="h-10 w-10 text-slate-300" />
-                        <p className="text-sm font-medium text-slate-500">No projects assigned yet</p>
+                        <p className="text-sm font-medium text-muted-foreground">No projects assigned yet</p>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -322,7 +322,7 @@ export default function ReportingManagerProfilePage() {
       </div>
 
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 overflow-hidden flex flex-col border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2.5rem] bg-white">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 overflow-hidden flex flex-col border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2.5rem] bg-background">
           <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-6 sm:p-10 text-white relative shrink-0 overflow-hidden">
              <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
              <div className="flex items-center gap-4 sm:gap-6 relative z-10">
@@ -330,17 +330,17 @@ export default function ReportingManagerProfilePage() {
                  <UserPlus className="h-8 w-8 text-indigo-400" />
                </div>
                 <DialogHeader>
-                  <DialogTitle className="text-xl sm:text-3xl font-black uppercase tracking-tighter text-white">
+                  <DialogTitle className="text-xl sm:text-3xl font-bold tracking-tighter text-white">
                     Edit Manager
                   </DialogTitle>
-                  <DialogDescription className="text-indigo-300 font-bold uppercase text-[10px] tracking-[0.2em] mt-1">
+                  <DialogDescription className="text-indigo-300 font-bold text-xs tracking-[0.2em] mt-1">
                     Update manager profile
                   </DialogDescription>
                 </DialogHeader>
              </div>
           </div>
           
-          <div className="p-6 sm:p-10 bg-white overflow-y-auto flex flex-col max-h-[90vh]">
+          <div className="p-6 sm:p-10 bg-background overflow-y-auto flex flex-col max-h-[90vh]">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                 <div className="space-y-6">
@@ -350,16 +350,16 @@ export default function ReportingManagerProfilePage() {
                       name="full_name"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
                              <User className="h-3 w-3" /> Full Name <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Input placeholder="Enter full name..." {...field} className="h-14 rounded-2xl border-slate-200/80 bg-slate-50/50 focus:bg-white transition-all pl-12 text-sm font-bold shadow-sm" />
+                              <Input placeholder="Enter full name..." {...field} className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" />
                               <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                             </div>
                           </FormControl>
-                          <FormMessage className="text-[10px] font-bold text-red-500" />
+                          <FormMessage className="text-xs font-bold text-red-500" />
                         </FormItem>
                       )}
                     />
@@ -371,16 +371,16 @@ export default function ReportingManagerProfilePage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
                              <Mail className="h-3 w-3" /> Email Address <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Input placeholder="manager@gmail.com" {...field} className="h-14 rounded-2xl border-slate-200/80 bg-slate-50/50 focus:bg-white transition-all pl-12 text-sm font-bold shadow-sm" />
+                              <Input placeholder="manager@gmail.com" {...field} className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" />
                               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                             </div>
                           </FormControl>
-                          <FormMessage className="text-[10px] font-bold text-red-500" />
+                          <FormMessage className="text-xs font-bold text-red-500" />
                         </FormItem>
                       )}
                     />
@@ -389,7 +389,7 @@ export default function ReportingManagerProfilePage() {
                       name="mobile_number"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
                              <Phone className="h-3 w-3" /> Mobile Number <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
@@ -402,12 +402,12 @@ export default function ReportingManagerProfilePage() {
                                   const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                                   field.onChange(value);
                                 }}
-                                className="h-14 rounded-2xl border-slate-200/80 bg-slate-50/50 focus:bg-white transition-all pl-12 text-sm font-bold shadow-sm" 
+                                className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" 
                               />
                               <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                             </div>
                           </FormControl>
-                          <FormMessage className="text-[10px] font-bold text-red-500" />
+                          <FormMessage className="text-xs font-bold text-red-500" />
                         </FormItem>
                       )}
                     />
@@ -419,35 +419,35 @@ export default function ReportingManagerProfilePage() {
                       name="designation"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] flex items-center gap-2">
+                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
                              <Briefcase className="h-3 w-3" /> Designation <span className="text-red-500">*</span>
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Input placeholder="Senior Lead Manager" {...field} className="h-14 rounded-2xl border-slate-200/80 bg-slate-50/50 focus:bg-white transition-all pl-12 text-sm font-bold shadow-sm" />
+                              <Input placeholder="Senior Lead Manager" {...field} className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" />
                               <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
                             </div>
                           </FormControl>
-                          <FormMessage className="text-[10px] font-bold text-red-500" />
+                          <FormMessage className="text-xs font-bold text-red-500" />
                         </FormItem>
                       )}
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-4 pt-6 border-t border-slate-100 flex-wrap shrink-0">
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-4 pt-6 border-t border-border flex-wrap shrink-0">
                   <Button 
                     type="button" 
                     variant="ghost" 
                     onClick={() => setIsEditModalOpen(false)}
-                    className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+                    className="h-14 px-8 rounded-xl font-bold text-xs tracking-wider text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Discard Changes
                   </Button>
                   <Button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="h-14 px-10 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-indigo-200 disabled:opacity-50 transition-all hover:-translate-y-1 active:scale-95"
+                    className="h-14 px-10 rounded-xl bg-primary hover:bg-indigo-700 text-white font-bold text-xs tracking-wider shadow-2xl shadow-indigo-200 disabled:opacity-50 transition-all hover:-translate-y-1 active:scale-95"
                   >
                     {isSubmitting ? (
                       <div className="flex items-center gap-3">
@@ -470,11 +470,11 @@ export default function ReportingManagerProfilePage() {
 
 function InfoRow({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-      <span className="text-sm font-medium text-slate-500">{label}</span>
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0">
+      <span className="text-sm font-medium text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
         {icon}
-        <span className="text-sm font-semibold text-slate-900">{value}</span>
+        <span className="text-sm font-semibold text-foreground">{value}</span>
       </div>
     </div>
   );
@@ -483,7 +483,7 @@ function InfoRow({ label, value, icon }: { label: string; value: string; icon?: 
 function ProfileSkeleton() {
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
-      <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-4 flex items-center">
+      <div className="sticky top-0 z-30 bg-background border-b border-border px-6 py-4 flex items-center">
         <Skeleton className="h-10 w-10 rounded-full mr-4" />
         <div>
           <Skeleton className="h-6 w-48 mb-2" />
@@ -491,7 +491,7 @@ function ProfileSkeleton() {
         </div>
       </div>
       <div className="max-w-6xl mx-auto px-6 mt-8 space-y-8">
-        <Card className="rounded-2xl border-slate-200/60 shadow-sm">
+        <Card className="rounded-xl border-border/60 shadow-sm">
           <CardContent className="p-8 sm:p-10 flex flex-col md:flex-row gap-8 items-center">
             <Skeleton className="h-32 w-32 rounded-full" />
             <div className="flex-1 space-y-4 w-full">
@@ -502,16 +502,16 @@ function ProfileSkeleton() {
                 <Skeleton className="h-5 w-24" />
               </div>
             </div>
-            <div className="pl-8 border-l border-slate-100 hidden md:block">
+            <div className="pl-8 border-l border-border hidden md:block">
               <Skeleton className="h-16 w-20" />
             </div>
           </CardContent>
         </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Skeleton className="h-64 rounded-2xl border-slate-200/60" />
-          <Skeleton className="h-64 rounded-2xl border-slate-200/60" />
+          <Skeleton className="h-64 rounded-xl border-border/60" />
+          <Skeleton className="h-64 rounded-xl border-border/60" />
         </div>
-        <Skeleton className="h-[400px] rounded-2xl border-slate-200/60 w-full" />
+        <Skeleton className="h-[400px] rounded-xl border-border/60 w-full" />
       </div>
     </div>
   );

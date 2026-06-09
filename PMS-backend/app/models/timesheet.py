@@ -6,16 +6,16 @@ from datetime import datetime
 class Timesheet(Base):
     __tablename__ = "timesheets"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True) # Nullable for 'other' work
-    date = Column(DateTime, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True) # Nullable for 'other' work
+    date = Column(DateTime, nullable=False, index=True)
     hours = Column(Float, nullable=False)
     task_title = Column(String, nullable=True)
     description = Column(Text, nullable=True)
     task_status = Column(String, default="Ongoing") # Ongoing, Completed, etc
     category = Column(String, nullable=True) # For 'other' work
     subcategory = Column(String, nullable=True) # For 'other' work
-    status = Column(String, default="pending") # pending, approved, rejected
+    status = Column(String, default="pending", index=True) # pending, approved, rejected
     day = Column(String, nullable=True)
     feedback = Column(Text, nullable=True)
     attachment_path = Column(String, nullable=True)

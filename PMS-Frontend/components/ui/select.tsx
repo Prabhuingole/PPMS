@@ -24,9 +24,9 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // Base
-      "flex w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-150 overflow-hidden",
+      "flex w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium text-muted-foreground shadow-sm outline-none transition-all duration-150 overflow-hidden",
       // Hover
-      "hover:border-slate-300 hover:bg-slate-50/70",
+      "hover:border-border hover:bg-muted",
       // Focus
       "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20",
       // Open state
@@ -41,7 +41,7 @@ const SelectTrigger = React.forwardRef<
   >
     <span className="flex-1 min-w-0 truncate text-left">{children}</span>
     <SelectPrimitive.Icon asChild>
-      <ChevronDownIcon className="h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200" />
+      <ChevronDownIcon className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ))
@@ -56,7 +56,7 @@ const SelectScrollUpButton = React.forwardRef<
   <SelectPrimitive.ScrollUpButton
     ref={ref}
     className={cn(
-      "flex cursor-default items-center justify-center py-1 text-slate-400 hover:text-slate-600",
+      "flex cursor-default items-center justify-center py-1 text-muted-foreground hover:text-foreground",
       className
     )}
     {...props}
@@ -73,7 +73,7 @@ const SelectScrollDownButton = React.forwardRef<
   <SelectPrimitive.ScrollDownButton
     ref={ref}
     className={cn(
-      "flex cursor-default items-center justify-center py-1 text-slate-400 hover:text-slate-600",
+      "flex cursor-default items-center justify-center py-1 text-muted-foreground hover:text-foreground",
       className
     )}
     {...props}
@@ -98,7 +98,7 @@ const SelectContent = React.forwardRef<
         // Layout
         "relative z-[9999] min-w-[var(--radix-select-trigger-width)] overflow-hidden",
         // Appearance
-        "rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10",
+        "rounded-xl border border-border bg-card shadow-xl shadow-foreground/5",
         // Animations – open
         "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
         // Animations – close
@@ -139,7 +139,7 @@ const SelectLabel = React.forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     className={cn(
-      "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400",
+      "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground",
       className
     )}
     {...props}
@@ -159,11 +159,11 @@ const SelectItem = React.forwardRef<
       // Base
       "relative flex w-full cursor-pointer select-none items-center gap-2 rounded-lg py-2 pl-3 pr-8 text-sm font-medium outline-none transition-colors duration-100",
       // Default
-      "text-slate-700",
+      "text-muted-foreground",
       // Hover
-      "hover:bg-slate-50 hover:text-slate-900",
+      "hover:bg-muted hover:text-foreground",
       // Selected
-      "data-[state=checked]:bg-indigo-50 data-[state=checked]:text-indigo-700",
+      "data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary",
       // Disabled
       "data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50",
       className
@@ -173,7 +173,7 @@ const SelectItem = React.forwardRef<
     {/* Checkmark */}
     <span className="absolute right-2 flex h-4 w-4 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <CheckIcon className="h-3.5 w-3.5 text-indigo-600" />
+        <CheckIcon className="h-3.5 w-3.5 text-primary" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>
@@ -189,7 +189,7 @@ const SelectSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SelectPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-slate-100", className)}
+    className={cn("-mx-1 my-1 h-px bg-muted", className)}
     {...props}
   />
 ))

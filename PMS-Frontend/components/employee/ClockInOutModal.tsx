@@ -82,30 +82,30 @@ export function ClockInOutModal({ open, type, onClose, onCapture, loading }: Clo
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-xl ${type === 'in' ? 'bg-emerald-50' : 'bg-red-50'}`}>
               <Camera className={`h-5 w-5 ${type === 'in' ? 'text-emerald-600' : 'text-red-600'}`} />
             </div>
             <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-900">
+              <h3 className="text-sm font-black uppercase tracking-wider text-foreground">
                 Clock {type === 'in' ? 'In' : 'Out'}
               </h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                 Capture your photo
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-            <X className="h-4 w-4 text-slate-400" />
+          <button onClick={onClose} className="p-2 hover:bg-muted rounded-xl transition-colors">
+            <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
         {/* Camera / Preview */}
         <div className="p-6">
-          <div className="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[4/3]">
+          <div className="relative bg-slate-900 rounded-xl overflow-hidden aspect-[4/3]">
             {cameraError ? (
               <div className="absolute inset-0 flex items-center justify-center text-white text-sm font-medium p-6 text-center">
                 {cameraError}
@@ -126,7 +126,7 @@ export function ClockInOutModal({ open, type, onClose, onCapture, loading }: Clo
 
           {/* Timestamp */}
           <div className="mt-4 text-center">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               {new Date().toLocaleString('en-IN', { 
                 day: '2-digit', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit', second: '2-digit'

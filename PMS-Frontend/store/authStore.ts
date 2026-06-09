@@ -47,13 +47,23 @@ export const useAuthStore = create<AuthStore>()(
       mfaEmail: null,
       _hasHydrated: false,
       setHasHydrated: (state) => set({ _hasHydrated: state }),
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true, mfaEmail: null }),
+      setAuth: (user, token) => {
+        if (typeof document !== 'undefined') {
+          document.cookie = `auth_token=${token}; path=/; max-age=86400; SameSite=Lax`;
+        }
+        set({ user, token, isAuthenticated: true, mfaEmail: null });
+      },
       setMfaRequired: (email) => set({ mfaEmail: email }),
       clearMfaState: () => set({ mfaEmail: null }),
       updateUser: (updatedUser) => set((state) => ({ 
         user: state.user ? { ...state.user, ...updatedUser } : null 
       })),
-      logout: () => set({ user: null, token: null, isAuthenticated: false, mfaEmail: null }),
+      logout: () => {
+        if (typeof document !== 'undefined') {
+          document.cookie = "auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        }
+        set({ user: null, token: null, isAuthenticated: false, mfaEmail: null });
+      },
     }),
     {
       name: 'auth-storage',
@@ -78,6 +88,9 @@ export const useAuthStore = create<AuthStore>()(
           }
           // Always mark as hydrated — even if state is null (empty localStorage / Edge strict mode)
           if (state) {
+            if (typeof document !== 'undefined' && state.token) {
+              document.cookie = `auth_token=${state.token}; path=/; max-age=86400; SameSite=Lax`;
+            }
             state.setHasHydrated(true);
           } else {
             // State is null when localStorage is empty or blocked; still need to unblock the UI

@@ -4,6 +4,11 @@ import { useEffect } from 'react';
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
+/**
+ * @deprecated This component is deprecated as of Phase 5.3.
+ * All API calls should now route through `@/services/api.ts`, which handles its own interception.
+ * This file will be removed after migration is complete and zero dependencies remain.
+ */
 export function AxiosInterceptor() {
   const logout = useAuthStore(state => state.logout);
 

@@ -17,21 +17,21 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const isViewDoc = pathname.includes('/view-doc');
 
   useEffect(() => {
-    if (_hasHydrated) {
+    if (_hasHydrated && !isViewDoc) {
       if (!isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
-        if (['employee', 'intern'].includes(user?.role || '')) {
+        if (['employee', 'intern', 'reporting_manager'].includes(user?.role || '')) {
            router.replace('/employee/dashboard');
         } else {
            router.replace('/login');
         }
       }
     }
-  }, [_hasHydrated, isAuthenticated, user, router]);
+  }, [_hasHydrated, isAuthenticated, user, router, isViewDoc]);
 
-  if (!_hasHydrated || !isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
+  if (!_hasHydrated || (!isViewDoc && (!isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')))) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-50" suppressHydrationWarning>
-        <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
+      <div className="flex h-screen w-full items-center justify-center bg-muted/30" suppressHydrationWarning>
+        <Loader2 className="h-8 w-8 animate-spin text-foreground" />
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900" suppressHydrationWarning>
+    <div className="flex min-h-screen bg-muted/30 text-foreground" suppressHydrationWarning>
       <Sidebar />
       <div className={cn(
         "flex flex-1 flex-col transition-all duration-300 min-w-0",

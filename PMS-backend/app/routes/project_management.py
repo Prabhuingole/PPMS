@@ -136,21 +136,37 @@ def get_projects(
     from sqlalchemy import func
     from app.models.timesheet import Timesheet
 
-    for item in items:
-        worked = db.query(func.sum(Timesheet.hours)).filter(
-            Timesheet.project_id == item.id,
-            Timesheet.status.in_(["approved", "rejected"])
-        ).scalar() or 0.0
-
-        item.total_hours_worked = worked
-        item.total_hours_remaining = (item.total_hours or 0.0) - worked
+    if items:
+        project_ids = [item.id for item in items]
         
-        my_worked = db.query(func.sum(Timesheet.hours)).filter(
-            Timesheet.project_id == item.id,
+        # Aggregate timesheets for all fetched projects
+        timesheet_stats = db.query(
+            Timesheet.project_id,
+            func.sum(Timesheet.hours).label("total_worked")
+        ).filter(
+            Timesheet.project_id.in_(project_ids),
+            Timesheet.status.in_(["approved", "rejected"])
+        ).group_by(Timesheet.project_id).all()
+        
+        worked_dict = {stat.project_id: stat.total_worked or 0.0 for stat in timesheet_stats}
+
+        # Aggregate timesheets for current user only
+        my_timesheet_stats = db.query(
+            Timesheet.project_id,
+            func.sum(Timesheet.hours).label("my_worked")
+        ).filter(
+            Timesheet.project_id.in_(project_ids),
             Timesheet.user_id == current_user.id,
             Timesheet.status.in_(["approved", "rejected"])
-        ).scalar() or 0.0
-        item.my_hours_worked = my_worked
+        ).group_by(Timesheet.project_id).all()
+        
+        my_worked_dict = {stat.project_id: stat.my_worked or 0.0 for stat in my_timesheet_stats}
+
+        for item in items:
+            worked = worked_dict.get(item.id, 0.0)
+            item.total_hours_worked = worked
+            item.total_hours_remaining = (item.total_hours or 0.0) - worked
+            item.my_hours_worked = my_worked_dict.get(item.id, 0.0)
 
     return {
         "items": items,

@@ -26,18 +26,12 @@ import {
   Upload,
   File,
   X,
-  Eye
+  Eye,
+  MoreHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { DataTable } from '@/components/ui/data-table';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +41,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
+import { ManagementLayout } from '@/components/layout/ManagementLayout';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   Dialog,
   DialogContent,
@@ -83,7 +79,9 @@ import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { format } from 'date-fns';
 import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 import { useAuthStore } from '@/store/authStore';
@@ -103,6 +101,7 @@ export default function ProjectListPage() {
   const [pages, setPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isError, setIsError] = useState(false);
   const [managerFilter, setManagerFilter] = useState<string>('all');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
@@ -119,6 +118,7 @@ export default function ProjectListPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setIsError(false);
       const [projectData, managerData, employeeData] = await Promise.all([
         projectService.getProjects({ 
           page: 1, 
@@ -136,8 +136,9 @@ export default function ProjectListPage() {
       setManagers(managerData.items);
       setEmployees(employeeData.items);
     } catch (error) {
+      setIsError(true);
+      toast.error('Failed to load projects data');
       console.error(error);
-      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -190,230 +191,228 @@ export default function ProjectListPage() {
   };
 
   return (
-    <div className="space-y-8 p-1">
-      {/* Header Section */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-            Projects
-          </h2>
-          <p className="text-slate-500 text-sm">Manage all company projects and team assignments.</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button 
-            onClick={() => {
-              setEditingProject(null);
-              setIsModalOpen(true);
-            }}
-            className="bg-indigo-600 text-white hover:bg-indigo-700 rounded-md h-9 px-4 shadow-sm transition-all hover:-translate-y-0.5 active:scale-95 group"
-          >
-            <Plus className="mr-2 h-4 w-4" /> 
-            <span className="text-sm font-medium">Add Project</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* Main Table Card */}
-      <Card className="border border-slate-200 rounded-xl shadow-sm overflow-hidden bg-white">
-        <CardHeader className="bg-white p-4 sm:p-6 border-b border-slate-100">
-            <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-              <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto">
-                <div className="relative w-full sm:w-64 shrink-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input 
-                    placeholder="Search projects..." 
-                    className="pl-9 h-9 rounded-md border-slate-200 text-sm focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-
-                <div className="w-full sm:w-[140px] shrink-0">
-                  <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
-                    <SelectTrigger className="w-full h-9 rounded-md border-slate-200 text-sm font-medium text-slate-700 text-left min-w-0">
-                      <SelectValue placeholder="Project Status" className="truncate">
-                        {statusFilter === 'all' ? 'Project Status' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1).replace('-', ' ')}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-md border-slate-200 shadow-lg max-h-[300px]">
-                      <SelectItem value="all" className="text-sm font-medium">Project Status</SelectItem>
-                      <SelectItem value="planning" className="text-sm font-medium">Planning</SelectItem>
-                      <SelectItem value="active" className="text-sm font-medium">Active</SelectItem>
-                      <SelectItem value="on-hold" className="text-sm font-medium">On Hold</SelectItem>
-                      <SelectItem value="completed" className="text-sm font-medium">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="w-full sm:w-[160px] lg:w-[200px] shrink-0">
-                  <Select value={managerFilter} onValueChange={(val) => setManagerFilter(val || 'all')}>
-                    <SelectTrigger className="w-full h-9 rounded-md border-slate-200 text-sm font-medium text-slate-700 text-left min-w-0">
-                      <SelectValue placeholder="Reporting Manager" className="truncate">
-                        {managerFilter === 'all' 
-                          ? 'Reporting Manager' 
-                          : managers?.find(m => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent className="rounded-md border-slate-200 shadow-lg max-h-[300px] w-[90vw] sm:w-[250px]">
-                      <SelectItem value="all" className="text-sm font-medium">Reporting Manager</SelectItem>
-                      {managers?.map(m => (
-                        <SelectItem key={m.id} value={m.id.toString()} className="text-sm font-medium">
-                          {m.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="px-3 py-1.5 rounded-md bg-slate-50 text-slate-600 hidden sm:flex items-center gap-2 border border-slate-200 shrink-0">
-                 <Briefcase className="h-4 w-4 text-slate-400" />
-                 <span className="text-sm font-semibold">{total} Projects</span>
-              </div>
+    <>
+    <ManagementLayout
+      title="Projects"
+      description="Manage all company projects and team assignments."
+      headerActions={
+        <Button 
+          onClick={() => {
+            setEditingProject(null);
+            setIsModalOpen(true);
+          }}
+          className="bg-primary text-white hover:bg-indigo-700 rounded-lg h-10 px-5 shadow-sm transition-all text-sm font-semibold"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Add Project
+        </Button>
+      }
+    >
+      <DataTable
+        data={projects}
+        isLoading={loading}
+        searchPlaceholder="Search projects..."
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        filters={
+          <>
+            <div className="w-full sm:w-[140px] shrink-0">
+              <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'all')}>
+                <SelectTrigger className="w-full h-10 bg-background rounded-lg border-border text-sm font-medium text-muted-foreground text-left min-w-0 shadow-sm">
+                  <SelectValue placeholder="Project Status" className="truncate">
+                    {statusFilter === 'all' ? 'Project Status' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1).replace('-', ' ')}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-md border-border shadow-lg max-h-[300px]">
+                  <SelectItem value="all" className="text-sm font-medium">Project Status</SelectItem>
+                  <SelectItem value="planning" className="text-sm font-medium">Planning</SelectItem>
+                  <SelectItem value="active" className="text-sm font-medium">Active</SelectItem>
+                  <SelectItem value="on-hold" className="text-sm font-medium">On Hold</SelectItem>
+                  <SelectItem value="completed" className="text-sm font-medium">Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-slate-50 border-b border-slate-200">
-              <TableRow className="hover:bg-transparent border-none">
-                <TableHead className="text-xs font-semibold text-slate-500 py-4 px-6 w-[120px]">Project ID</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-500 py-4">Project Name</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-500 py-4">Reporting Manager</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-500 py-4">Team Size</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-500 py-4">Hours</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-500 py-4">Timeline</TableHead>
-                <TableHead className="text-xs font-semibold text-slate-500 py-4 text-right px-6">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-slate-50">
-                    <TableCell colSpan={7} className="h-24 text-center">
-                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-200" />
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : !projects || projects.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-60 text-center">
-                    <div className="flex flex-col items-center justify-center space-y-4 opacity-40">
-                       <Briefcase className="h-16 w-16 text-slate-300" />
-                       <p className="text-sm font-bold text-slate-500 uppercase tracking-widest italic">Zero Projects Found</p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                projects.map((project, i) => (
-                  <TableRow
-                    key={project.id}
-                    onClick={() => router.push(`/superadmin/projects/${project.id}`)}
-                    className="group border-b border-slate-100 hover:bg-slate-50/50 transition-colors cursor-pointer"
-                  >
-                    <TableCell className="py-4 px-6">
-                      <span className="text-xs font-semibold bg-slate-100 text-slate-700 px-2 py-1 rounded-md">{project.code}</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className={cn("h-2 w-2 rounded-full shrink-0", 
-                          project.status === 'active' ? "bg-emerald-500" :
-                          project.status === 'planning' ? "bg-indigo-500" :
-                          project.status === 'on-hold' ? "bg-amber-500" :
-                          "bg-slate-500"
-                        )} title={project.status.toUpperCase()} />
-                        <span className="text-sm font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">{project.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <UserCheck className="h-4 w-4 text-slate-400" /> 
-                        {project.reporting_manager?.full_name.split(' ')[0] || 'Unassigned'}
-                      </div>
-                    </TableCell>
-                     <TableCell>
-                       <div className="flex items-center gap-2">
-                         <Users className="h-4 w-4 text-slate-400" />
-                         <span className="text-sm font-medium text-slate-700">
-                           {project.members?.length || 0} {(project.members?.length === 1) ? 'Member' : 'Members'}
-                         </span>
-                       </div>
-                    </TableCell>
-                     <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm font-medium text-slate-700">
-                            {project.total_hours_worked || 0} / {project.total_hours || 0} hrs
-                          </span>
-                          {((project.total_hours_remaining ?? 0) < 0) ? (
-                            <span className="text-xs font-medium text-red-500 flex items-center gap-1">
-                              <AlertCircle className="w-3.5 h-3.5" /> Over budget ({(project.total_hours_remaining || 0) * -1})
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-400">
-                              {project.total_hours_remaining || 0} left
-                            </span>
-                          )}
-                        </div>
-                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                           <Calendar className="h-3.5 w-3.5 text-slate-400" />
-                           {project.start_date ? format(new Date(project.start_date), 'dd MMM yy') : 'TBD'}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                           <Clock className="h-3.5 w-3.5 text-slate-300" />
-                           {project.end_date ? format(new Date(project.end_date), 'dd MMM yy') : 'Ongoing'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right px-6">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/superadmin/projects/${project.id}`);
-                          }}
-                          className="h-8 w-8 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(project);
-                          }}
-                          className="h-8 w-8 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
-                          title="Edit Project"
-                        >
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmDelete(project);
-                          }}
-                          className="h-8 w-8 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+
+            <div className="w-full sm:w-[160px] lg:w-[200px] shrink-0">
+              <Select value={managerFilter} onValueChange={(val) => setManagerFilter(val || 'all')}>
+                <SelectTrigger className="w-full h-10 bg-background rounded-lg border-border text-sm font-medium text-muted-foreground text-left min-w-0 shadow-sm">
+                  <SelectValue placeholder="Reporting Manager" className="truncate">
+                    {managerFilter === 'all' 
+                      ? 'Reporting Manager' 
+                      : managers?.find((m: any) => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="rounded-md border-border shadow-lg max-h-[300px] w-[90vw] sm:w-[250px]">
+                  <SelectItem value="all" className="text-sm font-medium">Reporting Manager</SelectItem>
+                  {managers?.map((m: any) => (
+                    <SelectItem key={m.id} value={m.id.toString()} className="text-sm font-medium">
+                      {m.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        }
+        toolbarActions={
+          <div className="h-10 px-4 flex items-center justify-center rounded-lg bg-background border border-border text-muted-foreground shadow-sm shrink-0 font-medium text-sm">
+            Total: {total}
           </div>
-        </CardContent>
-      </Card>
+        }
+        emptyState={
+          isError ? (
+            <ErrorState title="Failed to load projects" description="We encountered an error while trying to retrieve project data." onRetry={fetchData} />
+          ) : (
+            <EmptyState
+              icon={Briefcase}
+              title="No Projects Found"
+              description="There are currently no projects matching your criteria."
+              className="border-0 rounded-none w-full min-h-[400px]"
+            />
+          )
+        }
+        onRowClick={(project) => router.push(`/superadmin/projects/${project.id}`)}
+        columns={[
+          {
+            header: 'Project ID',
+            accessorKey: 'code',
+            sortable: true,
+            width: '120px',
+            cell: (project) => (
+              <span className="text-xs font-semibold bg-muted text-foreground px-2 py-1 rounded-md">{project.code}</span>
+            )
+          },
+          {
+            header: 'Project Name',
+            accessorKey: 'name',
+            sortable: true,
+            cell: (project) => (
+              <div className="flex items-center gap-3">
+                <div className={cn("h-2.5 w-2.5 rounded-full shrink-0 shadow-sm", 
+                  project.status === 'active' ? "bg-emerald-500" :
+                  project.status === 'planning' ? "bg-indigo-500" :
+                  project.status === 'on-hold' ? "bg-amber-500" :
+                  "bg-muted/300"
+                )} title={project.status.toUpperCase()} />
+                <span className="text-sm font-black text-foreground group-hover:text-primary transition-colors">{project.name}</span>
+              </div>
+            )
+          },
+          {
+            header: 'Reporting Manager',
+            accessorKey: 'reporting_manager',
+            sortable: true,
+            hideOnMobile: true,
+            cell: (project) => (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                <UserCheck className="h-3.5 w-3.5 text-muted-foreground" /> 
+                {project.reporting_manager?.full_name.split(' ')[0] || 'Unassigned'}
+              </div>
+            )
+          },
+          {
+            header: 'Team Size',
+            accessorKey: 'members',
+            sortable: true,
+            hideOnMobile: true,
+            cell: (project) => (
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                <span>
+                  {project.members?.length || 0} {(project.members?.length === 1) ? 'Member' : 'Members'}
+                </span>
+              </div>
+            )
+          },
+          {
+            header: 'Hours',
+            accessorKey: 'total_hours',
+            sortable: true,
+            cell: (project) => (
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold text-foreground">
+                  {Number((project.total_hours_worked || 0).toFixed(2))} / {Number((project.total_hours || 0).toFixed(2))} <span className="opacity-70 font-bold ml-0.5">h</span>
+                </span>
+                {((project.total_hours_remaining ?? 0) < 0) ? (
+                  <span className="text-[10px] font-bold text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 shrink-0" /> <span className="truncate">Over budget ({Number(((project.total_hours_remaining || 0) * -1).toFixed(2))}<span className="opacity-70 font-bold ml-0.5">h</span>)</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    {Number((project.total_hours_remaining || 0).toFixed(2))}<span className="opacity-70 font-bold ml-0.5">h</span> left
+                  </span>
+                )}
+              </div>
+            )
+          },
+          {
+            header: 'Timeline',
+            accessorKey: 'start_date',
+            sortable: true,
+            hideOnMobile: true,
+            cell: (project) => (
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-600">
+                   <Calendar className="h-3 w-3 text-muted-foreground" />
+                   {project.start_date ? format(new Date(project.start_date), 'dd MMM yy') : 'TBD'}
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
+                   <Clock className="h-3 w-3 text-slate-300" />
+                   {project.end_date ? format(new Date(project.end_date), 'dd MMM yy') : 'Ongoing'}
+                </div>
+              </div>
+            )
+          },
+          {
+            header: 'Actions',
+            align: 'right',
+            width: '50px',
+            cell: (project) => (
+              <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-end ">
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
+<span className="sr-only">Open menu</span>
+<MoreHorizontal className="h-4 w-4" />
+</DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/superadmin/projects/${project.id}`);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(project);
+                      }}
+                      className="cursor-pointer"
+                    >
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Edit Project
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmDelete(project);
+                      }}
+                      className="cursor-pointer text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )
+          }
+        ]}
+      />
+    </ManagementLayout>
 
       {/* Deployment Modal */}
       <ProjectFormModal 
@@ -432,6 +431,7 @@ export default function ProjectListPage() {
         itemName={`Project "${projectToDelete?.name}"`}
         isDeleting={isDeleting}
       />
-    </div>
+    </>
   );
 }
+

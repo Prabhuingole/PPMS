@@ -31,7 +31,7 @@ export function DeleteConfirmationModal({
 }: DeleteConfirmationModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2rem] bg-white">
+      <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2rem] bg-card">
         <div className="bg-gradient-to-br from-red-600 to-rose-700 p-8 text-white relative overflow-hidden">
            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
            <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl"></div>
@@ -54,8 +54,8 @@ export function DeleteConfirmationModal({
            </div>
         </div>
         
-        <div className="p-8 bg-white">
-          <div className="p-4 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3 mb-8">
+        <div className="p-8 bg-card">
+          <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-start gap-3 mb-8">
             <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
             <p className="text-xs font-bold text-red-800 leading-relaxed">
               This action cannot be undone. All data associated with {itemName} will be permanently removed from our servers.
@@ -68,7 +68,7 @@ export function DeleteConfirmationModal({
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={isDeleting}
-              className="w-full sm:w-1/2 h-14 rounded-2xl border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-colors"
+              className="w-full sm:w-1/2 h-14 rounded-xl border-border text-slate-600 font-bold uppercase text-[10px] tracking-widest hover:bg-muted transition-colors"
             >
               Cancel
             </Button>
@@ -76,7 +76,7 @@ export function DeleteConfirmationModal({
               type="button" 
               onClick={onConfirm}
               disabled={isDeleting}
-              className="w-full sm:w-1/2 h-14 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-200 transition-all hover:-translate-y-0.5 active:scale-95"
+              className="w-full sm:w-1/2 h-14 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-200 transition-all hover:-translate-y-0.5 active:scale-95"
             >
               {isDeleting ? (
                 <div className="flex items-center gap-2">

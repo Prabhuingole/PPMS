@@ -17,7 +17,8 @@ import {
   Timer,
   Sparkles,
   FileText,
-  Layers
+  Layers,
+  MoreHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,7 +35,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
-import axios from 'axios';
+import api from '@/services/api';
+import { handleApiError } from '@/utils/handleApiError';
+import { ErrorState } from '@/components/ui/error-state';
 import { useAuthStore } from '@/store/authStore';
 import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -45,9 +48,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { FillTimesheetDialog } from '@/components/timesheets/FillTimesheetDialog';
 
 type FilterStatus = 'all' | 'approved' | 'pending' | 'rejected';
+
+const ExpandableText = ({ text }: { text: string }) => {
+  const [expanded, setExpanded] = useState(false);
+  if (!text) return null;
+  const isLong = text.length > 100;
+
+  return (
+    <div>
+      <p className={`text-[11px] text-muted-foreground mt-1 max-w-lg break-words whitespace-pre-wrap leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
+        {text}
+      </p>
+      {isLong && (
+        <button 
+          onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }} 
+          className="text-[10px] font-semibold text-primary hover:underline mt-0.5 focus:outline-none"
+        >
+          {expanded ? 'Show less' : 'See more'}
+        </button>
+      )}
+    </div>
+  );
+};
 
 export default function MyTimesheetsPage() {
   const { token } = useAuthStore();
@@ -94,9 +125,7 @@ export default function MyTimesheetsPage() {
       if (activeFilter !== 'all') params.append('status', activeFilter);
       if (projectId) params.append('project_id', projectId);
 
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/me?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => {
+      api.get(`/timesheets/me?${params.toString()}`).then(res => {
         setTimesheets(res.data.items || []);
         setTotalItems(res.data.total || 0);
         if (res.data.counts) setCounts(res.data.counts);
@@ -106,9 +135,7 @@ export default function MyTimesheetsPage() {
 
   useEffect(() => {
     if (token) {
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/?limit=1000`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(res => setDbProjects(res.data.items || res.data)).catch(console.error);
+      api.get(`/projects/?limit=1000`).then(res => setDbProjects(res.data.items || res.data)).catch(console.error);
     }
   }, [token, refreshTrigger]);
 
@@ -191,7 +218,7 @@ export default function MyTimesheetsPage() {
   const visibleDays = dateOrder;
 
   const filterTabs: { key: FilterStatus; label: string; count: number; color: string; activeColor: string }[] = [
-    { key: 'all', label: 'All', count: counts.all, color: 'text-slate-500', activeColor: 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' },
+    { key: 'all', label: 'All', count: counts.all, color: 'text-muted-foreground', activeColor: 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' },
     { key: 'approved', label: 'Approved', count: approvedCount, color: 'text-emerald-600', activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' },
     { key: 'pending', label: 'Pending', count: pendingCount, color: 'text-amber-600', activeColor: 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' },
     { key: 'rejected', label: 'Rejected', count: rejectedCount, color: 'text-red-600', activeColor: 'bg-red-500 text-white shadow-lg shadow-red-500/20' },
@@ -205,7 +232,7 @@ export default function MyTimesheetsPage() {
       case 'early-arrival': return 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200/50';
       case 'leave': return 'bg-red-50 text-red-700 ring-1 ring-red-200/50';
       case 'public-holiday': return 'bg-blue-50 text-blue-700 ring-1 ring-blue-200/50';
-      default: return 'bg-slate-50 text-slate-700 ring-1 ring-slate-200/50';
+      default: return 'bg-muted/30 text-muted-foreground ring-1 ring-slate-200/50';
     }
   };
 
@@ -224,7 +251,7 @@ export default function MyTimesheetsPage() {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-8 md:p-10"
+        className="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 p-8 md:p-10"
       >
         {/* Decorative orbs */}
         <div className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full bg-indigo-500/15 blur-3xl" />
@@ -241,13 +268,13 @@ export default function MyTimesheetsPage() {
                 My Timesheets
               </h2>
             </div>
-            <p className="text-slate-400 font-medium text-sm ml-[52px]">
+            <p className="text-muted-foreground font-medium text-sm ml-[52px]">
               Track, manage, and review your daily work entries
             </p>
           </div>
           <Button 
             onClick={() => setIsAddDialogOpen(true)}
-            className="bg-white text-slate-900 hover:bg-slate-100 rounded-2xl h-12 px-8 shadow-xl shadow-black/20 font-black uppercase text-xs tracking-widest transition-all hover:scale-[1.02] hover:shadow-2xl active:scale-95 group"
+            className="bg-background text-foreground hover:bg-muted rounded-xl h-12 px-8 shadow-xl shadow-black/20 font-black uppercase text-xs tracking-widest transition-all hover:scale-[1.02] hover:shadow-2xl active:scale-95 group"
           >
             <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" /> New Entry
           </Button>
@@ -260,7 +287,7 @@ export default function MyTimesheetsPage() {
           { label: 'Approved', value: approvedCount, icon: CheckCircle2, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', iconColor: 'text-emerald-600', ring: 'ring-emerald-100' },
           { label: 'Pending', value: pendingCount, icon: Clock, gradient: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', iconColor: 'text-amber-600', ring: 'ring-amber-100' },
           { label: 'Rejected', value: rejectedCount, icon: XCircle, gradient: 'from-red-500 to-rose-600', bg: 'bg-red-50', iconColor: 'text-red-600', ring: 'ring-red-100' },
-          { label: 'Total Hours', value: formatDuration(totalHours), icon: Timer, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50', iconColor: 'text-indigo-600', ring: 'ring-indigo-100' },
+          { label: 'Total Hours', value: formatDuration(totalHours), icon: Timer, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50', iconColor: 'text-primary', ring: 'ring-indigo-100' },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -268,19 +295,19 @@ export default function MyTimesheetsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: i * 0.08 }}
           >
-            <Card className="border-slate-200/80 rounded-2xl bg-white shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden relative">
+            <Card className="border-border/80 rounded-xl bg-background shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden relative">
               {/* Gradient accent line */}
               <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-80", stat.gradient)} />
               <div className="p-3 pt-4 md:p-5 md:pt-6">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{stat.label}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{stat.label}</span>
                   <div className={cn("p-2 rounded-xl ring-1 transition-transform group-hover:scale-110", stat.bg, stat.ring)}>
                     <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
                   </div>
                 </div>
-                <div className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">{stat.value}</div>
+                <div className="text-2xl md:text-3xl font-black text-foreground tracking-tight">{stat.value}</div>
                 {stat.label === 'Total Hours' && (
-                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{timesheets.length} entries logged</p>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{timesheets.length} entries logged</p>
                 )}
               </div>
             </Card>
@@ -294,20 +321,20 @@ export default function MyTimesheetsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.35 }}
       >
-        <Card className="border-slate-200/80 rounded-2xl bg-white shadow-sm overflow-hidden">
+        <Card className="border-border/80 rounded-xl bg-background shadow-sm overflow-hidden">
           <div className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-100">
-                <TrendingUp className="h-4 w-4 text-indigo-600" />
+                <TrendingUp className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <p className="text-xs font-black text-slate-800 uppercase tracking-wide">This Week</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mon – Today</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mon – Today</p>
               </div>
             </div>
             <div className="flex items-center gap-3 md:gap-4 flex-1 max-w-md">
               <div className="flex-1 relative">
-                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min((thisWeekHours / 48) * 100, 100)}%` }}
@@ -320,8 +347,8 @@ export default function MyTimesheetsPage() {
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-sm font-black text-slate-900">{formatDuration(thisWeekHours)}</span>
-                <span className="text-[10px] font-bold text-slate-400 ml-1">/ 48h</span>
+                <span className="text-sm font-black text-foreground">{formatDuration(thisWeekHours)}</span>
+                <span className="text-[10px] font-bold text-muted-foreground ml-1">/ 48h</span>
               </div>
             </div>
           </div>
@@ -334,17 +361,17 @@ export default function MyTimesheetsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, delay: 0.4 }}
       >
-        <Card className="border-slate-200/80 rounded-3xl shadow-sm overflow-hidden bg-white">
+        <Card className="border-border/80 rounded-xl shadow-sm overflow-hidden bg-background">
           {/* Toolbar: filter tabs + search */}
-          <CardHeader className="border-b border-slate-100 py-0 px-0">
+          <CardHeader className="border-b border-border py-0 px-0">
             <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 p-5 pb-0">
               {/* Search, Manager, and Project filter */}
               <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full xl:w-auto">
                 <div className="relative w-full sm:w-64 shrink-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by task, date..."
-                    className="pl-9 h-10 rounded-xl border-slate-200 bg-slate-50 text-sm focus-visible:ring-indigo-500/20 focus-visible:border-indigo-500"
+                    className="pl-9 h-10 rounded-xl border-border bg-muted/30 text-sm focus-visible:ring-ring/20 focus-visible:border-indigo-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -352,10 +379,10 @@ export default function MyTimesheetsPage() {
 
                 <div className="w-full sm:w-[160px] lg:w-[200px] shrink-0">
                   <Select value={activeManagerFilter} onValueChange={(v: any) => setActiveManagerFilter(v)}>
-                    <SelectTrigger className="w-full h-10 rounded-xl border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 text-left min-w-0 overflow-hidden">
+                    <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
                       <SelectValue placeholder="All Manager" className="truncate" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-100 shadow-xl max-h-[300px] w-[90vw] sm:w-[250px]">
+                    <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px] w-[90vw] sm:w-[250px]">
                       <SelectItem value="All Manager" className="text-xs font-medium">All Manager</SelectItem>
                       {uniqueManagers.map(m => (
                         <SelectItem key={m} value={m} className="text-xs font-medium">
@@ -368,10 +395,10 @@ export default function MyTimesheetsPage() {
 
                 <div className="w-full sm:w-[240px] lg:w-[280px] shrink-0">
                   <Select value={activeProjectFilter} onValueChange={(v: any) => setActiveProjectFilter(v)}>
-                    <SelectTrigger className="w-full h-10 rounded-xl border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 text-left min-w-0 overflow-hidden">
+                    <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
                       <SelectValue placeholder="All Projects" className="truncate" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-slate-100 shadow-xl max-h-[300px] w-[90vw] sm:w-[350px]">
+                    <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px] w-[90vw] sm:w-[350px]">
                       <SelectItem value="All Projects" className="text-xs font-medium">All Projects</SelectItem>
                       {uniqueProjects.map(p => (
                         <SelectItem key={p.id} value={p.id} className="text-xs font-medium" title={p.label}>
@@ -384,7 +411,7 @@ export default function MyTimesheetsPage() {
               </div>
 
               {/* Filter tabs */}
-              <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg overflow-x-auto scrollbar-hide border border-slate-200/50 shadow-sm shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg overflow-x-auto scrollbar-hide border border-border/50 shadow-sm shrink-0">
                 {filterTabs.map(tab => (
                   <button
                     key={tab.key}
@@ -393,7 +420,7 @@ export default function MyTimesheetsPage() {
                       "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap shrink-0",
                       activeFilter === tab.key
                         ? tab.activeColor
-                        : "text-slate-500 hover:text-slate-700 hover:bg-white/80"
+                        : "text-muted-foreground hover:text-muted-foreground hover:bg-white/80"
                     )}
                   >
                     {tab.label}
@@ -414,14 +441,14 @@ export default function MyTimesheetsPage() {
           <CardContent className="p-0 overflow-x-auto">
             <Table className="min-w-[700px]">
               <TableHeader>
-                <TableRow className="border-slate-100 bg-slate-50/40">
+                <TableRow className="bg-muted/50">
                   <TableHead className="w-12" />
-                  <TableHead className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Date</TableHead>
-                  <TableHead className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Attendance</TableHead>
-                  <TableHead className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tasks</TableHead>
-                  <TableHead className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Duration</TableHead>
-                  <TableHead className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</TableHead>
-                  <TableHead className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Actions</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Attendance</TableHead>
+                  <TableHead>Tasks</TableHead>
+                  <TableHead>Duration</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -433,12 +460,12 @@ export default function MyTimesheetsPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="flex flex-col items-center gap-4"
                       >
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-muted">
                           <FileText className="h-7 w-7 text-slate-300" />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-slate-400 uppercase tracking-wide">No timesheets found</p>
-                          <p className="text-xs text-slate-400 mt-1">
+                          <p className="text-sm font-black text-muted-foreground uppercase tracking-wide">No timesheets found</p>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {searchTerm || activeFilter !== 'all'
                               ? 'Try adjusting your search or filters'
                               : 'Click "New Entry" to log your first timesheet'}
@@ -447,7 +474,7 @@ export default function MyTimesheetsPage() {
                         {!searchTerm && activeFilter === 'all' && (
                           <Button
                             onClick={() => setIsAddDialogOpen(true)}
-                            className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl h-10 px-6 text-[10px] font-black uppercase tracking-widest"
+                            className="mt-2 bg-primary hover:bg-indigo-700 text-white rounded-xl h-10 px-6 text-[10px] font-black uppercase tracking-widest"
                           >
                             <Plus className="mr-1.5 h-3.5 w-3.5" /> Create Entry
                           </Button>
@@ -471,7 +498,7 @@ export default function MyTimesheetsPage() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.3, delay: dayIdx * 0.04 }}
                           className={cn(
-                            "group border-b border-slate-100/80 transition-all duration-200 cursor-pointer",
+                            "group border-b border-border/80 transition-all duration-200 cursor-pointer",
                             isExpanded
                               ? "bg-indigo-50/30 border-l-[3px] border-l-indigo-500"
                               : "hover:bg-slate-50/60 border-l-[3px] border-l-transparent hover:border-l-slate-300"
@@ -485,7 +512,7 @@ export default function MyTimesheetsPage() {
                             >
                               <ChevronDown className={cn(
                                 "h-4 w-4 transition-colors",
-                                isExpanded ? "text-indigo-600" : "text-slate-300 group-hover:text-slate-500"
+                                isExpanded ? "text-primary" : "text-slate-300 group-hover:text-muted-foreground"
                               )} />
                             </motion.div>
                           </TableCell>
@@ -496,7 +523,7 @@ export default function MyTimesheetsPage() {
                                 "flex h-10 w-10 items-center justify-center rounded-xl text-xs font-black shrink-0 transition-colors",
                                 isExpanded
                                   ? "bg-indigo-100 text-indigo-700"
-                                  : "bg-slate-100 text-slate-500 group-hover:bg-slate-200"
+                                  : "bg-muted text-muted-foreground group-hover:bg-slate-200"
                               )}>
                                 {new Date(d).getDate()}
                               </div>
@@ -504,7 +531,7 @@ export default function MyTimesheetsPage() {
                                 <span className="text-xs font-black text-slate-800">
                                   {new Date(d).toLocaleDateString('en-IN', { weekday: 'short', month: 'short' })}
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-400">
+                                <span className="text-[10px] font-bold text-muted-foreground">
                                   {new Date(d).toLocaleDateString('en-IN', { year: 'numeric' })}
                                 </span>
                               </div>
@@ -532,12 +559,12 @@ export default function MyTimesheetsPage() {
                                   </div>
                                 ))}
                                 {dayTasks.length > 3 && (
-                                  <div className="h-5 w-5 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-[7px] font-black text-slate-500">
+                                  <div className="h-5 w-5 rounded-full ring-2 ring-white bg-slate-200 flex items-center justify-center text-[7px] font-black text-muted-foreground">
                                     +{dayTasks.length - 3}
                                   </div>
                                 )}
                               </div>
-                              <span className="text-[10px] font-bold text-slate-500">
+                              <span className="text-[10px] font-bold text-muted-foreground">
                                 {dayTasks.length} {dayTasks.length === 1 ? 'task' : 'tasks'}
                               </span>
                             </div>
@@ -545,13 +572,13 @@ export default function MyTimesheetsPage() {
 
                           <TableCell className="px-6 py-5">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-black text-slate-900">{formatDuration(totalHoursOfDay)}</span>
+                              <span className="text-sm font-black text-foreground">{formatDuration(totalHoursOfDay)}</span>
                               {totalHoursOfDay > 8 && (
                                 <Badge className="bg-amber-100 text-amber-700 border-none font-black text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded-md">OT</Badge>
                               )}
                             </div>
                             {/* Mini progress bar */}
-                            <div className="h-1 w-20 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+                            <div className="h-1 w-20 bg-muted rounded-full mt-1.5 overflow-hidden">
                               <div
                                 className={cn(
                                   "h-full rounded-full transition-all",
@@ -571,20 +598,28 @@ export default function MyTimesheetsPage() {
                             </Badge>
                           </TableCell>
 
-                          <TableCell className="px-6 py-5" onClick={(e) => e.stopPropagation()}>
+                          <TableCell className="text-right w-[50px]" onClick={(e) => e.stopPropagation()}>
                             {status === 'pending' ? (
-                              <button
-                                onClick={() => {
-                                  setEditDate(d);
-                                  setIsAddDialogOpen(true);
-                                }}
-                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-500 transition-all duration-200 border border-slate-200 hover:border-indigo-200 hover:shadow-sm group/edit"
-                              >
-                                <Pencil className="h-3 w-3 group-hover/edit:scale-110 transition-transform" />
-                                <span className="text-[10px] font-black uppercase tracking-wider">Edit</span>
-                              </button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
+                                    <span className="sr-only">Open menu</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setEditDate(d);
+                                      setIsAddDialogOpen(true);
+                                    }}
+                                    className="cursor-pointer"
+                                  >
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             ) : (
-                              <span className="text-[10px] font-medium text-slate-200">—</span>
+                              <span className="text-[10px] font-medium text-muted-foreground">—</span>
                             )}
                           </TableCell>
                         </motion.tr>
@@ -606,9 +641,9 @@ export default function MyTimesheetsPage() {
                                   transition={{ duration: 0.25 }}
                                   className="px-6 py-5 bg-gradient-to-b from-slate-50/80 to-white"
                                 >
-                                  <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                                  <div className="bg-background rounded-xl border border-border/80 shadow-sm overflow-hidden">
                                     {/* Details header */}
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-3 md:px-5 bg-slate-50/60 border-b border-slate-100">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-3 md:px-5 bg-slate-50/60 border-b border-border">
                                       <div className="flex items-center gap-2">
                                         <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
                                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
@@ -618,10 +653,10 @@ export default function MyTimesheetsPage() {
                                           <Popover>
                                             <PopoverTrigger className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors focus:outline-none ring-1 ring-indigo-100">
                                               <MessageSquare className="h-3 w-3 text-indigo-500" />
-                                              <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider">View Feedback</span>
+                                              <span className="text-[9px] font-black text-primary uppercase tracking-wider">View Feedback</span>
                                             </PopoverTrigger>
                                             <PopoverContent
-                                              className="w-80 p-0 rounded-2xl bg-white border border-slate-100 shadow-2xl overflow-hidden"
+                                              className="w-80 p-0 rounded-xl bg-background border border-border shadow-2xl overflow-hidden"
                                               align="start"
                                               side="bottom"
                                             >
@@ -630,7 +665,7 @@ export default function MyTimesheetsPage() {
                                                 <span className="text-[10px] font-black uppercase tracking-widest">Admin Feedback</span>
                                               </div>
                                               <div className="px-4 py-3 max-h-[200px] overflow-y-auto">
-                                                <p className="text-xs font-medium text-slate-700 leading-relaxed break-words whitespace-pre-wrap">
+                                                <p className="text-xs font-medium text-muted-foreground leading-relaxed break-words whitespace-pre-wrap">
                                                   {firstTask.feedback}
                                                 </p>
                                               </div>
@@ -667,10 +702,10 @@ export default function MyTimesheetsPage() {
                                           {/* Task number indicator */}
                                           <div className={cn(
                                             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-black mt-0.5",
-                                            taskIdx === 0 ? "bg-indigo-100 text-indigo-600" :
+                                            taskIdx === 0 ? "bg-indigo-100 text-primary" :
                                             taskIdx === 1 ? "bg-purple-100 text-purple-600" :
                                             taskIdx === 2 ? "bg-pink-100 text-pink-600" :
-                                            "bg-slate-100 text-slate-500"
+                                            "bg-muted text-muted-foreground"
                                           )}>
                                             #{taskIdx + 1}
                                           </div>
@@ -680,16 +715,14 @@ export default function MyTimesheetsPage() {
                                             <div className="flex flex-col sm:flex-row items-start justify-between gap-2 sm:gap-4 w-full">
                                               <div className="min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                  <span className="text-xs font-black text-slate-900">{task.task_title || '—'}</span>
-                                                  <Badge className="bg-slate-100 text-slate-500 border-none text-[8px] font-bold uppercase tracking-widest px-1.5 py-0 rounded">
+                                                  <span className="text-xs font-black text-foreground">{task.task_title || '—'}</span>
+                                                  <Badge className="bg-muted text-muted-foreground border-none text-[8px] font-bold uppercase tracking-widest px-1.5 py-0 rounded">
                                                     {task.project_name || task.category || 'Other Work'}
                                                   </Badge>
                                                 </div>
-                                                <p className="text-[11px] text-slate-500 mt-1 max-w-lg break-words whitespace-pre-wrap leading-relaxed line-clamp-2">
-                                                  {task.description}
-                                                </p>
+                                                  <ExpandableText text={task.description} />
                                               </div>
-                                              <span className="text-xs font-black text-slate-800 shrink-0 bg-slate-50 px-2.5 py-1 rounded-lg ring-1 ring-slate-100">
+                                              <span className="text-xs font-black text-slate-800 shrink-0 bg-muted/30 px-2.5 py-1 rounded-lg ring-1 ring-slate-100">
                                                 {formatDuration(task.hours || 0)}
                                               </span>
                                             </div>
@@ -699,7 +732,7 @@ export default function MyTimesheetsPage() {
                                               {task.attachment_path && (
                                                 <button
                                                   onClick={() => window.open(`/employee/timesheets/view-doc?id=${task.id}`, '_blank')}
-                                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors hover:underline"
+                                                  className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:text-indigo-800 transition-colors hover:underline"
                                                 >
                                                   <Paperclip className="h-3 w-3" />
                                                   <span className="max-w-[100px] truncate">{task.attachment_name || 'Attachment'}</span>
@@ -726,8 +759,8 @@ export default function MyTimesheetsPage() {
 
           {/* Pagination footer */}
           {totalItems > itemsPerPage && (
-            <div className="p-5 border-t border-slate-100 bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="text-sm font-medium text-slate-500 text-center md:text-left">
+            <div className="p-5 border-t border-border bg-slate-50/30 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="text-sm font-medium text-muted-foreground text-center md:text-left">
                 {totalItems > 0 && (
                   <>
                     Showing page {currentPage} of {totalPages} · {totalItems} total entries
@@ -739,7 +772,7 @@ export default function MyTimesheetsPage() {
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                   variant="outline"
-                  className="border-slate-200 text-slate-500 rounded-xl h-9 px-4 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-slate-50 active:scale-95 disabled:opacity-50"
+                  className="border-border text-muted-foreground rounded-xl h-9 px-4 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-muted active:scale-95 disabled:opacity-50"
                 >
                   Previous
                 </Button>
@@ -760,7 +793,7 @@ export default function MyTimesheetsPage() {
                     }
                     return pages.map((page, idx) => (
                       page === '...' ? (
-                        <span key={`ellipsis-${idx}`} className="px-2 text-slate-400 font-bold tracking-widest">...</span>
+                        <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground font-bold tracking-widest">...</span>
                       ) : (
                         <Button
                           key={page}
@@ -769,8 +802,8 @@ export default function MyTimesheetsPage() {
                           className={cn(
                             "h-8 w-8 p-0 rounded-lg text-xs font-bold transition-all shrink-0",
                             currentPage === page 
-                              ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 hover:text-white" 
-                              : "text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                              ? "bg-primary text-white shadow-md shadow-indigo-600/20 hover:bg-indigo-700 hover:text-white" 
+                              : "text-muted-foreground hover:bg-slate-200 hover:text-foreground"
                           )}
                         >
                           {page}

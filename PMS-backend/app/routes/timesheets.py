@@ -24,8 +24,31 @@ async def upload_timesheet_attachment(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user)
 ):
-    # Upload to R2
-    file_extension = os.path.splitext(file.filename)[1]
+    ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".csv", ".xlsx", ".docx", ".zip"}
+    ALLOWED_MIMES = {
+        "application/pdf", 
+        "image/jpeg", 
+        "image/png", 
+        "text/csv", 
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+        "application/zip",
+        "application/x-zip-compressed"
+    }
+    
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    if file_extension not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Unsupported file extension. Allowed: pdf, jpg, jpeg, png, csv, xlsx, docx, zip")
+        
+    if file.content_type not in ALLOWED_MIMES:
+        raise HTTPException(status_code=400, detail="Unsupported MIME type")
+        
+    file.file.seek(0, 2)
+    file_size = file.file.tell()
+    file.file.seek(0)
+    if file_size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File size exceeds 10MB limit")
+
     unique_key = f"timesheets/{current_user.id}/{uuid.uuid4()}{file_extension}"
     storage.upload_file(file.file, unique_key, content_type=file.content_type)
     return {"file_path": unique_key, "filename": file.filename}
@@ -212,6 +235,61 @@ def get_my_timesheets(
         "page": page,
         "limit": limit,
         "counts": counts
+    }
+
+@router.get("/dashboard-stats")
+def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_superadmin)
+):
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+
+    # Basic counts
+    total_count = db.query(Timesheet).count()
+    pending_count = db.query(Timesheet).filter(Timesheet.status == 'pending').count()
+    approved_count = db.query(Timesheet).filter(Timesheet.status == 'approved').count()
+    rejected_count = db.query(Timesheet).filter(Timesheet.status == 'rejected').count()
+
+    now = datetime.utcnow()
+    # last 7 days data
+    last_7_days_data = []
+    for i in range(6, -1, -1):
+        d = now - timedelta(days=i)
+        day_name = d.strftime('%a')
+        
+        from sqlalchemy import cast, Date
+        hours = db.query(func.sum(Timesheet.hours)).filter(
+            cast(Timesheet.date, Date) == d.date(),
+            Timesheet.status == 'approved'
+        ).scalar() or 0.0
+        
+        last_7_days_data.append({"name": day_name, "hours": hours})
+        
+    # recent timesheets
+    recent = db.query(Timesheet).options(
+        joinedload(Timesheet.user)
+    ).order_by(Timesheet.updated_at.desc()).limit(10).all()
+    
+    recent_list = []
+    for ts in recent:
+        recent_list.append({
+            "id": ts.id,
+            "user_name": ts.user.full_name if ts.user else "Unknown",
+            "task_title": ts.task_title,
+            "description": ts.description,
+            "hours": ts.hours,
+            "status": ts.status,
+            "updated_at": ts.updated_at.isoformat() if ts.updated_at else None
+        })
+
+    return {
+        "totalCount": total_count,
+        "pendingCount": pending_count,
+        "approvedCount": approved_count,
+        "rejectedCount": rejected_count,
+        "last7DaysData": last_7_days_data,
+        "recentTimesheets": recent_list
     }
 
 @router.get("/all", response_model=List[TimesheetResponse])
