@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
@@ -546,194 +546,15 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             <div className="space-y-4">
               <AnimatePresence>
                 {entries.map((entry, idx) => (
-                  <motion.div
-                    key={entry.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <Card className="group relative rounded-[24px] border-border/60 shadow-xl shadow-foreground/5 bg-card overflow-hidden transition-all hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-100">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="p-4 sm:p-6 space-y-5 relative z-10">
-                        {/* Row 1: Project + Task Status + Duration + Delete */}
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
-                          {/* Project - wider */}
-                          <div className="sm:col-span-5 space-y-1.5 min-w-0">
-                            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Project <span className="text-red-400">*</span></Label>
-                            <Select value={entry.projectId} onValueChange={(v) => v && updateEntry(entry.id, 'projectId', v)}>
-                              <SelectTrigger className="h-10 rounded-lg border-border text-xs font-bold w-full min-w-0 overflow-hidden">
-                                <SelectValue placeholder="Select Project" className="truncate" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl max-w-[400px]">
-                                {projects.map(p => (
-                                  <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
-                                    {p.code ? `[${p.code}] — ${p.name}` : p.name}
-                                  </SelectItem>
-                                ))}
-                                <SelectItem value="other" className="text-xs font-bold py-2.5">Other Work</SelectItem>
-                              </SelectContent>
-                            </Select>
-
-                            {/* Other Work sub-selects */}
-                            {entry.projectId === 'other' && (
-                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col sm:flex-row gap-2 mt-2">
-                                <Select value={entry.categoryId} onValueChange={(v) => v && updateEntry(entry.id, 'categoryId', v)}>
-                                  <SelectTrigger className="h-9 rounded-lg border-border text-[10px] font-bold flex-1">
-                                    <SelectValue placeholder="Category" />
-                                  </SelectTrigger>
-                                  <SelectContent className="rounded-xl">
-                                    {otherWorkCategories.map(c => (
-                                      <SelectItem key={c.id} value={c.id} className="text-[10px] font-bold">{c.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                {entry.categoryId && (
-                                  <Select value={entry.subcategory} onValueChange={(v) => v && updateEntry(entry.id, 'subcategory', v)}>
-                                    <SelectTrigger className="h-9 rounded-lg border-border text-[10px] font-bold flex-1">
-                                      <SelectValue placeholder="Sub-category" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                      {otherWorkCategories.find(c => c.id === entry.categoryId)?.sub.map(s => (
-                                        <SelectItem key={s} value={s} className="text-[10px] font-bold">{s}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              </motion.div>
-                            )}
-                          </div>
-
-                          {/* Duration */}
-                          <div className="sm:col-span-3 space-y-1.5">
-                            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Duration</Label>
-                            <div className="flex items-center gap-1.5">
-                              <div className="relative flex-1">
-                                <Input 
-                                  type="number" min="0" max="23"
-                                  value={entry.entryHours === 0 ? '' : entry.entryHours}
-                                  onChange={(e) => updateEntry(entry.id, 'entryHours', Math.min(23, Math.max(0, parseInt(e.target.value) || 0)))}
-                                  className="h-10 rounded-lg border-border text-center font-black pr-6 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                  placeholder="0"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">h</span>
-                              </div>
-                              <span className="text-muted-foreground/50 font-bold text-lg">:</span>
-                              <div className="relative flex-1">
-                                <Input 
-                                  type="number" min="0" max="59"
-                                  value={entry.entryMinutes === 0 ? '' : entry.entryMinutes}
-                                  onChange={(e) => updateEntry(entry.id, 'entryMinutes', Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                                  className="h-10 rounded-lg border-border text-center font-black pr-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                  placeholder="0"
-                                />
-                                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">min</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Status */}
-                          <div className="sm:col-span-3 space-y-1.5">
-                            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Status</Label>
-                            <Select value={entry.status} onValueChange={(v) => v && updateEntry(entry.id, 'status', v)}>
-                              <SelectTrigger className="h-10 rounded-lg border-border text-xs font-bold">
-                                <SelectValue placeholder="Status" />
-                              </SelectTrigger>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Pending" className="text-xs font-bold">Pending</SelectItem>
-                                <SelectItem value="Completed" className="text-xs font-bold">Completed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* Delete */}
-                          <div className="sm:col-span-1 flex items-end justify-end pb-0.5">
-                            <Button  
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeRow(entry.id)}
-                              className="h-10 w-10 text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                              disabled={entries.length === 1}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-
-                        {/* Row 2: Task Name */}
-                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Name <span className="text-red-400">*</span></Label>
-                          <Input 
-                            value={entry.taskTitle}
-                            onChange={(e) => updateEntry(entry.id, 'taskTitle', e.target.value)}
-                            placeholder="e.g. API Integration, UI Design, Bug Fix..."
-                            className={cn(
-                              "h-10 rounded-xl border-border text-sm font-medium focus:border-indigo-400 transition-all",
-                              entry.taskTitle.trim() && !/^[a-zA-Z\s\-\.]+$/.test(entry.taskTitle.trim()) && "border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50/10"
-                            )}
-                          />
-                          {entry.taskTitle.trim() && !/^[a-zA-Z\s\-\.]+$/.test(entry.taskTitle.trim()) && (
-                            <p className="text-[10px] font-semibold text-red-500 mt-1 pl-1">
-                              Task name must only contain letters and spaces (no numbers or special characters).
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Row 3: Task Description & Attachment */}
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
-                          <div className="sm:col-span-8 space-y-1.5">
-                            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Description <span className="text-red-400">*</span></Label>
-                            <textarea 
-                              value={entry.description}
-                              onChange={(e) => updateEntry(entry.id, 'description', e.target.value)}
-                              placeholder="Describe what you worked on in detail..."
-                              className="w-full h-full min-h-[90px] bg-muted border border-border rounded-xl p-4 text-sm font-medium outline-none focus:border-indigo-400 focus:bg-card transition-all resize-none"
-                            />
-                          </div>
-                          
-                          <div className="sm:col-span-4 space-y-1.5">
-                             <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Attachment (Optional)</Label>
-                             <div className="mt-1 h-[90px]">
-                               {!entry.attachmentPath ? (
-                                <div className="relative border border-dashed border-border hover:border-indigo-400 rounded-xl px-4 py-2 h-full flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-muted hover:bg-indigo-50/30 group">
-                                  <input 
-                                    type="file" 
-                                    onChange={(e) => handleTaskFileUpload(e, entry.id)} 
-                                    className="absolute inset-0 opacity-0 cursor-pointer"
-                                    disabled={entry.isUploading}
-                                  />
-                                  {entry.isUploading ? (
-                                    <>
-                                      <Clock className="h-4 w-4 text-primary animate-spin mb-1" />
-                                      <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Uploading...</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors mb-1" />
-                                      <span className="text-[9px] font-black text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">Upload File</span>
-                                    </>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="flex flex-col items-center justify-center h-full bg-muted border border-border rounded-xl px-3 py-2 text-center relative group">
-                                  <span className="text-[10px] font-bold text-muted-foreground w-full truncate mb-1" title={entry.attachmentName || ''}>{entry.attachmentName}</span>
-                                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border-emerald-100">Uploaded</Badge>
-                                  <Button 
-                                    onClick={() => updateEntry(entry.id, 'attachmentPath', null)}
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              )}
-                             </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </motion.div>
+                  <TimesheetEntryRow 
+                    key={entry.id} 
+                    entry={entry} 
+                    projects={projects} 
+                    updateEntry={updateEntry} 
+                    removeRow={removeRow} 
+                    handleTaskFileUpload={handleTaskFileUpload} 
+                    entriesCount={entries.length} 
+                  />
                 ))}
               </AnimatePresence>
             </div>
@@ -792,3 +613,194 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
     </Dialog>
   );
 }
+
+const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow, handleTaskFileUpload, entriesCount }: {
+  entry: any;
+  projects: any[];
+  updateEntry: (id: string, field: any, value: any) => void;
+  removeRow: (id: string) => void;
+  handleTaskFileUpload: (e: React.ChangeEvent<HTMLInputElement>, entryId: string) => void;
+  entriesCount: number;
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+    >
+      <Card className="group relative rounded-[24px] border-border/60 shadow-xl shadow-foreground/5 bg-card overflow-hidden transition-all hover:shadow-2xl hover:shadow-indigo-500/10 hover:border-indigo-100">
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        <div className="p-4 sm:p-6 space-y-5 relative z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+            <div className="sm:col-span-5 space-y-1.5 min-w-0">
+              <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Project <span className="text-red-400">*</span></Label>
+              <Select value={entry.projectId} onValueChange={(v) => v && updateEntry(entry.id, 'projectId', v)}>
+                <SelectTrigger className="h-10 rounded-lg border-border text-xs font-bold w-full min-w-0 overflow-hidden">
+                  <SelectValue placeholder="Select Project" className="truncate" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl max-w-[400px]">
+                  {projects.map((p: any) => (
+                    <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
+                      {p.code ? `[${p.code}] — ${p.name}` : p.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="other" className="text-xs font-bold py-2.5">Other Work</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {entry.projectId === 'other' && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col sm:flex-row gap-2 mt-2">
+                  <Select value={entry.categoryId} onValueChange={(v) => v && updateEntry(entry.id, 'categoryId', v)}>
+                    <SelectTrigger className="h-9 rounded-lg border-border text-[10px] font-bold flex-1">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {otherWorkCategories.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id} className="text-[10px] font-bold">{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {entry.categoryId && (
+                    <Select value={entry.subcategory} onValueChange={(v) => v && updateEntry(entry.id, 'subcategory', v)}>
+                      <SelectTrigger className="h-9 rounded-lg border-border text-[10px] font-bold flex-1">
+                        <SelectValue placeholder="Sub-category" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        {otherWorkCategories.find((c: any) => c.id === entry.categoryId)?.sub.map((s: any) => (
+                          <SelectItem key={s} value={s} className="text-[10px] font-bold">{s}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </motion.div>
+              )}
+            </div>
+
+            <div className="sm:col-span-3 space-y-1.5">
+              <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Duration</Label>
+              <div className="flex items-center gap-1.5">
+                <div className="relative flex-1">
+                  <Input 
+                    type="number" min="0" max="23"
+                    value={entry.entryHours === 0 ? '' : entry.entryHours}
+                    onChange={(e) => updateEntry(entry.id, 'entryHours', Math.min(23, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className="h-10 rounded-lg border-border text-center font-black pr-6 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    placeholder="0"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">h</span>
+                </div>
+                <span className="text-muted-foreground/50 font-bold text-lg">:</span>
+                <div className="relative flex-1">
+                  <Input 
+                    type="number" min="0" max="59"
+                    value={entry.entryMinutes === 0 ? '' : entry.entryMinutes}
+                    onChange={(e) => updateEntry(entry.id, 'entryMinutes', Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+                    className="h-10 rounded-lg border-border text-center font-black pr-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                    placeholder="0"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">min</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="sm:col-span-3 space-y-1.5">
+              <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Status</Label>
+              <Select value={entry.status} onValueChange={(v) => v && updateEntry(entry.id, 'status', v)}>
+                <SelectTrigger className="h-10 rounded-lg border-border text-xs font-bold">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="Pending" className="text-xs font-bold">Pending</SelectItem>
+                  <SelectItem value="Completed" className="text-xs font-bold">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="sm:col-span-1 flex items-end justify-end pb-0.5">
+              <Button  
+                variant="ghost" 
+                size="icon" 
+                onClick={() => removeRow(entry.id)}
+                className="h-10 w-10 text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                disabled={entriesCount === 1}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Name <span className="text-red-400">*</span></Label>
+            <Input 
+              value={entry.taskTitle}
+              onChange={(e) => updateEntry(entry.id, 'taskTitle', e.target.value)}
+              placeholder="e.g. API Integration, UI Design, Bug Fix..."
+              className={cn(
+                "h-10 rounded-xl border-border text-sm font-medium focus:border-indigo-400 transition-all",
+                entry.taskTitle.trim() && !/^[a-zA-Z\s\-\.]+$/.test(entry.taskTitle.trim()) && "border-red-500 focus:border-red-500 focus:ring-red-500 bg-red-50/10"
+              )}
+            />
+            {entry.taskTitle.trim() && !/^[a-zA-Z\s\-\.]+$/.test(entry.taskTitle.trim()) && (
+              <p className="text-[10px] font-semibold text-red-500 mt-1 pl-1">
+                Task name must only contain letters and spaces (no numbers or special characters).
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
+            <div className="sm:col-span-8 space-y-1.5">
+              <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Description <span className="text-red-400">*</span></Label>
+              <textarea 
+                value={entry.description}
+                onChange={(e) => updateEntry(entry.id, 'description', e.target.value)}
+                placeholder="Describe what you worked on in detail..."
+                className="w-full h-full min-h-[90px] bg-muted border border-border rounded-xl p-4 text-sm font-medium outline-none focus:border-indigo-400 focus:bg-card transition-all resize-none"
+              />
+            </div>
+            
+            <div className="sm:col-span-4 space-y-1.5">
+               <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Attachment (Optional)</Label>
+               <div className="mt-1 h-[90px]">
+                 {!entry.attachmentPath ? (
+                  <div className="relative border border-dashed border-border hover:border-indigo-400 rounded-xl px-4 py-2 h-full flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-muted hover:bg-indigo-50/30 group">
+                    <input 
+                      type="file" 
+                      onChange={(e) => handleTaskFileUpload(e, entry.id)} 
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      disabled={entry.isUploading}
+                    />
+                    {entry.isUploading ? (
+                      <>
+                        <Clock className="h-4 w-4 text-primary animate-spin mb-1" />
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors mb-1" />
+                        <span className="text-[9px] font-black text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">Upload File</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full bg-muted border border-border rounded-xl px-3 py-2 text-center relative group">
+                    <span className="text-[10px] font-bold text-muted-foreground w-full truncate mb-1" title={entry.attachmentName || ''}>{entry.attachmentName}</span>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border-emerald-100">Uploaded</Badge>
+                    <Button 
+                      onClick={() => updateEntry(entry.id, 'attachmentPath', null)}
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+               </div>
+            </div>
+          </div>
+        </div>
+      </Card>
+    </motion.div>
+  );
+});

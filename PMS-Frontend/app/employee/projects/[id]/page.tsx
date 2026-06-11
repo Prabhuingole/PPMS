@@ -470,7 +470,7 @@ export default function ProjectDetailsPage() {
                      <div className="h-16 w-16 bg-background rounded-xl shadow-sm border border-border flex items-center justify-center mb-4">
                         <FileText className="h-8 w-8 text-slate-300" />
                      </div>
-                     <span className="text-sm font-black text-foreground uppercase tracking-tight">No Artifacts Available</span>
+                     <span className="text-sm font-black text-foreground uppercase tracking-tight">No Documents Available</span>
                      <span className="text-xs font-medium text-muted-foreground mt-1">Documentation has not been uploaded to this stream yet.</span>
                   </div>
                ) : (
@@ -529,7 +529,7 @@ export default function ProjectDetailsPage() {
                  isOpen={docToDelete !== null}
                  onOpenChange={(open) => !open && setDocToDelete(null)}
                  onConfirm={handleDeleteDocument}
-                 title="Delete Artifact?"
+                 title="Delete Document?"
                  itemName="this document"
                  isDeleting={isDeleting}
                />

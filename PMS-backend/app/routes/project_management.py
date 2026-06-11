@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload, noload
 from typing import List, Optional
 import math
 
@@ -104,13 +104,21 @@ def get_projects(
     search: Optional[str] = None,
     status: Optional[str] = None,
     manager_id: Optional[int] = None,
+    dropdown: bool = Query(False, description="If true, skip eager loads for lightweight dropdowns"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Project).options(
-        joinedload(Project.reporting_manager),
-        selectinload(Project.members)
-    )
+    query = db.query(Project)
+    if not dropdown:
+        query = query.options(
+            joinedload(Project.reporting_manager),
+            selectinload(Project.members)
+        )
+    else:
+        query = query.options(
+            noload(Project.reporting_manager),
+            noload(Project.members)
+        )
 
     if current_user.role not in ["superadmin", "admin"]:
         query = query.filter(Project.members.any(User.id == current_user.id))
@@ -136,7 +144,7 @@ def get_projects(
     from sqlalchemy import func
     from app.models.timesheet import Timesheet
 
-    if items:
+    if items and not dropdown:
         project_ids = [item.id for item in items]
         
         # Aggregate timesheets for all fetched projects

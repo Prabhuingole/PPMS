@@ -155,8 +155,8 @@ export default function ProjectDetailsPage() {
       const [projRes, docRes, mgrRes, empRes, userTasksRes] = await Promise.all([
         api.get(`/projects/${projectId}`),
         api.get(`/documents/project/${projectId}`),
-        api.get(`/reporting-managers/?status_filter=active&limit=1000`),
-        api.get(`/employees/?status_filter=true&limit=1000`),
+        api.get(`/reporting-managers/?status_filter=active`),
+        api.get(`/employees/?status_filter=true`),
         api.get(`/notes/admin/projects/${projectId}/users`).catch(() => ({ data: [] }))
       ]);
 
@@ -367,14 +367,14 @@ export default function ProjectDetailsPage() {
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Allocated Hours</span>
                   <span className="text-2xl font-black text-foreground break-all">
                     {Number((project.total_hours || 0).toFixed(2))}
-                    <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
+                    <span className="text-sm font-bold opacity-70 ml-0.5">hr</span>
                   </span>
                 </div>
                 <div className="p-4 rounded-xl bg-muted/30 border border-border flex flex-col overflow-hidden">
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Consumed Hours</span>
                   <span className="text-2xl font-black text-foreground break-all">
                     {Number((project.total_hours_worked || 0).toFixed(2))}
-                    <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
+                    <span className="text-sm font-bold opacity-70 ml-0.5">hr</span>
                   </span>
                 </div>
                 <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 flex flex-col relative overflow-hidden">
@@ -385,7 +385,7 @@ export default function ProjectDetailsPage() {
                   <div className="flex items-end gap-1 relative z-10">
                     <span className={`text-2xl font-black break-all ${(project.total_hours_remaining ?? 0) < 0 ? "text-red-600" : "text-emerald-700"}`}>
                       {Number((((project.total_hours_remaining ?? 0) < 0) ? (project.total_hours_remaining || 0) * -1 : (project.total_hours_remaining || 0)).toFixed(2))}
-                      <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
+                      <span className="text-sm font-bold opacity-70 ml-0.5">hr</span>
                     </span>
                     {(project.total_hours_remaining ?? 0) < 0 && <span className="text-[10px] font-black uppercase text-red-600 mb-1">Over</span>}
                   </div>
@@ -700,7 +700,7 @@ export default function ProjectDetailsPage() {
           isOpen={docToDelete !== null}
           onOpenChange={(open) => !open && setDocToDelete(null)}
           onConfirm={handleDeleteDocument}
-          title="Delete Artifact?"
+          title="Delete Document?"
           itemName="this document"
           isDeleting={isDeleting}
         />

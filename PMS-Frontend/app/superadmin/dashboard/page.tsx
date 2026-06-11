@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Users, 
@@ -41,64 +41,38 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   
+  const renderCount = useRef(0);
+  renderCount.current++;
+  
   const [employees, setEmployees] = useState(0);
-  const [isEmployeesLoading, setIsEmployeesLoading] = useState(true);
-  const [isEmployeesError, setIsEmployeesError] = useState(false);
-
   const [projects, setProjects] = useState<any[]>([]);
-  const [isProjectsLoading, setIsProjectsLoading] = useState(true);
-  const [isProjectsError, setIsProjectsError] = useState(false);
-
   const [stats, setStats] = useState<any>(null);
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
-  const [isStatsError, setIsStatsError] = useState(false);
 
-  const fetchEmployees = async () => {
-    setIsEmployeesLoading(true);
-    setIsEmployeesError(false);
-    try {
-      const res = await api.get('/employees/?limit=1000');
-      setEmployees(res.data?.total || res.data?.items?.length || 0);
-    } catch (err) {
-      setIsEmployeesError(true);
-      handleApiError(err, 'Failed to load employees count');
-    } finally {
-      setIsEmployeesLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
-  const fetchProjects = async () => {
-    setIsProjectsLoading(true);
-    setIsProjectsError(false);
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    setIsError(false);
     try {
-      const res = await api.get('/projects/?limit=1000');
-      setProjects(res.data?.items || res.data || []);
+      const [empRes, projRes, statsRes] = await Promise.all([
+        api.get('/employees/?limit=1'),
+        api.get('/projects/?limit=5'),
+        api.get('/timesheets/dashboard-stats')
+      ]);
+      setEmployees(empRes.data?.total || empRes.data?.items?.length || 0);
+      setProjects(projRes.data?.items || projRes.data || []);
+      setStats(statsRes.data || null);
     } catch (err) {
-      setIsProjectsError(true);
-      handleApiError(err, 'Failed to load projects');
+      setIsError(true);
+      handleApiError(err, 'Failed to load dashboard data');
     } finally {
-      setIsProjectsLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    setIsStatsLoading(true);
-    setIsStatsError(false);
-    try {
-      const res = await api.get('/timesheets/dashboard-stats');
-      setStats(res.data || null);
-    } catch (err) {
-      setIsStatsError(true);
-      handleApiError(err, 'Failed to load timesheet stats');
-    } finally {
-      setIsStatsLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEmployees();
-    fetchProjects();
-    fetchStats();
+    fetchDashboardData();
   }, []);
 
   const formatDuration = (decimal: number) => {
@@ -114,7 +88,9 @@ export default function DashboardPage() {
   const totalCount = stats?.totalCount || 0;
 
   // Weekly trend data
-  const last7DaysData: any[] = stats?.last7DaysData?.slice().reverse() || [];
+  const last7DaysData = useMemo(() => {
+    return stats?.last7DaysData?.slice().reverse() || [];
+  }, [stats?.last7DaysData]);
 
   // Recent timesheets
   const recentTimesheets: any[] = stats?.recentTimesheets || [];
@@ -146,6 +122,10 @@ export default function DashboardPage() {
   }, []);
 
   return (
+    <>
+      <div id="dashboard-render-count" className="fixed top-0 right-0 z-[9999] bg-red-600 text-white px-3 py-1 font-mono text-xs font-bold rounded-bl-lg shadow-lg">
+        Dashboard Renders: {renderCount.current}
+      </div>
     <AnalyticsLayout
       title="Dashboard"
       description="Monitor workspace activity, approvals, attendance and operational metrics."
@@ -161,12 +141,12 @@ export default function DashboardPage() {
         <>
           <KPIStatCard
             title="Total Timesheets"
-            value={isStatsLoading ? 0 : totalCount}
+            value={isLoading ? 0 : totalCount}
             icon={Layers}
           />
           <KPIStatCard
             title="Approved"
-            value={isStatsLoading ? 0 : approvedCount}
+            value={isLoading ? 0 : approvedCount}
             icon={CheckCircle2}
             trend={{
               value: totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0,
@@ -176,7 +156,7 @@ export default function DashboardPage() {
           />
           <KPIStatCard
             title="Pending"
-            value={isStatsLoading ? 0 : pendingCount}
+            value={isLoading ? 0 : pendingCount}
             icon={Clock}
             trend={{
               value: totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0,
@@ -186,7 +166,7 @@ export default function DashboardPage() {
           />
           <KPIStatCard
             title="Rejected"
-            value={isStatsLoading ? 0 : rejectedCount}
+            value={isLoading ? 0 : rejectedCount}
             icon={XCircle}
             trend={{
               value: totalCount > 0 ? Math.round((rejectedCount / totalCount) * 100) : 0,
@@ -212,14 +192,14 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="flex-1 p-5 h-[320px]">
-                {isStatsLoading ? (
+                {isLoading ? (
                   <div className="w-full h-full flex items-end gap-2 pb-4">
                     {[1,2,3,4,5,6,7].map(i => (
                       <Skeleton key={i} className="w-full rounded-t-sm" style={{ height: `${Math.random() * 80 + 20}%` }} />
                     ))}
                   </div>
-                ) : isStatsError ? (
-                  <ErrorState title="Failed to load trend" description="We couldn't load the timesheet trends." onRetry={fetchStats} className="py-4" />
+                ) : isError ? (
+                  <ErrorState title="Failed to load trend" description="We couldn't load the timesheet trends." onRetry={fetchDashboardData} className="py-4" />
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={last7DaysData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -269,7 +249,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex-1 p-3">
-                {isStatsLoading ? (
+                {isLoading ? (
                   <div className="space-y-3">
                     {[1,2,3,4,5].map(i => (
                       <div key={i} className="flex items-center gap-3 py-2">
@@ -282,8 +262,8 @@ export default function DashboardPage() {
                       </div>
                     ))}
                   </div>
-                ) : isStatsError ? (
-                  <ErrorState title="Failed to load activity" description="Unable to fetch recent timesheet activity." onRetry={fetchStats} className="py-8" />
+                ) : isError ? (
+                  <ErrorState title="Failed to load activity" description="Unable to fetch recent timesheet activity." onRetry={fetchDashboardData} className="py-8" />
                 ) : recentTimesheets.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/30 mb-3 border border-border">
@@ -333,5 +313,6 @@ export default function DashboardPage() {
         </>
       }
     />
+    </>
   );
 }

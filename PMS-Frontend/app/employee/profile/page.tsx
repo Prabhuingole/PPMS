@@ -83,24 +83,15 @@ export default function EmployeeProfilePage() {
         const currentYear = now.getFullYear();
 
         const [tsRes, projRes] = await Promise.all([
-          api.get(`/timesheets/me?limit=10000`),
+          api.get(`/timesheets/me/stats`),
           api.get(`/projects/?limit=1`)
         ]);
 
-        const timesheets = (tsRes.data.items || tsRes.data || []) as any[];
-
-        const totalHours = Math.round(timesheets.reduce((sum: number, ts: any) => sum + (ts.hours || 0), 0));
-        const monthHours = Math.round(
-          timesheets
-            .filter((ts: any) => {
-              const d = new Date(ts.date);
-              return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-            })
-            .reduce((sum: number, ts: any) => sum + (ts.hours || 0), 0)
-        );
-        const completedTasks = timesheets.filter((ts: any) => ts.task_status === 'Completed').length;
+        const totalHours = Math.round(tsRes.data.totalHours || 0);
+        const monthHours = Math.round(tsRes.data.monthHours || 0);
+        const completedTasks = tsRes.data.completedTasks || 0;
         const totalProjects = projRes.data.total || 0;
-        const totalLogs = timesheets.length;
+        const totalLogs = tsRes.data.totalLogs || 0;
 
         setStats({ totalHours, monthHours, completedTasks, activeProjects: totalProjects, totalLogs });
       } catch (err) {
@@ -331,36 +322,36 @@ export default function EmployeeProfilePage() {
             </Card>
 
             {/* Real stats card */}
-            <Card className="rounded-xl border-border shadow-sm p-4 sm:p-8 bg-indigo-50 relative overflow-hidden group">
-               <CloudLightning className="absolute -right-8 -bottom-8 h-32 w-32 text-indigo-100 group-hover:scale-110 transition-transform duration-500" />
+            <Card className="rounded-xl border-border shadow-sm p-4 sm:p-8 bg-card relative overflow-hidden group">
+               <CloudLightning className="absolute -right-8 -bottom-8 h-32 w-32 text-primary/10 group-hover:scale-110 transition-transform duration-500" />
                <div className="relative z-10 space-y-4">
-                  <h4 className="text-sm font-bold tracking-tight text-indigo-900">Activity Stats</h4>
+                  <h4 className="text-sm font-bold tracking-tight text-foreground">Activity Stats</h4>
                   {statsLoading ? (
-                    <div className="flex items-center gap-2 text-indigo-400">
+                    <div className="flex items-center gap-2 text-primary">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span className="text-xs font-bold tracking-wider">Loading stats...</span>
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                      <div className="bg-white/60 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-indigo-900">{stats.totalLogs}</span>
-                        <span className="text-[9px] font-bold text-indigo-400 block mt-1">Total Logs</span>
+                      <div className="bg-muted/50 rounded-xl p-4 text-center border border-border/50">
+                        <span className="text-2xl font-bold text-foreground">{stats.totalLogs}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground block mt-1 uppercase tracking-wider">Total Logs</span>
                       </div>
-                      <div className="bg-white/60 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-indigo-900">{stats.totalHours}h</span>
-                        <span className="text-[9px] font-bold text-indigo-400 block mt-1">Total Hours</span>
+                      <div className="bg-muted/50 rounded-xl p-4 text-center border border-border/50">
+                        <span className="text-2xl font-bold text-foreground">{stats.totalHours}h</span>
+                        <span className="text-[9px] font-bold text-muted-foreground block mt-1 uppercase tracking-wider">Total Hours</span>
                       </div>
-                      <div className="bg-white/60 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-indigo-900">{stats.monthHours}h</span>
-                        <span className="text-[9px] font-bold text-indigo-400 block mt-1">This Month</span>
+                      <div className="bg-muted/50 rounded-xl p-4 text-center border border-border/50">
+                        <span className="text-2xl font-bold text-foreground">{stats.monthHours}h</span>
+                        <span className="text-[9px] font-bold text-muted-foreground block mt-1 uppercase tracking-wider">This Month</span>
                       </div>
-                      <div className="bg-white/60 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-indigo-900">{stats.completedTasks}</span>
-                        <span className="text-[9px] font-bold text-indigo-400 block mt-1">Tasks Done</span>
+                      <div className="bg-muted/50 rounded-xl p-4 text-center border border-border/50">
+                        <span className="text-2xl font-bold text-foreground">{stats.completedTasks}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground block mt-1 uppercase tracking-wider">Tasks Done</span>
                       </div>
-                      <div className="bg-white/60 rounded-xl p-4 text-center">
-                        <span className="text-2xl font-bold text-indigo-900">{stats.activeProjects}</span>
-                        <span className="text-[9px] font-bold text-indigo-400 block mt-1">Projects</span>
+                      <div className="bg-muted/50 rounded-xl p-4 text-center border border-border/50">
+                        <span className="text-2xl font-bold text-foreground">{stats.activeProjects}</span>
+                        <span className="text-[9px] font-bold text-muted-foreground block mt-1 uppercase tracking-wider">Projects</span>
                       </div>
                     </div>
                   )}

@@ -1,10 +1,11 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, ForeignKey, Float, Boolean
+from sqlalchemy import Column, String, Integer, DateTime, Text, ForeignKey, Float, Boolean, Index
 from sqlalchemy.orm import relationship, backref
 from app.database.session import Base
 from datetime import datetime
 
 class Timesheet(Base):
     __tablename__ = "timesheets"
+    __table_args__ = (Index('idx_timesheet_user_date', 'user_id', 'date'),)
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=True, index=True) # Nullable for 'other' work

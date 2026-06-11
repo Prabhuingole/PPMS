@@ -150,24 +150,26 @@ export default function LoginPage() {
         }
       }
       
+      const sanitizedPassword = values.password.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
       // Connect to your FastAPI endpoint
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/login`, {
         email: values.email,
-        password: values.password,
+        password: sanitizedPassword,
       });
 
       if (response.data.mfa_required) {
         setMfaEmail(response.data.email);
         setMfaRequired(true);
-        setTempPassword(values.password); // store temp in case of reset later
+        setTempPassword(sanitizedPassword); // store temp in case of reset later
         toast.success(response.data.message || 'OTP sent to your email.');
         return;
       }
 
       const { user, access_token } = response.data;
 
-      setTempPassword(values.password); // Store temp password to use it for reset later
-      sessionStorage.setItem('sam_temp_pass', values.password);
+      setTempPassword(sanitizedPassword); // Store temp password to use it for reset later
+      sessionStorage.setItem('sam_temp_pass', sanitizedPassword);
       setAuth(user, access_token);
 
       if (user.must_change_password) {

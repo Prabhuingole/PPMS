@@ -13,6 +13,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/images/') ||
     pathname.startsWith('/fonts/') ||
+    pathname.includes('/view-doc') ||
     pathname === '/favicon.ico';
 
   if (isExempt) {

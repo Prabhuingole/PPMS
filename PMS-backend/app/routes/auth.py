@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 import uuid
+import hashlib
 from app.database.session import get_db
 from app.models.user import User
 from app.models.session import UserSession
@@ -68,7 +69,7 @@ def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db))
     # Save session to DB
     new_session = UserSession(
         user_id=user.id,
-        session_id=session_id,
+        session_id=hashlib.sha256(session_id.encode()).hexdigest(),
         device_info=user_agent,
         ip_address=ip_address
     )
@@ -140,7 +141,7 @@ def verify_mfa(request: Request, payload: VerifyMFASchema, db: Session = Depends
     # Save session to DB
     new_session = UserSession(
         user_id=user.id,
-        session_id=session_id,
+        session_id=hashlib.sha256(session_id.encode()).hexdigest(),
         device_info=user_agent,
         ip_address=ip_address
     )
@@ -223,7 +224,7 @@ def setup_account(payload: SetupAccountSchema, request: Request, db: Session = D
     
     new_session = UserSession(
         user_id=current_user.id,
-        session_id=session_id,
+        session_id=hashlib.sha256(session_id.encode()).hexdigest(),
         device_info=user_agent,
         ip_address=ip_address
     )
@@ -257,6 +258,7 @@ def get_active_sessions(db: Session = Depends(get_db), current_user: User = Depe
     from app.core.config import settings
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     current_jti = payload.get("jti")
+    current_jti_hashed = hashlib.sha256(current_jti.encode()).hexdigest() if current_jti else None
 
     sessions = db.query(UserSession).filter(UserSession.user_id == current_user.id, UserSession.is_active == True).order_by(UserSession.last_active_at.desc()).all()
     
@@ -268,7 +270,7 @@ def get_active_sessions(db: Session = Depends(get_db), current_user: User = Depe
             "ip_address": s.ip_address,
             "created_at": s.created_at,
             "last_active_at": s.last_active_at,
-            "is_current": s.session_id == current_jti
+            "is_current": s.session_id == current_jti_hashed
         })
     return result
 
@@ -278,6 +280,7 @@ def revoke_all_other_sessions(db: Session = Depends(get_db), current_user: User 
     from app.core.config import settings
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     current_jti = payload.get("jti")
+    current_jti_hashed = hashlib.sha256(current_jti.encode()).hexdigest() if current_jti else None
 
     db.query(UserSession).filter(
         UserSession.user_id == current_user.id, 
@@ -418,6 +421,7 @@ def update_password(
     return {"message": "Password updated successfully"}
 
 @router.post("/forgot-password")
+@limiter.limit("5/minute")
 def forgot_password(payload: ForgotPasswordSchema, request: Request, db: Session = Depends(get_db)):
     email = payload.email.strip()
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
@@ -427,6 +431,9 @@ def forgot_password(payload: ForgotPasswordSchema, request: Request, db: Session
         return {"message": "If an account exists, a password reset link has been sent."}
     
     token = create_reset_token(email=user.email)
+    import hashlib
+    user.reset_token = hashlib.sha256(token.encode()).hexdigest()
+    db.commit()
     from app.core.config import settings
     frontend_url = settings.FRONTEND_URL
     reset_link = f"{frontend_url}/reset-password?token={token}"
@@ -442,11 +449,13 @@ def reset_password(payload: ResetPasswordSchema, request: Request, db: Session =
         raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
         
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
-    if not user:
+    import hashlib
+    if not user or not user.reset_token or user.reset_token != hashlib.sha256(payload.token.encode()).hexdigest():
         raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
         
     user.hashed_password = get_password_hash(payload.new_password)
     user.must_change_password = False
+    user.reset_token = None
     user.password_updated_at = datetime.utcnow()
     db.commit()
     

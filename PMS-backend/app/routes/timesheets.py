@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 import os
 import uuid
+import magic
 
 from app.database.session import get_db
 from app.models.timesheet import Timesheet
@@ -42,6 +43,17 @@ async def upload_timesheet_attachment(
         
     if file.content_type not in ALLOWED_MIMES:
         raise HTTPException(status_code=400, detail="Unsupported MIME type")
+        
+    file_head = await file.read(2048)
+    file.file.seek(0)
+    try:
+        actual_mime = magic.from_buffer(file_head, mime=True)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Failed to verify file signature")
+
+    # Sometimes csv/text are returned as text/plain
+    if actual_mime not in ALLOWED_MIMES and actual_mime != "text/plain":
+        raise HTTPException(status_code=400, detail=f"Spoofed file detected. Actual MIME: {actual_mime}")
         
     file.file.seek(0, 2)
     file_size = file.file.tell()
@@ -135,7 +147,7 @@ def create_timesheets(
     db.commit()
     for c in created:
         db.refresh(c)
-        c.user_name = c.user.full_name if c.user else None
+        c.user_name = current_user.full_name
         
     # Notify superadmins
     if created:
@@ -167,6 +179,49 @@ def create_timesheets(
 
     background_tasks.add_task(manager.broadcast, {"event": "TIMESHEETS_UPDATED"})
     return created
+
+@router.get("/me/stats")
+def get_my_timesheet_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from sqlalchemy import func
+    from datetime import datetime
+    
+    now = datetime.utcnow()
+    current_month = now.month
+    current_year = now.year
+
+    # Aggregate stats directly in DB
+    stats = db.query(
+        func.count(Timesheet.id).label('totalLogs'),
+        func.sum(Timesheet.hours).label('totalHours'),
+    ).filter(Timesheet.user_id == current_user.id).first()
+
+    # Month hours
+    from sqlalchemy import extract
+    month_stats = db.query(
+        func.sum(Timesheet.hours).label('monthHours')
+    ).filter(
+        Timesheet.user_id == current_user.id,
+        extract('month', Timesheet.date) == current_month,
+        extract('year', Timesheet.date) == current_year
+    ).first()
+
+    # Completed tasks
+    completed_stats = db.query(
+        func.count(Timesheet.id).label('completedTasks')
+    ).filter(
+        Timesheet.user_id == current_user.id,
+        Timesheet.task_status == 'Completed'
+    ).first()
+
+    return {
+        "totalLogs": stats.totalLogs or 0,
+        "totalHours": stats.totalHours or 0,
+        "monthHours": month_stats.monthHours or 0,
+        "completedTasks": completed_stats.completedTasks or 0
+    }
 
 @router.get("/me")
 def get_my_timesheets(
@@ -245,25 +300,44 @@ def get_dashboard_stats(
     from sqlalchemy import func
     from datetime import datetime, timedelta
 
-    # Basic counts
-    total_count = db.query(Timesheet).count()
-    pending_count = db.query(Timesheet).filter(Timesheet.status == 'pending').count()
-    approved_count = db.query(Timesheet).filter(Timesheet.status == 'approved').count()
-    rejected_count = db.query(Timesheet).filter(Timesheet.status == 'rejected').count()
+    from sqlalchemy import func, case
+    
+    stats = db.query(
+        func.count(Timesheet.id).label('total'),
+        func.sum(case((Timesheet.status == 'pending', 1), else_=0)).label('pending'),
+        func.sum(case((Timesheet.status == 'approved', 1), else_=0)).label('approved'),
+        func.sum(case((Timesheet.status == 'rejected', 1), else_=0)).label('rejected')
+    ).first()
+    
+    total_count = stats.total or 0
+    pending_count = stats.pending or 0
+    approved_count = stats.approved or 0
+    rejected_count = stats.rejected or 0
 
     now = datetime.utcnow()
-    # last 7 days data
+    
+    # Execute a single GROUP BY query across the 7-day window
+    from sqlalchemy import cast, Date
+    start_date = (now - timedelta(days=6)).date()
+    end_date = now.date()
+    
+    daily_sums = db.query(
+        cast(Timesheet.date, Date), 
+        func.sum(Timesheet.hours)
+    ).filter(
+        cast(Timesheet.date, Date).between(start_date, end_date),
+        Timesheet.status == 'approved'
+    ).group_by(
+        cast(Timesheet.date, Date)
+    ).all()
+    
+    sums_dict = {d: h or 0.0 for d, h in daily_sums}
+
     last_7_days_data = []
     for i in range(6, -1, -1):
         d = now - timedelta(days=i)
         day_name = d.strftime('%a')
-        
-        from sqlalchemy import cast, Date
-        hours = db.query(func.sum(Timesheet.hours)).filter(
-            cast(Timesheet.date, Date) == d.date(),
-            Timesheet.status == 'approved'
-        ).scalar() or 0.0
-        
+        hours = sums_dict.get(d.date(), 0.0)
         last_7_days_data.append({"name": day_name, "hours": hours})
         
     # recent timesheets

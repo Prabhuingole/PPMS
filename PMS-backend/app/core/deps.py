@@ -37,8 +37,10 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     # Validate session if jti is present (for backwards compatibility with old tokens, we only check if jti exists)
     if jti:
         from app.models.session import UserSession
+        import hashlib
+        hashed_jti = hashlib.sha256(jti.encode()).hexdigest()
         session_record = db.query(UserSession).filter(
-            UserSession.session_id == jti,
+            UserSession.session_id == hashed_jti,
             UserSession.user_id == user.id,
             UserSession.is_active == True
         ).first()

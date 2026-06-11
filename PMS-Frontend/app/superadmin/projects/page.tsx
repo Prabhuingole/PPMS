@@ -330,15 +330,15 @@ export default function ProjectListPage() {
             cell: (project) => (
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-semibold text-foreground">
-                  {Number((project.total_hours_worked || 0).toFixed(2))} / {Number((project.total_hours || 0).toFixed(2))} <span className="opacity-70 font-bold ml-0.5">h</span>
+                  {Number((project.total_hours_worked || 0).toFixed(2))} / {Number((project.total_hours || 0).toFixed(2))} <span className="opacity-70 font-bold ml-0.5">hr</span>
                 </span>
                 {((project.total_hours_remaining ?? 0) < 0) ? (
                   <span className="text-[10px] font-bold text-red-500 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3 shrink-0" /> <span className="truncate">Over budget ({Number(((project.total_hours_remaining || 0) * -1).toFixed(2))}<span className="opacity-70 font-bold ml-0.5">h</span>)</span>
+                    <AlertCircle className="w-3 h-3 shrink-0" /> <span className="truncate">Over budget ({Number(((project.total_hours_remaining || 0) * -1).toFixed(2))}<span className="opacity-70 font-bold ml-0.5">hr</span>)</span>
                   </span>
                 ) : (
                   <span className="text-[10px] font-semibold text-muted-foreground">
-                    {Number((project.total_hours_remaining || 0).toFixed(2))}<span className="opacity-70 font-bold ml-0.5">h</span> left
+                    {Number((project.total_hours_remaining || 0).toFixed(2))}<span className="opacity-70 font-bold ml-0.5">hr</span> left
                   </span>
                 )}
               </div>

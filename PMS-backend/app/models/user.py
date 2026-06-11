@@ -21,6 +21,7 @@ class User(Base):
     must_change_password = Column(Boolean, default=False)
     account_status = Column(String, default="active")
     last_login_at = Column(DateTime, nullable=True)
+    reset_token = Column(String, nullable=True)
     full_name = Column(String)
     mobile_number = Column(String, nullable=True)
     role = Column(String, default=UserRole.EMPLOYEE)
