@@ -26,6 +26,7 @@ class Timesheet(Base):
     half_day_period = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    is_unassigned_project = Column(Boolean, default=False)
     
     user = relationship("User", backref=backref("timesheets", cascade="all, delete-orphan"))
     project = relationship("Project", backref="timesheets")

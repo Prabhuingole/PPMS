@@ -122,8 +122,20 @@ def create_timesheets(
                 detail=f"A timesheet for {t_date.strftime('%d %b %Y')} has already been submitted. Please edit your existing submission instead."
             )
             
+    from sqlalchemy.orm import selectinload
+    from app.models.project import Project
+
+    project_ids = {ts.project_id for ts in timesheets if ts.project_id}
+    unassigned_project_ids = set()
+    if project_ids:
+        projects = db.query(Project).options(selectinload(Project.members)).filter(Project.id.in_(project_ids)).all()
+        for p in projects:
+            if not any(m.id == current_user.id for m in p.members):
+                unassigned_project_ids.add(p.id)
+
     created = []
     for ts in timesheets:
+        is_unassigned = ts.project_id in unassigned_project_ids if ts.project_id else False
         new_ts = Timesheet(
             user_id=current_user.id,
             project_id=ts.project_id,
@@ -140,7 +152,8 @@ def create_timesheets(
             attendance=ts.attendance,
             arrival_time=ts.arrival_time,
             half_day_period=ts.half_day_period,
-            status="pending"
+            status="pending",
+            is_unassigned_project=is_unassigned
         )
         db.add(new_ts)
         created.append(new_ts)
@@ -455,6 +468,7 @@ def get_grouped_timesheets(
             "task_status": ts.task_status,
             "project_name": ts.project.name if ts.project else (ts.category or "Other Work"),
             "project_code": ts.project.code if ts.project else None,
+            "is_unassigned_project": ts.is_unassigned_project,
             "day": ts.day,
             "status": ts.status,
             "feedback": ts.feedback,
@@ -542,6 +556,7 @@ def get_grouped_timesheets_paginated(
             "task_status": ts.task_status,
             "project_name": ts.project.name if ts.project else (ts.category or "Other Work"),
             "project_code": ts.project.code if ts.project else None,
+            "is_unassigned_project": ts.is_unassigned_project,
             "day": ts.day,
             "status": ts.status,
             "feedback": ts.feedback,

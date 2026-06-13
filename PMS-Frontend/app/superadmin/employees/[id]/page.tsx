@@ -389,8 +389,13 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                               <Calendar className="h-3.5 w-3.5" />
                            </div>
                            <div className="space-y-0.5">
-                              <div className="text-xs font-bold text-slate-800 group-hover:text-pink-600 transition-colors">
+                              <div className="text-xs font-bold text-slate-800 group-hover:text-pink-600 transition-colors flex items-center gap-2">
                                  {log.project_name || 'System Task'}
+                                 {log.is_unassigned_project && (
+                                   <Badge variant="outline" className="text-[8px] font-bold text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest px-1 py-0 shadow-none h-4">
+                                     Unassigned
+                                   </Badge>
+                                 )}
                               </div>
                               <div className="text-[9px] font-bold text-muted-foreground tracking-wider">
                                  {new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -496,7 +501,14 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                         {new Date(log.date).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-xs font-bold text-slate-800">
-                        {log.project_name || 'System Task'}
+                        <div className="flex items-center gap-2">
+                          {log.project_name || 'System Task'}
+                          {log.is_unassigned_project && (
+                             <Badge variant="outline" className="text-[8px] font-bold text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest px-1 py-0 shadow-none h-4">
+                               Unassigned
+                             </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs font-mono font-bold text-blue-600">
                         {log.hours.toFixed(1)}h
@@ -609,8 +621,13 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                        <span className="text-xs font-bold text-indigo-400 tracking-wider block mb-2 flex items-center gap-1.5">
                          <FolderKanban className="h-3.5 w-3.5" /> Project Stream
                        </span>
-                       <div className="text-lg font-bold text-foreground tracking-tight leading-tight break-words">
+                       <div className="text-lg font-bold text-foreground tracking-tight leading-tight break-words flex items-center gap-2">
                          {selectedTimesheet.project_name || 'System Task'}
+                         {selectedTimesheet.is_unassigned_project && (
+                           <Badge variant="outline" className="text-[10px] font-bold text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest px-2 py-0 shadow-none h-5">
+                             Unassigned Project
+                           </Badge>
+                         )}
                        </div>
                      </motion.div>
 

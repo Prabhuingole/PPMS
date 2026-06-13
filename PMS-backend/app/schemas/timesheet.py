@@ -29,6 +29,7 @@ class TimesheetResponse(TimesheetBase):
     project_name: Optional[str] = None
     user_name: Optional[str] = None
     feedback: Optional[str] = None
+    is_unassigned_project: Optional[bool] = False
 
     class Config:
         from_attributes = True

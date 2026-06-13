@@ -18,7 +18,9 @@ import {
   SelectContent, 
   SelectItem, 
   SelectTrigger, 
-  SelectValue 
+  SelectValue,
+  SelectGroup,
+  SelectLabel
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -238,9 +240,13 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   // Load projects
   useEffect(() => {
     if (token && isOpen) {
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/?limit=1000`, {
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/?limit=1000&include_unassigned=true`, {
         headers: { Authorization: `Bearer ${token}` }
-      }).then(res => setProjects(res.data.items || res.data)).catch(console.error);
+      }).then(res => {
+        let items = res.data.items || res.data;
+        items = items.filter((p: any) => p.name.toLowerCase() !== 'other' && p.name.toLowerCase() !== 'other work');
+        setProjects(items);
+      }).catch(console.error);
     }
   }, [token, isOpen]);
 
@@ -640,14 +646,37 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                   <SelectValue placeholder="Select Project" className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-w-[400px]">
-                  {projects.map((p: any) => (
-                    <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
-                      {p.code ? `[${p.code}] — ${p.name}` : p.name}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="other" className="text-xs font-bold py-2.5">Other Work</SelectItem>
+                  {projects.filter((p: any) => p.assigned).length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground">Assigned Projects</SelectLabel>
+                      {projects.filter((p: any) => p.assigned).map((p: any) => (
+                        <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
+                          {p.code ? `[${p.code}] — ${p.name}` : p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {projects.filter((p: any) => p.assigned === false).length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground mt-2">Other Active Projects</SelectLabel>
+                      {projects.filter((p: any) => p.assigned === false).map((p: any) => (
+                        <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
+                          {p.code ? `[${p.code}] — ${p.name}` : p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  <SelectGroup>
+                    <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground mt-2">Other</SelectLabel>
+                    <SelectItem value="other" className="text-xs font-bold py-2.5">Other Work</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
               </Select>
+              {projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned === false) && (
+                <Badge variant="outline" className="text-[9px] font-bold text-amber-600 bg-amber-50 border-amber-200 mt-1 uppercase tracking-widest">
+                  Unassigned Project
+                </Badge>
+              )}
 
               {entry.projectId === 'other' && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col sm:flex-row gap-2 mt-2">

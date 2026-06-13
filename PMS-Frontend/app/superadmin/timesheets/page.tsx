@@ -54,6 +54,7 @@ type TaskDetail = {
   task_status: string;
   project_name: string;
   project_code: string | null;
+  is_unassigned_project?: boolean;
   day: string;
   status: string;
   feedback: string | null;
@@ -450,6 +451,11 @@ export default function TimesheetApprovalPage() {
                                 <Badge variant="outline" className="bg-muted/30 text-slate-600 text-xs font-medium px-2 py-0">
                                   {task.project_code ? `[${task.project_code}]` : ''} {task.project_name}
                                 </Badge>
+                                {task.is_unassigned_project && (
+                                  <Badge variant="outline" className="text-[10px] font-bold text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest px-2 py-0">
+                                    Unassigned Project
+                                  </Badge>
+                                )}
                                 <Badge variant="secondary" className={cn(
                                   "text-xs font-medium px-2 py-0 capitalize",
                                   task.task_status === 'Completed' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"

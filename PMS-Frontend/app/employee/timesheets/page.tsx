@@ -134,8 +134,13 @@ export default function MyTimesheetsPage() {
   }, [token, refreshTrigger, currentPage, searchTerm, activeFilter, activeProjectFilter, dbProjects]);
 
   useEffect(() => {
+    // Load active projects for timesheet dropdown
     if (token) {
-      api.get(`/projects/?limit=1000`).then(res => setDbProjects(res.data.items || res.data)).catch(console.error);
+      api.get(`/projects/?limit=1000&include_unassigned=true`).then(res => {
+        let items = res.data.items || res.data;
+        items = items.filter((p: any) => p.name.toLowerCase() !== 'other' && p.name.toLowerCase() !== 'other work');
+        setDbProjects(items);
+      }).catch(console.error);
     }
   }, [token, refreshTrigger]);
 
@@ -719,6 +724,11 @@ export default function MyTimesheetsPage() {
                                                   <Badge className="bg-muted text-muted-foreground border-none text-[8px] font-bold uppercase tracking-widest px-1.5 py-0 rounded">
                                                     {task.project_name || task.category || 'Other Work'}
                                                   </Badge>
+                                                  {task.is_unassigned_project && (
+                                                    <Badge variant="outline" className="text-[8px] font-bold text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest px-1 py-0 shadow-none h-4 rounded">
+                                                      Unassigned
+                                                    </Badge>
+                                                  )}
                                                 </div>
                                                   <ExpandableText text={task.description} />
                                               </div>

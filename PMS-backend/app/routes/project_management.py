@@ -105,6 +105,7 @@ def get_projects(
     status: Optional[str] = None,
     manager_id: Optional[int] = None,
     dropdown: bool = Query(False, description="If true, skip eager loads for lightweight dropdowns"),
+    include_unassigned: bool = Query(False, description="Include unassigned active projects"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -121,7 +122,13 @@ def get_projects(
         )
 
     if current_user.role not in ["superadmin", "admin"]:
-        query = query.filter(Project.members.any(User.id == current_user.id))
+        if include_unassigned:
+            query = query.filter(
+                (Project.members.any(User.id == current_user.id)) | 
+                (Project.status == "active")
+            )
+        else:
+            query = query.filter(Project.members.any(User.id == current_user.id))
 
     # Filters
     if status:
@@ -175,6 +182,17 @@ def get_projects(
             item.total_hours_worked = worked
             item.total_hours_remaining = (item.total_hours or 0.0) - worked
             item.my_hours_worked = my_worked_dict.get(item.id, 0.0)
+
+    # Calculate assigned status for all items
+    for item in items:
+        if current_user.role in ["superadmin", "admin"]:
+            item.assigned = True
+        else:
+            try:
+                item.assigned = any(member.id == current_user.id for member in item.members)
+            except Exception:
+                # Fallback if members are not loaded
+                item.assigned = False
 
     return {
         "items": items,

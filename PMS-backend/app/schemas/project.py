@@ -47,6 +47,7 @@ class ProjectResponse(ProjectBase):
     total_hours_worked: float = 0.0
     total_hours_remaining: float = 0.0
     my_hours_worked: Optional[float] = None
+    assigned: Optional[bool] = None
     created_at: datetime
     updated_at: datetime
 
