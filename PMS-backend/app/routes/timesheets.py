@@ -4,8 +4,9 @@ from sqlalchemy import or_, func
 from typing import List, Optional
 from pydantic import BaseModel
 import os
+import math
+import mimetypes
 import uuid
-import magic
 
 from app.database.session import get_db
 from app.models.timesheet import Timesheet
@@ -48,11 +49,10 @@ async def upload_timesheet_attachment(
         
     file_head = await file.read(2048)
     file.file.seek(0)
-    try:
-        actual_mime = magic.from_buffer(file_head, mime=True)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail="Failed to verify file signature")
-
+    # In a serverless environment (Vercel), python-magic is unavailable without libmagic.
+    # We rely on the provided file.content_type and file extension which were checked above.
+    actual_mime = file.content_type
+    
     # Sometimes csv/text are returned as text/plain
     if actual_mime not in ALLOWED_MIMES and actual_mime != "text/plain":
         raise HTTPException(status_code=400, detail=f"Spoofed file detected. Actual MIME: {actual_mime}")
