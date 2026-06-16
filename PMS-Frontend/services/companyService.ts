@@ -14,6 +14,7 @@ export interface FetchCompaniesParams {
   limit?: number;
   search?: string;
   status?: string;
+  company_type?: string;
 }
 
 export const fetchCompanies = async (params: FetchCompaniesParams = {}): Promise<CompanyListResponse> => {
@@ -22,6 +23,7 @@ export const fetchCompanies = async (params: FetchCompaniesParams = {}): Promise
   if (params.limit) queryParams.append('limit', params.limit.toString());
   if (params.search) queryParams.append('search', params.search);
   if (params.status) queryParams.append('status', params.status);
+  if (params.company_type) queryParams.append('company_type', params.company_type);
 
   const res = await api.get(`/companies/?${queryParams.toString()}`);
   return res.data;
@@ -107,8 +109,8 @@ export const useDeleteCompany = () => {
 };
 
 export const companyService = {
-  getCompanies: async () => {
-    const res = await fetchCompanies({ limit: 1000 });
+  getCompanies: async (params: FetchCompaniesParams = {}) => {
+    const res = await fetchCompanies({ limit: 1000, ...params });
     return res.items;
   },
   getCompany: fetchCompany,

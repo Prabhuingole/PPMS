@@ -19,7 +19,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   useEffect(() => {
     if (_hasHydrated && !isViewDoc) {
       if (!isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
-        if (['employee', 'intern', 'reporting_manager'].includes(user?.role || '')) {
+        if (['employee', 'intern', 'reporting_manager', 'team_member', 'consultant'].includes(user?.role || '')) {
            router.replace('/employee/dashboard');
         } else {
            router.replace('/login');

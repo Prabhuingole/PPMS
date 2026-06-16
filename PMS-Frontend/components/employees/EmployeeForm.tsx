@@ -80,7 +80,7 @@ export function EmployeeForm({
 
   useEffect(() => {
     if (user?.role === 'superadmin') {
-      companyService.getCompanies().then(setCompanies).catch(console.error);
+      companyService.getCompanies({ company_type: 'in_house' }).then(setCompanies).catch(console.error);
     }
   }, [user?.role]);
 

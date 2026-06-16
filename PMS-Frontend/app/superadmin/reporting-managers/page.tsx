@@ -122,7 +122,7 @@ export default function ReportingManagerListPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
-    companyService.getCompanies().then(setCompanies).catch(console.error);
+    companyService.getCompanies({ company_type: 'in_house' }).then(setCompanies).catch(console.error);
   }, []);
 
   const fetchManagers = async () => {

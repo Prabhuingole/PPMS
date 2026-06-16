@@ -13,6 +13,7 @@ class ProjectBase(BaseModel):
     total_hours: float = 0.0
     reporting_manager_id: Optional[int] = None
     owner_company_id: Optional[int] = None
+    client_company_id: Optional[int] = None
 
 class ProjectCreate(ProjectBase):
     member_ids: Optional[List[int]] = []
@@ -29,6 +30,7 @@ class ProjectUpdate(BaseModel):
     total_hours: Optional[float] = None
     reporting_manager_id: Optional[int] = None
     owner_company_id: Optional[int] = None
+    client_company_id: Optional[int] = None
     member_ids: Optional[List[int]] = None
     participating_company_ids: Optional[List[int]] = None
 
@@ -50,6 +52,7 @@ class ProjectResponse(ProjectBase):
     reporting_manager: Optional[ReportingManagerResponse] = None
     members: List[ProjectMemberResponse] = []
     owner_company_name: Optional[str] = None
+    client_company: Optional[CompanyResponse] = None
     participating_companies: List[CompanyResponse] = []
     total_hours_worked: float = 0.0
     total_hours_remaining: float = 0.0

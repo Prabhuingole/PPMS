@@ -3,6 +3,7 @@ export type UserRole = 'superadmin' | 'admin' | 'reporting_manager' | 'employee'
 export interface Company {
   id: number;
   name: string;
+  company_name?: string;
   code: string;
   status: string;
   address?: string;
@@ -12,6 +13,8 @@ export interface Company {
   email?: string;
   phone?: string;
   logo_url?: string;
+  company_type?: 'client' | 'in_house' | string;
+  company_owner?: string;
   created_at?: string;
   updated_at?: string;
   metrics?: {
@@ -98,8 +101,8 @@ export interface Project {
   total_hours_worked?: number;
   total_hours_remaining?: number;
   my_hours_worked?: number;
-  owner_company_id?: number;
-  owner_company_name?: string;
+  client_company_id?: number;
+  client_company?: Company;
   participating_companies?: Company[];
 }
 

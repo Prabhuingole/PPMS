@@ -22,6 +22,8 @@ class Project(Base):
     reporting_manager = relationship("ReportingManager", backref="managed_projects")
     members = relationship("User", secondary="user_projects", backref="projects")
     owner_company = relationship("Company", foreign_keys=[owner_company_id], backref="owned_projects")
+    client_company_id = Column(Integer, ForeignKey("companies.id", ondelete="RESTRICT"), nullable=True, index=True)
+    client_company = relationship("Company", foreign_keys=[client_company_id], backref="client_projects")
     participating_companies = relationship("Company", secondary="project_companies", backref="participating_projects")
 
     deliverables = relationship("Deliverable", back_populates="project")

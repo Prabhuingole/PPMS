@@ -88,6 +88,9 @@ export default function CompanyDetailsPage() {
                 {company.status}
               </Badge>
             </h1>
+            {company.company_name && (
+              <p className="text-lg text-slate-700 font-semibold mt-1">{company.company_name}</p>
+            )}
             <p className="text-sm text-slate-500 font-medium mt-1">Company Code: {company.code}</p>
           </div>
         </div>

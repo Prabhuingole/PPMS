@@ -82,16 +82,8 @@ const projectSchema = z.object({
   total_hours: z.coerce.number().optional(),
   reporting_manager_id: z.string().optional().nullable(),
   member_ids: z.array(z.number()),
-  owner_company_id: z.string({ required_error: 'Please select an option' }).min(1, 'Please select an option'),
+  client_company_id: z.string().optional().nullable(),
   participating_company_ids: z.array(z.string()).min(1, 'This field is required'),
-}).superRefine((data, ctx) => {
-  if (!data.participating_company_ids.includes(data.owner_company_id)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Owner Company must be one of the Participating Companies",
-      path: ["owner_company_id"]
-    });
-  }
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -151,7 +143,7 @@ export function ProjectFormModal({
       total_hours: 0,
       reporting_manager_id: '',
       member_ids: [],
-      owner_company_id: '',
+      client_company_id: '',
       participating_company_ids: [],
     }
   });
@@ -176,7 +168,7 @@ export function ProjectFormModal({
           total_hours: editingProject.total_hours || 0,
           reporting_manager_id: editingProject.reporting_manager_id?.toString() || '',
           member_ids: editingProject.members?.map(m => m.id) || [],
-          owner_company_id: editingProject.owner_company_id?.toString() || '',
+          client_company_id: editingProject.client_company_id?.toString() || '',
           participating_company_ids: editingProject.participating_companies?.map(c => c.id.toString()) || [],
         });
 
@@ -195,7 +187,7 @@ export function ProjectFormModal({
           total_hours: 0,
           reporting_manager_id: '',
           member_ids: [],
-          owner_company_id: '',
+          client_company_id: '',
           participating_company_ids: [],
         });
         setProjectDocs([]);
@@ -250,8 +242,8 @@ export function ProjectFormModal({
         reporting_manager_id: (values.reporting_manager_id && values.reporting_manager_id !== 'none') ? parseInt(values.reporting_manager_id) : null,
         start_date: values.start_date ? new Date(values.start_date).toISOString() : null,
         end_date: values.end_date ? new Date(values.end_date).toISOString() : null,
-        owner_company_id: parseInt(values.owner_company_id),
-        participating_company_ids: values.participating_company_ids.map(id => parseInt(id))
+        client_company_id: values.client_company_id && values.client_company_id !== 'none' ? parseInt(values.client_company_id) : null,
+        participating_company_ids: values.participating_company_ids ? values.participating_company_ids.map(id => parseInt(id)) : []
       };
 
       let projectId = editingProject?.id;
@@ -428,21 +420,22 @@ export function ProjectFormModal({
                 <FormGrid className="mt-4">
                   <FormField
                     control={form.control}
-                    name="owner_company_id"
+                    name="client_company_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Owner Company</FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">Client Company</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value}
+                          value={field.value || 'none'}
                         >
                           <FormControl>
                             <SelectTrigger className="h-10 w-full">
-                              <SelectValue placeholder="Select Owner Company" />
+                              <SelectValue placeholder="Select Client Company" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {companies.map(c => (
+                            <SelectItem value="none">None</SelectItem>
+                            {companies.filter(c => c.company_type === 'client').map(c => (
                               <SelectItem key={c.id} value={String(c.id)}>
                                 {c.name}
                               </SelectItem>
@@ -460,7 +453,7 @@ export function ProjectFormModal({
                       <FormItem>
                         <FormLabel required className="text-sm font-semibold text-foreground">Participating Companies</FormLabel>
                         <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md custom-scrollbar bg-card">
-                          {companies.map(c => (
+                          {companies.filter(c => c.company_type === 'in_house').map(c => (
                             <div key={c.id} className="flex flex-row items-center space-x-3">
                               <Checkbox
                                 checked={field.value?.includes(String(c.id))}

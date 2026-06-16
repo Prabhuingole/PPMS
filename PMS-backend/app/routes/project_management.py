@@ -44,13 +44,6 @@ def create_project(
         if rm.status != "active":
             raise HTTPException(status_code=400, detail="Selected Reporting Manager is not active")
 
-    if not payload.owner_company_id:
-        raise HTTPException(status_code=400, detail="Owner company is required")
-        
-    owner_company = db.query(Company).filter(Company.id == payload.owner_company_id).first()
-    if not owner_company:
-        raise HTTPException(status_code=404, detail="Owner company not found")
-
     new_project = Project(
         name=payload.name,
         code=project_code,
@@ -61,7 +54,7 @@ def create_project(
         end_date=payload.end_date,
         total_hours=payload.total_hours,
         reporting_manager_id=payload.reporting_manager_id,
-        owner_company_id=payload.owner_company_id
+        client_company_id=payload.client_company_id
     )
 
     if payload.participating_company_ids:
@@ -301,13 +294,6 @@ def update_project(
             
             project.members = members
 
-    # Update Owner Company
-    if "owner_company_id" in payload_dict:
-        owner_company = db.query(Company).filter(Company.id == payload_dict["owner_company_id"]).first()
-        if not owner_company:
-            raise HTTPException(status_code=404, detail="Owner company not found")
-        project.owner_company_id = payload_dict["owner_company_id"]
-
     # Update Participating Companies
     if "participating_company_ids" in payload_dict:
         p_ids = payload_dict["participating_company_ids"]
@@ -318,7 +304,7 @@ def update_project(
             project.participating_companies = part_companies
 
     # Update other fields
-    update_data = payload.dict(exclude_unset=True, exclude={"member_ids", "reporting_manager_id", "owner_company_id", "participating_company_ids"})
+    update_data = payload.dict(exclude_unset=True, exclude={"member_ids", "reporting_manager_id", "participating_company_ids"})
     for key, value in update_data.items():
         setattr(project, key, value)
 

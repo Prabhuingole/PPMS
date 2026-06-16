@@ -18,7 +18,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (_hasHydrated && !isViewDoc) {
-      if (!isAuthenticated || !['employee', 'intern', 'reporting_manager'].includes(user?.role || '')) {
+      if (!isAuthenticated || !['employee', 'intern', 'reporting_manager', 'team_member', 'consultant'].includes(user?.role || '')) {
         if (user?.role === 'superadmin') {
            router.replace('/superadmin/dashboard');
         } else {
@@ -28,7 +28,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
     }
   }, [_hasHydrated, isAuthenticated, user, router, isViewDoc]);
 
-  if (!_hasHydrated || (!isViewDoc && (!isAuthenticated || !['employee', 'intern', 'reporting_manager'].includes(user?.role || '')))) {
+  if (!_hasHydrated || (!isViewDoc && (!isAuthenticated || !['employee', 'intern', 'reporting_manager', 'team_member', 'consultant'].includes(user?.role || '')))) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/30" suppressHydrationWarning>
         <Loader2 className="h-8 w-8 animate-spin text-foreground" />

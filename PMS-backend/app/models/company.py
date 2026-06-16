@@ -8,6 +8,7 @@ class Company(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
+    company_name = Column(String, nullable=True)
     code = Column(String, unique=True, index=True, nullable=True)
     address = Column(Text, nullable=True)
     city = Column(String, nullable=True)
@@ -16,6 +17,8 @@ class Company(Base):
     email = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     status = Column(String, default="active")
+    company_type = Column(String, default="client", index=True)
+    company_owner = Column(String, nullable=True)
     logo_url = Column(String, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)

@@ -317,10 +317,10 @@ export default function ProjectDetailsPage() {
               <Briefcase className="h-4 w-4 text-blue-500" />
               <span className="font-mono text-xs">{project.code}</span>
             </div>
-            {project.client_name && (
+            {project.client_company?.name && (
               <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
                 <Building2 className="h-4 w-4 text-emerald-500" />
-                <span>{project.client_name}</span>
+                <span>{project.client_company?.name}</span>
               </div>
             )}
           </div>

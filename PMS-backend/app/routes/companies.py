@@ -28,6 +28,7 @@ def get_companies(
     limit: int = Query(10, ge=1, le=1000),
     search: Optional[str] = None,
     status_filter: Optional[str] = Query(None, alias="status"),
+    company_type: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: User = require_superadmin_or_admin
 ):
@@ -38,6 +39,9 @@ def get_companies(
 
     if status_filter:
         query = query.filter(Company.status == status_filter)
+
+    if company_type:
+        query = query.filter(Company.company_type == company_type)
 
     if search:
         search_filter = f"%{search}%"
@@ -131,6 +135,7 @@ def create_company(
         
     new_company = Company(
         name=payload.name,
+        company_name=payload.company_name,
         code=code_val,
         address=payload.address,
         city=payload.city,
@@ -139,6 +144,8 @@ def create_company(
         email=payload.email,
         phone=payload.phone,
         status=payload.status,
+        company_type=payload.company_type,
+        company_owner=payload.company_owner,
         logo_url=payload.logo_url
     )
     

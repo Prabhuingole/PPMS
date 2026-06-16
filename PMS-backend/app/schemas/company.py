@@ -4,6 +4,7 @@ from datetime import datetime
 
 class CompanyBase(BaseModel):
     name: str
+    company_name: Optional[str] = None
     code: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None
@@ -12,6 +13,8 @@ class CompanyBase(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     status: str = "active"
+    company_type: Optional[str] = "client"
+    company_owner: Optional[str] = None
     logo_url: Optional[str] = None
 
 class CompanyCreate(CompanyBase):
@@ -19,6 +22,7 @@ class CompanyCreate(CompanyBase):
 
 class CompanyUpdate(BaseModel):
     name: Optional[str] = None
+    company_name: Optional[str] = None
     # Code is intentionally omitted as it is immutable after creation
     address: Optional[str] = None
     city: Optional[str] = None
@@ -27,6 +31,8 @@ class CompanyUpdate(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     status: Optional[str] = None
+    company_type: Optional[str] = None
+    company_owner: Optional[str] = None
     logo_url: Optional[str] = None
 
 class CompanyMetrics(BaseModel):

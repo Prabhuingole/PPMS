@@ -2,7 +2,7 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Company } from '@/types';
-import { Building2, Mail, Phone, MapPin, Hash, Calendar, FileText, Users, UserCheck, Briefcase, ExternalLink, RefreshCw, Edit2 } from 'lucide-react';
+import { Building2, Mail, Phone, MapPin, Hash, Calendar, FileText, Users, UserCheck, Briefcase, ExternalLink, RefreshCw, Edit2, ChevronRight } from 'lucide-react';
 import { CompanyStatusBadge } from './CompanyStatusBadge';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,9 @@ export function CompanyDetailsDrawer({ company, open, onOpenChange, onReactivate
               </div>
             </div>
             <h2 className="text-3xl font-black text-white tracking-tight drop-shadow-md break-words">{company.name}</h2>
+            {company.company_name && (
+              <p className="text-white/80 font-medium text-lg mt-0.5">{company.company_name}</p>
+            )}
           </div>
         </div>
 
@@ -66,12 +69,16 @@ export function CompanyDetailsDrawer({ company, open, onOpenChange, onReactivate
           <div className="flex flex-col gap-3 bg-white p-2 rounded-2xl shadow-lg border border-slate-100 backdrop-blur-xl">
             <div className="flex gap-3">
               <Button 
-                className="flex-1 bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 hover:from-indigo-100 hover:to-blue-100 border border-indigo-100 shadow-sm transition-all duration-300 rounded-xl font-semibold h-11" 
                 variant="outline" 
-                onClick={() => router.push(`/superadmin/companies/${company.id}`)}
+                className="flex-1 justify-between bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700 hover:from-indigo-100 hover:to-blue-100 border border-indigo-100 shadow-sm transition-all duration-300 rounded-xl font-semibold h-11"
+                onClick={() => {
+                  const path = company.company_type === 'in_house' ? 'in-house-companies' : 'companies';
+                  onOpenChange(false);
+                  router.push(`/superadmin/${path}/${company.id}`);
+                }}
               >
-                <ExternalLink className="h-4 w-4 mr-2 text-indigo-500" />
-                Open Workspace
+                <span>View Full Details</span>
+                <ChevronRight className="w-4 h-4" />
               </Button>
               {onEdit && (
                 <Button 
@@ -177,6 +184,12 @@ export function CompanyDetailsDrawer({ company, open, onOpenChange, onReactivate
                   <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Contact Person</p>
                   <p className="text-sm font-semibold text-slate-800">{company.contact_person || 'Not provided'}</p>
                 </div>
+                {company.company_owner && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 tracking-wider uppercase mb-0.5">Company Owner</p>
+                    <p className="text-sm font-semibold text-slate-800">{company.company_owner}</p>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-4 group">
                 <div className="h-10 w-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100 text-slate-500 group-hover:bg-pink-50 group-hover:text-pink-600 group-hover:border-pink-100 transition-colors">

@@ -16,11 +16,12 @@ interface CompanyFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   company?: Company | null;
+  defaultCompanyType?: string;
   onSuccessCreate?: (company: Company) => void;
   onSuccess?: () => void;
 }
 
-export function CompanyFormModal({ open, onOpenChange, company, onSuccessCreate, onSuccess }: CompanyFormModalProps) {
+export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyType, onSuccessCreate, onSuccess }: CompanyFormModalProps) {
   const [formData, setFormData] = useState<Partial<Company>>({
     name: '',
     code: '',
@@ -30,7 +31,9 @@ export function CompanyFormModal({ open, onOpenChange, company, onSuccessCreate,
     address: '',
     city: '',
     gst_number: '',
-    status: 'active'
+    status: 'active',
+    company_type: defaultCompanyType || 'client',
+    company_name: ''
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -41,7 +44,15 @@ export function CompanyFormModal({ open, onOpenChange, company, onSuccessCreate,
   useEffect(() => {
     if (open) {
       if (company) {
-        setFormData({ ...company });
+        setFormData({ 
+          ...company,
+          address: company.address || '',
+          city: company.city || '',
+          gst_number: company.gst_number || '',
+          status: company.status || 'active',
+          company_type: company.company_type || defaultCompanyType || 'client',
+          company_name: company.company_name || ''
+        });
       } else {
         setFormData({
           name: '',
@@ -52,7 +63,9 @@ export function CompanyFormModal({ open, onOpenChange, company, onSuccessCreate,
           address: '',
           city: '',
           gst_number: '',
-          status: 'active'
+          status: 'active',
+          company_type: defaultCompanyType || 'client',
+          company_name: ''
         });
       }
       setErrors({});
@@ -125,6 +138,17 @@ export function CompanyFormModal({ open, onOpenChange, company, onSuccessCreate,
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="company_name">Company Name</Label>
+              <Input
+                id="company_name"
+                value={formData.company_name || ''}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="code">Client Code</Label>
               <Input
                 id="code"
@@ -134,9 +158,6 @@ export function CompanyFormModal({ open, onOpenChange, company, onSuccessCreate,
                 placeholder="e.g. ACME"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="contact_person">Contact Person</Label>
               <Input

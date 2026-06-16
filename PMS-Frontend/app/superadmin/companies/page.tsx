@@ -26,6 +26,7 @@ export default function CompaniesPage() {
     limit: 10,
     search: debouncedSearch || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
+    company_type: 'client',
   });
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -62,9 +63,9 @@ export default function CompaniesPage() {
           <div>
             <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
               <Building2 className="w-8 h-8 text-blue-600" />
-              Companies
+              Client Companies
             </h1>
-            <p className="text-muted-foreground mt-1 text-lg">Manage tenant companies and their statuses.</p>
+            <p className="text-muted-foreground mt-1 text-lg">Manage your client companies and their statuses.</p>
           </div>
           <Button onClick={handleCreate} className="h-11 px-6 shadow-sm">
             <Plus className="w-4 h-4 mr-2" />
@@ -158,6 +159,7 @@ export default function CompaniesPage() {
         open={isFormOpen} 
         onOpenChange={setIsFormOpen} 
         company={selectedCompany} 
+        defaultCompanyType="client"
         onSuccessCreate={(company) => {
           setNewCompanyId(company.id);
           setShowAdminPrompt(true);

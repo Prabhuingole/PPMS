@@ -106,7 +106,7 @@ export default function LoginPage() {
       }
       if (['superadmin', 'admin'].includes(user.role)) {
         router.replace('/superadmin/dashboard');
-      } else if (['employee', 'intern', 'reporting_manager'].includes(user.role)) {
+      } else if (['employee', 'intern', 'reporting_manager', 'team_member', 'consultant'].includes(user.role)) {
         router.replace('/employee/dashboard');
       } else {
         // Unknown role, force logout
