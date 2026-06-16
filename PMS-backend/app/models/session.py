@@ -14,5 +14,7 @@ class UserSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     last_active_at = Column(DateTime, default=datetime.utcnow)
     is_active = Column(Boolean, default=True)
+    refresh_token_hash = Column(String, nullable=True)
+    refresh_token_expires_at = Column(DateTime, nullable=True)
 
     user = relationship("User", backref=backref("sessions", cascade="all, delete-orphan"))

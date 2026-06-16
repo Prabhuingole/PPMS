@@ -48,7 +48,8 @@ import { FormGrid } from '@/components/ui/form-grid';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { projectService } from '@/services/projectService';
-import { Project, ReportingManager, Employee } from '@/types';
+import { companyService } from '@/services/companyService';
+import { Project, ReportingManager, Employee, Company } from '@/types';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,17 +71,27 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 const projectSchema = z.object({
-  name: z.string()
-    .min(2, 'Project Name is required')
+  name: z.string({ required_error: 'This field is required' })
+    .min(1, 'This field is required')
     .regex(/^[a-zA-Z _\-().&]+$/, 'Project name must not contain numbers or special characters'),
-  code: z.string().min(2, 'Project ID is required'),
+  code: z.string().optional().nullable(),
   description: z.string().optional(),
-  status: z.enum(['planning', 'active', 'on-hold', 'completed']),
+  status: z.enum(['planning', 'active', 'on-hold', 'completed'], { required_error: 'Please select an option' }),
   start_date: z.string().optional().nullable(),
   end_date: z.string().optional().nullable(),
   total_hours: z.coerce.number().optional(),
-  reporting_manager_id: z.string().min(1, 'Reporting Manager is required'),
+  reporting_manager_id: z.string().optional().nullable(),
   member_ids: z.array(z.number()),
+  owner_company_id: z.string({ required_error: 'Please select an option' }).min(1, 'Please select an option'),
+  participating_company_ids: z.array(z.string()).min(1, 'This field is required'),
+}).superRefine((data, ctx) => {
+  if (!data.participating_company_ids.includes(data.owner_company_id)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Owner Company must be one of the Participating Companies",
+      path: ["owner_company_id"]
+    });
+  }
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -105,6 +116,11 @@ export function ProjectFormModal({
   const { token } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    companyService.getCompanies().then(setCompanies).catch(console.error);
+  }, []);
 
   const filteredEmployees = employees.filter(emp =>
     (emp?.full_name?.toLowerCase().includes(employeeSearch.toLowerCase())) ||
@@ -135,6 +151,8 @@ export function ProjectFormModal({
       total_hours: 0,
       reporting_manager_id: '',
       member_ids: [],
+      owner_company_id: '',
+      participating_company_ids: [],
     }
   });
 
@@ -150,7 +168,7 @@ export function ProjectFormModal({
       if (editingProject) {
         form.reset({
           name: editingProject.name,
-          code: editingProject.code,
+          code: editingProject.code || '',
           description: editingProject.description || '',
           status: editingProject.status,
           start_date: editingProject.start_date ? format(new Date(editingProject.start_date), 'yyyy-MM-dd') : '',
@@ -158,6 +176,8 @@ export function ProjectFormModal({
           total_hours: editingProject.total_hours || 0,
           reporting_manager_id: editingProject.reporting_manager_id?.toString() || '',
           member_ids: editingProject.members?.map(m => m.id) || [],
+          owner_company_id: editingProject.owner_company_id?.toString() || '',
+          participating_company_ids: editingProject.participating_companies?.map(c => c.id.toString()) || [],
         });
 
         setIsLoadingDocs(true);
@@ -175,6 +195,8 @@ export function ProjectFormModal({
           total_hours: 0,
           reporting_manager_id: '',
           member_ids: [],
+          owner_company_id: '',
+          participating_company_ids: [],
         });
         setProjectDocs([]);
       }
@@ -206,12 +228,30 @@ export function ProjectFormModal({
   const onSubmit = async (values: ProjectFormValues) => {
     try {
       setIsSubmitting(true);
+
+      // Validate document types before initializing project
+      const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.csv', '.xlsx', '.docx', '.zip', '.txt'];
+      if (pendingDocs.length > 0) {
+        const invalidDocs = pendingDocs.filter(doc => {
+          const ext = doc.file.name.substring(doc.file.name.lastIndexOf('.')).toLowerCase();
+          return !ALLOWED_EXTENSIONS.includes(ext);
+        });
+
+        if (invalidDocs.length > 0) {
+          toast.error(`Unsupported document format. Supported formats are: ${ALLOWED_EXTENSIONS.join(', ')}`);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       const payload = {
         ...values,
         total_hours: values.total_hours ? parseFloat(values.total_hours as unknown as string) : 0,
-        reporting_manager_id: values.reporting_manager_id ? parseInt(values.reporting_manager_id) : null,
+        reporting_manager_id: (values.reporting_manager_id && values.reporting_manager_id !== 'none') ? parseInt(values.reporting_manager_id) : null,
         start_date: values.start_date ? new Date(values.start_date).toISOString() : null,
         end_date: values.end_date ? new Date(values.end_date).toISOString() : null,
+        owner_company_id: parseInt(values.owner_company_id),
+        participating_company_ids: values.participating_company_ids.map(id => parseInt(id))
       };
 
       let projectId = editingProject?.id;
@@ -273,9 +313,7 @@ export function ProjectFormModal({
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Project Name <span className="text-destructive">*</span>
-                        </FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Project Name</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Enter project name..."
@@ -296,9 +334,7 @@ export function ProjectFormModal({
                     name="code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Project ID <span className="text-destructive">*</span>
-                        </FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">Project ID (Optional)</FormLabel>
                         <FormControl>
                           <Input placeholder="e.g. ARK-001" {...field} value={field.value || ''} className="h-10 uppercase" />
                         </FormControl>
@@ -337,9 +373,7 @@ export function ProjectFormModal({
                     name="status"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Project Status <span className="text-destructive">*</span>
-                        </FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Project Status</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-10 w-full">
@@ -362,23 +396,22 @@ export function ProjectFormModal({
                     name="reporting_manager_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Reporting Manager <span className="text-destructive">*</span>
-                        </FormLabel>
+                        <FormLabel className="text-sm font-semibold text-foreground">Reporting Manager</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value ? String(field.value) : ""}
+                          value={field.value ? String(field.value) : "none"}
                         >
                           <FormControl>
                             <SelectTrigger className="h-10 w-full">
                               <SelectValue placeholder="Assign a manager">
-                                {field.value
+                                {field.value && field.value !== 'none'
                                   ? managers.find(m => String(m.id) === String(field.value))?.full_name || field.value
-                                  : ""}
+                                  : "Unassigned"}
                               </SelectValue>
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="none">Unassigned</SelectItem>
                             {managers.map(m => (
                               <SelectItem key={m.id} value={String(m.id)}>
                                 {m.full_name}
@@ -386,6 +419,63 @@ export function ProjectFormModal({
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </FormGrid>
+
+                <FormGrid className="mt-4">
+                  <FormField
+                    control={form.control}
+                    name="owner_company_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Owner Company</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-10 w-full">
+                              <SelectValue placeholder="Select Owner Company" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies.map(c => (
+                              <SelectItem key={c.id} value={String(c.id)}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="participating_company_ids"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Participating Companies</FormLabel>
+                        <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md custom-scrollbar bg-card">
+                          {companies.map(c => (
+                            <div key={c.id} className="flex flex-row items-center space-x-3">
+                              <Checkbox
+                                checked={field.value?.includes(String(c.id))}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    field.onChange([...(field.value || []), String(c.id)]);
+                                  } else {
+                                    field.onChange(field.value?.filter(id => id !== String(c.id)));
+                                  }
+                                }}
+                              />
+                              <span className="text-sm">{c.name}</span>
+                            </div>
+                          ))}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -467,7 +557,7 @@ export function ProjectFormModal({
                   <div className="relative w-full sm:w-64">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search employees..."
+                      placeholder="Search team members..."
                       value={employeeSearch}
                       onChange={(e) => setEmployeeSearch(e.target.value)}
                       className="pl-9 h-9 rounded-md border-border text-sm bg-card"
@@ -490,6 +580,15 @@ export function ProjectFormModal({
                               const checked = !isSelected;
                               if (checked) {
                                 field.onChange([...(field.value || []), employee.id]);
+
+                                // Auto-select employee's company as participating company
+                                if (employee.company_id) {
+                                  const companyIdStr = employee.company_id.toString();
+                                  const currentParticipating = form.getValues('participating_company_ids') || [];
+                                  if (!currentParticipating.includes(companyIdStr)) {
+                                    form.setValue('participating_company_ids', [...currentParticipating, companyIdStr], { shouldValidate: true });
+                                  }
+                                }
                               } else {
                                 field.onChange(field.value?.filter((value) => value !== employee.id));
                               }
@@ -510,7 +609,7 @@ export function ProjectFormModal({
                               </Avatar>
                               <div className="flex flex-col flex-1 min-w-0">
                                 <span className="text-sm font-medium text-foreground leading-none mb-1 truncate" title={employee.full_name}>{employee.full_name}</span>
-                                <span className="text-xs text-muted-foreground truncate" title={employee.designation || 'Specialist'}>{employee.designation || 'Specialist'}</span>
+                                <span className="text-xs text-muted-foreground truncate" title={employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}>{employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}</span>
                               </div>
                             </div>
                           </FormItem>
@@ -519,7 +618,7 @@ export function ProjectFormModal({
                     />
                   )) : (
                     <div className="col-span-1 md:col-span-2 py-8 text-center text-sm text-muted-foreground">
-                      No team members found matching "{employeeSearch}"
+                      "No team members found matching "{employeeSearch}"
                     </div>
                   )}
                 </div>
@@ -600,17 +699,29 @@ export function ProjectFormModal({
                         onChange={(e) => {
                           const files = Array.from(e.target.files || []);
                           if (files.length > 0) {
-                            const newDocs: PendingDoc[] = files.map(file => {
-                              const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                              return {
-                                id: Math.random().toString(36).substring(7),
-                                file,
-                                docType: 'PRD',
-                                displayName: nameWithoutExt,
-                                prepDate: format(new Date(), 'yyyy-MM-dd')
-                              };
+                            const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.csv', '.xlsx', '.docx', '.zip', '.txt'];
+                            const validFiles = files.filter(file => {
+                              const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
+                              return ALLOWED_EXTENSIONS.includes(ext);
                             });
-                            setPendingDocs(prev => [...prev, ...newDocs]);
+
+                            if (validFiles.length !== files.length) {
+                              toast.error(`Some files were removed. Supported formats are: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                            }
+
+                            if (validFiles.length > 0) {
+                              const newDocs: PendingDoc[] = validFiles.map(file => {
+                                const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                                return {
+                                  id: Math.random().toString(36).substring(7),
+                                  file,
+                                  docType: 'PRD',
+                                  displayName: nameWithoutExt,
+                                  prepDate: format(new Date(), 'yyyy-MM-dd')
+                                };
+                              });
+                              setPendingDocs(prev => [...prev, ...newDocs]);
+                            }
                           }
                           // Reset input value so same files can be re-selected if needed
                           e.target.value = '';

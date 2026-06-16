@@ -34,3 +34,4 @@ pydantic-settings
 boto3
 slowapi
 secure
+reportlab==4.1.0

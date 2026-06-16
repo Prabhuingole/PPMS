@@ -1,5 +1,5 @@
 import uvicorn
-from fastapi import FastAPI 
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -16,10 +16,18 @@ from app.models.notification import Notification
 from app.models.session import UserSession
 from app.models.audit_log import AuditLog
 from app.models.note import NoteWorkspace, NotePage, NoteChecklistItem
+from app.models.deliverable import Deliverable
+from app.models.task import Task
+from app.models.resource_allocation import ResourceAllocation
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.routes import auth, employee_management, reporting_manager, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance
-from fastapi import WebSocket, WebSocketDisconnect, Request
+from app.routes.billing import router as billing_router
+from app.routes.deliverables import router as deliverables_router
+from app.routes.tasks import router as tasks_router
+from app.routes.task_comments import router as task_comments_router
+from app.routes.allocations import router as allocations_router
+from app.routes.resource_reporting import router as resource_reporting_router
+from app.routes import auth, employee_management, reporting_manager, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance, companies
 from app.core.websockets import manager
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -102,6 +110,7 @@ app.include_router(employee_management.router)
 app.include_router(reporting_manager.router)
 app.include_router(project_management.router)
 app.include_router(documents.router)
+app.include_router(billing_router, prefix='/api/billing', tags=['billing'])
 app.include_router(attendance.router)
 app.include_router(templates.router)
 app.include_router(timesheets.router)
@@ -109,6 +118,12 @@ app.include_router(notifications.router)
 app.include_router(audit_logs.router)
 app.include_router(notes.router)
 app.include_router(admin_management.router)
+app.include_router(companies.router)
+app.include_router(deliverables_router)
+app.include_router(tasks_router)
+app.include_router(task_comments_router)
+app.include_router(allocations_router)
+app.include_router(resource_reporting_router)
 
 # 4. Health Check
 @app.get("/health")

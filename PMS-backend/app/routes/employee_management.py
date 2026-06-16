@@ -6,6 +6,7 @@ import math
 
 from app.database.session import get_db
 from app.models.user import User, UserRole
+from app.models.company import Company
 from app.schemas.user import (
     EmployeeCreate, EmployeeUpdate, EmployeeResponse, 
     EmployeeCreateResponse, EmployeeList
@@ -35,6 +36,16 @@ def create_employee(
     if db.query(User).filter(User.employee_id == payload.employee_id).first():
         raise HTTPException(status_code=400, detail="Employee ID already exists")
 
+    if admin.role == UserRole.ADMIN:
+        payload.company_id = admin.company_id
+
+    if not payload.company_id:
+        raise HTTPException(status_code=400, detail="Company assignment is required")
+        
+    company = db.query(Company).filter(Company.id == payload.company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
     # Generate secure random temporary password
     alphabet = string.ascii_letters + string.digits + "@#*!?"
     temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
@@ -48,6 +59,7 @@ def create_employee(
         role=payload.role,
         designation=payload.designation,
         joining_date=payload.joining_date,
+        company_id=payload.company_id,
         hashed_password=hashed_password,
         must_change_password=True,
         is_active=True
@@ -91,7 +103,11 @@ def get_employees(
     db: Session = Depends(get_db),
     admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
-    query = db.query(User).filter(User.role.notin_([UserRole.SUPERADMIN, UserRole.ADMIN]))
+    from sqlalchemy.orm import joinedload
+    query = db.query(User).options(joinedload(User.company)).filter(User.role.notin_([UserRole.SUPERADMIN, UserRole.ADMIN]))
+    
+    if admin.role == UserRole.ADMIN:
+        query = query.filter(User.company_id == admin.company_id)
 
     # Filters
     if user_type:
@@ -125,8 +141,11 @@ def get_employee_details(
     db: Session = Depends(get_db),
     admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
-    user = db.query(User).filter(User.id == employee_id_pk).first()
+    from sqlalchemy.orm import joinedload
+    user = db.query(User).options(joinedload(User.company)).filter(User.id == employee_id_pk).first()
     if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if admin.role == UserRole.ADMIN and user.company_id != admin.company_id:
         raise HTTPException(status_code=404, detail="Employee not found")
     return user
 
@@ -141,6 +160,8 @@ def update_employee(
 ):
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if admin.role == UserRole.ADMIN and user.company_id != admin.company_id:
         raise HTTPException(status_code=404, detail="Employee not found")
 
     old_values = {
@@ -182,10 +203,17 @@ def delete_employee(
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
         raise HTTPException(status_code=404, detail="Employee not found")
+    if admin.role == UserRole.ADMIN and user.company_id != admin.company_id:
+        raise HTTPException(status_code=404, detail="Employee not found")
     
+    from sqlalchemy.exc import IntegrityError
     old_values = {"full_name": user.full_name, "email": user.email}
-    db.delete(user)
-    db.commit()
+    try:
+        db.delete(user)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Cannot delete user with historical financial records")
     
     create_audit_log(
         db=db,
@@ -213,6 +241,8 @@ def toggle_employee_status(
 ):
     user = db.query(User).filter(User.id == employee_id_pk).first()
     if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if admin.role == UserRole.ADMIN and user.company_id != admin.company_id:
         raise HTTPException(status_code=404, detail="Employee not found")
     
     old_status = user.is_active

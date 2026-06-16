@@ -24,11 +24,11 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 
 const setupSchema = z.object({
-  new_email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
-  new_password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirm_password: z.string()
+  new_email: z.string({ required_error: 'This field is required' }).trim().toLowerCase().email('Please enter a valid email address'),
+  new_password: z.string({ required_error: 'This field is required' }).min(8, 'Password must be at least 8 characters'),
+  confirm_password: z.string({ required_error: 'This field is required' })
 }).refine((data) => data.new_password === data.confirm_password, {
-  message: "Passwords don't match",
+  message: "Passwords do not match",
   path: ["confirm_password"],
 });
 
@@ -147,7 +147,7 @@ export default function SetupAccountPage() {
                     name="new_email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-500">Corporate Email</FormLabel>
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-500">Corporate Email</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -169,7 +169,7 @@ export default function SetupAccountPage() {
                     name="new_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-500">New Password</FormLabel>
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-500">New Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
@@ -201,7 +201,7 @@ export default function SetupAccountPage() {
                     name="confirm_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-500">Confirm Password</FormLabel>
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-500">Confirm Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input

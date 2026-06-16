@@ -55,6 +55,9 @@ type Entry = {
   taskTitle: string;
   description: string;
   status: string;
+  billingStatus?: string;
+  isBillable?: boolean;
+  billedRate?: number;
   attachmentPath?: string | null;
   attachmentName?: string | null;
   isUploading?: boolean;
@@ -78,6 +81,9 @@ const blankEntry = (): Entry => ({
   taskTitle: '',
   description: '',
   status: 'Pending',
+  billingStatus: 'DRAFT',
+  isBillable: true,
+  billedRate: 0,
   attachmentPath: null,
   attachmentName: null,
   isUploading: false,
@@ -130,6 +136,9 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
               taskTitle: ts.task_title || '',
               description: ts.description || '',
               status: ts.task_status || 'Pending',
+              billingStatus: ts.billing_status || 'DRAFT',
+              isBillable: ts.is_billable !== undefined ? ts.is_billable : true,
+              billedRate: ts.billed_rate || 0,
               attachmentPath: ts.attachment_path || null,
               attachmentName: ts.attachment_name || null,
               isUploading: false,
@@ -341,6 +350,8 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             category: e.categoryId || null,
             subcategory: e.subcategory || null,
             day: day,
+            is_billable: e.isBillable,
+            billed_rate: e.billedRate || 0,
             attachment_path: e.attachmentPath || null,
             attachment_name: e.attachmentName || null,
             attendance: attendance,
@@ -466,13 +477,13 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
                   <AnimatePresence>
                     {(attendance === 'late-arrival' || attendance === 'early-arrival') && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="pt-2 space-y-2 overflow-hidden">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Arrival Time <span className="text-red-400">*</span></Label>
+                        <Label required className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Arrival Time</Label>
                         <Input type="time" value={arrivalTime} onChange={(e) => setArrivalTime(e.target.value)} className="h-10 rounded-xl border-border text-xs font-bold focus:border-indigo-500" />
                       </motion.div>
                     )}
                     {attendance === 'half-day' && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="pt-2 space-y-2 overflow-hidden">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Half Day Period <span className="text-red-400">*</span></Label>
+                        <Label required className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Half Day Period</Label>
                         <Select value={halfDayPeriod} onValueChange={(v) => v && setHalfDayPeriod(v)}>
                           <SelectTrigger className="h-10 rounded-xl border-border text-xs font-bold focus:border-indigo-500 bg-card">
                             <SelectValue placeholder="Select" />
@@ -628,6 +639,8 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
   handleTaskFileUpload: (e: React.ChangeEvent<HTMLInputElement>, entryId: string) => void;
   entriesCount: number;
 }) => {
+  const isLocked = entry.billingStatus === 'INVOICED' || entry.billingStatus === 'PAID';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -640,8 +653,11 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
         <div className="p-4 sm:p-6 space-y-5 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
             <div className="sm:col-span-5 space-y-1.5 min-w-0">
-              <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Project <span className="text-red-400">*</span></Label>
-              <Select value={entry.projectId} onValueChange={(v) => v && updateEntry(entry.id, 'projectId', v)}>
+              <div className="flex items-center gap-2">
+                <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Project</Label>
+                {isLocked && <Badge variant="secondary" className="bg-slate-100 text-[8px]">Locked</Badge>}
+              </div>
+              <Select disabled={isLocked} value={entry.projectId} onValueChange={(v) => v && updateEntry(entry.id, 'projectId', v)}>
                 <SelectTrigger className="h-10 rounded-lg border-border text-xs font-bold w-full min-w-0 overflow-hidden">
                   <SelectValue placeholder="Select Project" className="truncate" />
                 </SelectTrigger>
@@ -711,6 +727,7 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
               <div className="flex items-center gap-1.5">
                 <div className="relative flex-1">
                   <Input 
+                    disabled={isLocked}
                     type="number" min="0" max="23"
                     value={entry.entryHours === 0 ? '' : entry.entryHours}
                     onChange={(e) => updateEntry(entry.id, 'entryHours', Math.min(23, Math.max(0, parseInt(e.target.value) || 0)))}
@@ -722,6 +739,7 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                 <span className="text-muted-foreground/50 font-bold text-lg">:</span>
                 <div className="relative flex-1">
                   <Input 
+                    disabled={isLocked}
                     type="number" min="0" max="59"
                     value={entry.entryMinutes === 0 ? '' : entry.entryMinutes}
                     onChange={(e) => updateEntry(entry.id, 'entryMinutes', Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
@@ -752,7 +770,7 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                 size="icon" 
                 onClick={() => removeRow(entry.id)}
                 className="h-10 w-10 text-muted-foreground/50 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                disabled={entriesCount === 1}
+                disabled={entriesCount === 1 || isLocked}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -760,8 +778,9 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Name <span className="text-red-400">*</span></Label>
+            <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Name</Label>
             <Input 
+              disabled={isLocked}
               value={entry.taskTitle}
               onChange={(e) => updateEntry(entry.id, 'taskTitle', e.target.value)}
               placeholder="e.g. API Integration, UI Design, Bug Fix..."
@@ -779,12 +798,13 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
             <div className="sm:col-span-8 space-y-1.5">
-              <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Description <span className="text-red-400">*</span></Label>
+              <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Description</Label>
               <textarea 
+                disabled={isLocked}
                 value={entry.description}
                 onChange={(e) => updateEntry(entry.id, 'description', e.target.value)}
                 placeholder="Describe what you worked on in detail..."
-                className="w-full h-full min-h-[90px] bg-muted border border-border rounded-xl p-4 text-sm font-medium outline-none focus:border-indigo-400 focus:bg-card transition-all resize-none"
+                className="w-full h-full min-h-[90px] bg-muted border border-border rounded-xl p-4 text-sm font-medium outline-none focus:border-indigo-400 focus:bg-card transition-all resize-none disabled:opacity-50"
               />
             </div>
             

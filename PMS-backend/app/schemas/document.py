@@ -6,6 +6,7 @@ class ProjectDocumentBase(BaseModel):
     doc_type: str
     display_name: Optional[str] = None
     preparation_date: Optional[datetime] = None
+    company_id: Optional[int] = None
 
 class ProjectDocumentCreate(ProjectDocumentBase):
     filename: str

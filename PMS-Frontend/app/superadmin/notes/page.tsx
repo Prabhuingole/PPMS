@@ -241,7 +241,7 @@ export default function SuperadminNotesPage() {
         {/* LEFT SIDEBAR: USERS IN PROJECT */}
         <div className="w-full max-w-[240px] bg-slate-50/50 border-r border-border flex flex-col shrink-0">
           <div className="p-4 border-b border-border">
-            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Employees with Lists</h2>
+            <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Team Members with Lists</h2>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {projectUsers.length === 0 ? (

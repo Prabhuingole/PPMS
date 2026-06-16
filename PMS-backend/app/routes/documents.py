@@ -12,6 +12,8 @@ from app.models.project import Project
 from app.models.user import User
 from app.schemas.document import ProjectDocumentResponse
 from app.core.deps import get_current_user
+from app.core.tenant import current_tenant_ctx
+from app.services.visibility import DocumentVisibilityService, ProjectVisibilityService
 from app.core.s3 import storage
 from fastapi import BackgroundTasks, Request
 from app.core.websockets import manager
@@ -34,23 +36,19 @@ async def upload_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Verify project exists
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    
-    # Check if user is member or superadmin
-    if current_user.role not in ["superadmin", "admin"]:
-        is_member = any(m.id == current_user.id for m in project.members)
-        if not is_member:
-            raise HTTPException(status_code=403, detail="Not authorized to upload to this project")
+    if not ProjectVisibilityService.can_view(current_user, project):
+        raise HTTPException(status_code=404, detail="Project not found")
 
-    ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".csv", ".xlsx", ".docx", ".zip"}
+    ALLOWED_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".csv", ".xlsx", ".docx", ".zip", ".txt"}
     ALLOWED_MIMES = {
         "application/pdf", 
         "image/jpeg", 
         "image/png", 
         "text/csv", 
+        "text/plain",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
         "application/zip",
@@ -59,7 +57,7 @@ async def upload_document(
     
     file_extension = os.path.splitext(file.filename)[1].lower()
     if file_extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Unsupported file extension. Allowed: pdf, jpg, jpeg, png, csv, xlsx, docx, zip")
+        raise HTTPException(status_code=400, detail="Unsupported file extension. Allowed: pdf, jpg, jpeg, png, csv, xlsx, docx, zip, txt")
         
     if file.content_type not in ALLOWED_MIMES:
         raise HTTPException(status_code=400, detail="Unsupported MIME type")
@@ -89,6 +87,7 @@ async def upload_document(
         display_name=display_name or file.filename,
         preparation_date=prep_date,
         project_id=project_id,
+        company_id=project.owner_company_id,
         uploaded_by_id=current_user.id
     )
     
@@ -118,14 +117,8 @@ def get_project_documents(
     current_user: User = Depends(get_current_user)
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
-    if not project:
+    if not project or not ProjectVisibilityService.can_view(current_user, project):
         raise HTTPException(status_code=404, detail="Project not found")
-        
-    # Check access
-    if current_user.role not in ["superadmin", "admin"]:
-        is_member = any(m.id == current_user.id for m in project.members)
-        if not is_member:
-            raise HTTPException(status_code=403, detail="Not authorized to view documents for this project")
             
     return db.query(ProjectDocument).filter(ProjectDocument.project_id == project_id).all()
 
@@ -136,6 +129,7 @@ def download_document(
     document_id: int,
     request: Request,
     inline: bool = False,
+    as_json: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -143,12 +137,8 @@ def download_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
-    # Check access to project
-    project = db.query(Project).filter(Project.id == doc.project_id).first()
-    if current_user.role not in ["superadmin", "admin"]:
-        is_member = any(m.id == current_user.id for m in project.members)
-        if not is_member:
-            raise HTTPException(status_code=403, detail="Not authorized to download this document")
+    if not DocumentVisibilityService.can_view(current_user, doc):
+        raise HTTPException(status_code=404, detail="Document not found")
             
     from fastapi.responses import RedirectResponse
     
@@ -164,7 +154,7 @@ def download_document(
         request=request
     )
     
-    if inline:
+    if inline or as_json:
         return {"url": download_url, "filename": doc.filename}
         
     return RedirectResponse(url=download_url)
@@ -181,12 +171,8 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         
-    # Check access to project
-    project = db.query(Project).filter(Project.id == doc.project_id).first()
-    if current_user.role not in ["superadmin", "admin"]:
-        is_member = any(m.id == current_user.id for m in project.members)
-        if not is_member:
-            raise HTTPException(status_code=403, detail="Not authorized to delete this document")
+    if not DocumentVisibilityService.can_view(current_user, doc):
+        raise HTTPException(status_code=404, detail="Document not found")
             
     # Try deleting from storage
     try:

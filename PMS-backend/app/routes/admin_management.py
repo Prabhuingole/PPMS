@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
 import math
@@ -8,6 +8,7 @@ import string
 
 from app.database.session import get_db
 from app.models.user import User, UserRole
+from app.models.company import Company
 from app.schemas.user import EmployeeCreate, EmployeeResponse, EmployeeCreateResponse, EmployeeList, EmployeeUpdate
 from app.core.security import get_password_hash
 from app.core.deps import check_roles
@@ -39,6 +40,13 @@ def create_admin(
     if payload.employee_id and db.query(User).filter(User.employee_id == payload.employee_id).first():
         raise HTTPException(status_code=400, detail="Employee ID already exists")
 
+    if not payload.company_id:
+        raise HTTPException(status_code=400, detail="Company assignment is required")
+        
+    company = db.query(Company).filter(Company.id == payload.company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
     # Generate secure random temporary password
     alphabet = string.ascii_letters + string.digits + "@#*!?"
     temp_password = ''.join(secrets.choice(alphabet) for i in range(12))
@@ -52,6 +60,7 @@ def create_admin(
         role=payload.role,
         designation=payload.designation,
         joining_date=payload.joining_date,
+        company_id=payload.company_id,
         hashed_password=hashed_password,
         must_change_password=True,
         is_active=True,
@@ -92,7 +101,10 @@ def get_admins(
     db: Session = Depends(get_db),
     admin: User = require_superadmin
 ):
-    query = db.query(User).filter(User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN]))
+    query = db.query(User).options(joinedload(User.company)).filter(User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN]))
+    
+    if admin.role == UserRole.ADMIN:
+        query = query.filter(User.company_id == admin.company_id, User.role != UserRole.SUPERADMIN)
 
     if status_filter:
         if status_filter == "active":
@@ -124,8 +136,10 @@ def get_admin(
     db: Session = Depends(get_db),
     admin: User = require_superadmin
 ):
-    user = db.query(User).filter(User.id == user_id, User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN])).first()
+    user = db.query(User).options(joinedload(User.company)).filter(User.id == user_id, User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN])).first()
     if not user:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    if admin.role == UserRole.ADMIN and user.company_id != admin.company_id:
         raise HTTPException(status_code=404, detail="Admin not found")
     return user
 
@@ -140,6 +154,8 @@ def delete_admin(
     user_to_delete = db.query(User).filter(User.id == user_id, User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN])).first()
     
     if not user_to_delete:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    if admin.role == UserRole.ADMIN and user_to_delete.company_id != admin.company_id:
         raise HTTPException(status_code=404, detail="Admin not found")
         
     if user_to_delete.id == admin.id:
@@ -174,6 +190,8 @@ def update_admin(
 ):
     user_to_update = db.query(User).filter(User.id == user_id, User.role.in_([UserRole.SUPERADMIN, UserRole.ADMIN])).first()
     if not user_to_update:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    if admin.role == UserRole.ADMIN and user_to_update.company_id != admin.company_id:
         raise HTTPException(status_code=404, detail="Admin not found")
         
     # Security: Do not allow modifying the primary system admin's email or role

@@ -1,4 +1,26 @@
-export type UserRole = 'superadmin' | 'admin' | 'reporting_manager' | 'employee' | 'intern';
+export type UserRole = 'superadmin' | 'admin' | 'reporting_manager' | 'employee' | 'team_member' | 'intern' | 'consultant';
+
+export interface Company {
+  id: number;
+  name: string;
+  code: string;
+  status: string;
+  address?: string;
+  city?: string;
+  gst_number?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  logo_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  metrics?: {
+    team_member_count: number;
+    consultant_count: number;
+    reporting_manager_count: number;
+    project_count: number;
+  };
+}
 
 export interface User {
   id: string;
@@ -16,6 +38,8 @@ export interface User {
   is_mfa_enabled?: boolean;
   account_status?: string;
   last_login_at?: string;
+  company_id?: number;
+  company_name?: string;
 }
 
 export interface AuthState {
@@ -35,6 +59,8 @@ export interface Employee {
   designation: string;
   is_active: boolean;
   joining_date: string;
+  company_id?: number;
+  company_name?: string;
 }
 
 export interface EmployeeListResponse {
@@ -50,6 +76,7 @@ export interface ProjectMember {
   email: string;
   role: string;
   designation?: string;
+  company_name?: string;
 }
 
 export interface Project {
@@ -71,6 +98,9 @@ export interface Project {
   total_hours_worked?: number;
   total_hours_remaining?: number;
   my_hours_worked?: number;
+  owner_company_id?: number;
+  owner_company_name?: string;
+  participating_companies?: Company[];
 }
 
 export interface ProjectDocument {
@@ -101,6 +131,8 @@ export interface Timesheet {
   status: 'pending' | 'approved' | 'rejected';
   overtime: boolean;
   downtime: boolean;
+  company_id?: number;
+  company_name?: string;
 }
 
 export interface ManagedProjectBase {
@@ -116,7 +148,9 @@ export interface ReportingManager {
   email: string;
   mobile_number?: string;
   designation?: string;
-  status: string;
+  status: 'active' | 'inactive';
+  company_id?: number;
+  company_name?: string;
   created_at: string;
   updated_at: string;
   managed_projects?: ManagedProjectBase[];
@@ -177,4 +211,64 @@ export interface AdminWorkspaceOverview {
   total_tasks: number;
   completed_tasks: number;
   last_activity: string | null;
+}
+
+// Phase 12B/C New Types
+
+export type TaskStatus = 'BACKLOG' | 'TODO' | 'IN_PROGRESS' | 'BLOCKED' | 'REVIEW' | 'DONE';
+export type TaskPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+export interface Deliverable {
+  id: number;
+  project_id: number;
+  name: string;
+  description?: string;
+  status: string;
+  is_active: boolean;
+  target_date?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Task {
+  id: number;
+  project_id: number;
+  deliverable_id?: number;
+  assignee_id?: number;
+  creator_id: number;
+  title: string;
+  description?: string;
+  estimated_hours: number;
+  actual_hours: number;
+  status: TaskStatus;
+  priority: TaskPriority;
+  is_active: boolean;
+  due_date?: string;
+  created_at: string;
+  updated_at: string;
+  
+  // Relations mapped by API (optional)
+  deliverable?: Deliverable;
+}
+
+export interface ResourceAllocation {
+  id: number;
+  project_id: number;
+  user_id: number;
+  allocated_hours_per_week: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskComment {
+  id: number;
+  task_id: number;
+  user_id: number;
+  comment: string;
+  created_at: string;
+  updated_at: string;
+  user?: Partial<User>; // populated by API if needed, or matched manually
 }

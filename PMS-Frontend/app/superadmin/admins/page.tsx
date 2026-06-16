@@ -60,7 +60,8 @@ import { FormGrid } from '@/components/ui/form-grid';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { adminService } from '@/services/adminService';
-import { Employee } from '@/types';
+import { companyService } from '@/services/companyService';
+import { Employee, Company } from '@/types';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -68,12 +69,13 @@ import * as z from 'zod';
 import { useAuthStore } from '@/store/authStore';
 
 const adminSchema = z.object({
-  employee_id: z.string().min(2, 'Admin ID is required'),
-  full_name: z.string().min(2, 'Full Name is required').regex(/^[A-Za-z\s]+$/, 'Name cannot contain numbers or special characters'),
-  email: z.string().trim().toLowerCase().email('Invalid email').refine(val => val.endsWith('@gmail.com') || val === 'admin@sambhav.com', { message: 'Must be a @gmail.com address' }),
-  mobile_number: z.string().regex(/^[7-9]\d{9}$/, 'Must be a 10-digit Indian number starting with 7, 8, or 9'),
+  employee_id: z.string({ required_error: 'This field is required' }).min(1, 'This field is required'),
+  full_name: z.string({ required_error: 'This field is required' }).min(1, 'This field is required').regex(/^[A-Za-z\s]+$/, 'Name cannot contain numbers or special characters'),
+  email: z.string({ required_error: 'This field is required' }).trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com') || val === 'admin@sambhav.com', { message: 'Must be a @gmail.com address' }),
+  mobile_number: z.string({ required_error: 'This field is required' }).regex(/^[7-9]\d{9}$/, 'Please enter a valid number'),
   role: z.literal('admin'),
-  designation: z.string().min(2, 'Designation is required'),
+  designation: z.string({ required_error: 'This field is required' }).min(1, 'This field is required'),
+  company_id: z.string().optional(),
 });
 
 type AdminFormValues = z.infer<typeof adminSchema>;
@@ -104,8 +106,15 @@ export default function AdminListPage() {
       mobile_number: '',
       role: 'admin',
       designation: '',
+      company_id: '',
     }
   });
+
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    companyService.getCompanies().then(setCompanies).catch(console.error);
+  }, []);
 
   const fetchAdmins = async () => {
     try {
@@ -134,7 +143,8 @@ export default function AdminListPage() {
   const onSubmit = async (values: AdminFormValues) => {
     try {
       setIsSubmitting(true);
-      const result = await adminService.createAdmin(values);
+      const payload = { ...values, company_id: values.company_id ? parseInt(values.company_id) : undefined };
+      const result = await adminService.createAdmin(payload as any);
       setNewAdminName(result.full_name);
       setIsAddModalOpen(false);
       setIsPasswordModalOpen(true);
@@ -152,7 +162,8 @@ export default function AdminListPage() {
     if (!adminToEdit) return;
     try {
       setIsSubmitting(true);
-      await adminService.updateAdmin(adminToEdit.id, values);
+      const payload = { ...values, company_id: values.company_id ? parseInt(values.company_id) : undefined };
+      await adminService.updateAdmin(adminToEdit.id, payload as any);
       toast.success('Admin updated successfully');
       setIsEditModalOpen(false);
       setAdminToEdit(null);
@@ -270,7 +281,14 @@ export default function AdminListPage() {
               sortable: true,
               hideOnMobile: true,
               cell: (emp) => (
-                <span className="text-xs font-bold text-foreground">{emp.designation || 'System Admin'}</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-foreground">{emp.designation || 'System Admin'}</span>
+                  {emp.company_name && (
+                    <span className="text-[9px] font-bold text-indigo-500 tracking-wider">
+                      {emp.company_name}
+                    </span>
+                  )}
+                </div>
               )
             },
             {
@@ -312,6 +330,7 @@ export default function AdminListPage() {
                             mobile_number: emp.mobile_number || '',
                             role: 'admin',
                             designation: emp.designation || 'System Admin',
+                            company_id: emp.company_id?.toString() || '',
                           });
                           setIsEditModalOpen(true);
                         }}
@@ -357,7 +376,7 @@ export default function AdminListPage() {
                     name="employee_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Identifier <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Identifier</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -374,7 +393,7 @@ export default function AdminListPage() {
                     name="full_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Full Name <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Admin Name" {...field} className="h-10" />
                         </FormControl>
@@ -390,7 +409,7 @@ export default function AdminListPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Email Address <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Email Address</FormLabel>
                         <FormControl>
                           <Input placeholder="admin@sambhav.com" {...field} className="h-10" />
                         </FormControl>
@@ -403,7 +422,7 @@ export default function AdminListPage() {
                     name="mobile_number"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Mobile Number <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Mobile Number</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="9876543210"
@@ -421,16 +440,38 @@ export default function AdminListPage() {
                   />
                 </FormGrid>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="designation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Designation <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Designation</FormLabel>
                         <FormControl>
                           <Input placeholder="System Administrator" {...field} className="h-10" />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="company_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-10 w-full">
+                              <SelectValue placeholder="Select Company (Optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies.map(c => (
+                              <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -486,7 +527,7 @@ export default function AdminListPage() {
                     name="employee_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Identifier <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Identifier</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -503,7 +544,7 @@ export default function AdminListPage() {
                     name="full_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Full Name <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Admin Name" {...field} className="h-10" />
                         </FormControl>
@@ -519,7 +560,7 @@ export default function AdminListPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Email Address <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Email Address</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="admin@gmail.com" 
@@ -537,7 +578,7 @@ export default function AdminListPage() {
                     name="mobile_number"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Mobile Number <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Mobile Number</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="9876543210"
@@ -555,16 +596,38 @@ export default function AdminListPage() {
                   />
                 </FormGrid>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="designation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Designation <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Designation</FormLabel>
                         <FormControl>
                           <Input placeholder="System Administrator" {...field} className="h-10" />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="company_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-10 w-full">
+                              <SelectValue placeholder="Select Company (Optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies.map(c => (
+                              <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

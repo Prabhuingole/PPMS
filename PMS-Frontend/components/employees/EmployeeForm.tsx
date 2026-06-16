@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Users, AlertCircle, Save } from 'lucide-react';
+import { Loader2, Users, AlertCircle, Save, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -30,6 +30,10 @@ import { EnterpriseModalHeader } from '@/components/ui/enterprise-modal-header';
 import { EnterpriseModalFooter } from '@/components/ui/enterprise-modal-footer';
 import { FormSection } from '@/components/ui/form-section';
 import { FormGrid } from '@/components/ui/form-grid';
+
+import { useAuthStore } from '@/store/authStore';
+import { companyService } from '@/services/companyService';
+import { Company } from '@/types';
 
 type FormMode = 'create' | 'edit' | 'profile_edit';
 
@@ -66,9 +70,19 @@ export function EmployeeForm({
       mobile_number: '',
       role: 'employee',
       designation: '',
+      company_id: '',
     },
     mode: 'onChange', // enable dirty state detection easily
   });
+
+  const { user } = useAuthStore();
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    if (user?.role === 'superadmin') {
+      companyService.getCompanies().then(setCompanies).catch(console.error);
+    }
+  }, [user?.role]);
 
   // Reset form when defaultValues change or modal opens
   useEffect(() => {
@@ -91,7 +105,7 @@ export function EmployeeForm({
   const content = (
     <>
       <EnterpriseModalHeader
-        title={isCreate ? 'Add Employee' : isProfileEdit ? 'Edit Profile Details' : 'Edit Employee Details'}
+        title={isCreate ? 'Add Team Member' : isProfileEdit ? 'Edit Profile Details' : 'Edit Team Member Details'}
         subtitle={isProfileEdit 
           ? 'Update your personal and professional information.' 
           : `Configure parameters for the ${isCreate ? 'new' : 'existing'} human resource inside the network.`}
@@ -111,7 +125,7 @@ export function EmployeeForm({
                     name="employee_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Identifier <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Identifier</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="SAM001"
@@ -130,7 +144,7 @@ export function EmployeeForm({
                     name="full_name"
                     render={({ field }) => (
                       <FormItem>
-                      <FormLabel className="text-sm font-semibold text-foreground">Full Name <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
                       <FormControl>
                         <Input placeholder="John Doe" {...field} className="h-10" />
                       </FormControl>
@@ -148,7 +162,7 @@ export function EmployeeForm({
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold text-foreground">Email Address <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel required className="text-sm font-semibold text-foreground">Email Address</FormLabel>
                       <FormControl>
                         <Input placeholder="name@gmail.com" {...field} className="h-10" />
                       </FormControl>
@@ -161,7 +175,7 @@ export function EmployeeForm({
                   name="mobile_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm font-semibold text-foreground">Mobile Number <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel required className="text-sm font-semibold text-foreground">Mobile Number</FormLabel>
                       <FormControl>
                         <Input
                           placeholder="9876543210"
@@ -189,7 +203,7 @@ export function EmployeeForm({
                     name="role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">User Type <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">User Type</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value || defaultValues?.role}>
                           <FormControl>
                             <SelectTrigger className="h-10">
@@ -197,8 +211,33 @@ export function EmployeeForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="employee">Employee</SelectItem>
+                            <SelectItem value="employee">Team Member</SelectItem>
                             <SelectItem value="intern">Intern</SelectItem>
+                            <SelectItem value="consultant">Consultant</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                {user?.role === 'superadmin' && !isProfileEdit && (
+                  <FormField
+                    control={form.control}
+                    name="company_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || defaultValues?.company_id?.toString()}>
+                          <FormControl>
+                            <SelectTrigger className="h-10">
+                              <SelectValue placeholder="Select company (Optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies.map(c => (
+                              <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -211,7 +250,7 @@ export function EmployeeForm({
                   name="designation"
                   render={({ field }) => (
                     <FormItem className={isProfileEdit ? "md:col-span-2" : ""}>
-                      <FormLabel className="text-sm font-semibold text-foreground">Designation <span className="text-destructive">*</span></FormLabel>
+                      <FormLabel required className="text-sm font-semibold text-foreground">Designation</FormLabel>
                       <FormControl>
                         <Input placeholder="Software Engineer" {...field} className="h-10" />
                       </FormControl>
@@ -260,7 +299,7 @@ export function EmployeeForm({
                   <span>{isCreate ? 'Deploying...' : 'Saving...'}</span>
                 </div>
               ) : isCreate ? (
-                'Add Employee'
+                'Add Team Member'
               ) : (
                 <div className="flex items-center gap-2">
                   <Save className="h-4 w-4" />

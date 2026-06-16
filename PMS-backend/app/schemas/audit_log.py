@@ -5,6 +5,7 @@ from datetime import datetime
 class AuditLogCreate(BaseModel):
     user_id: Optional[int] = None
     user_name: Optional[str] = None
+    company_id: Optional[int] = None
     action: str
     entity_type: str
     entity_id: str
@@ -17,6 +18,8 @@ class AuditLogResponse(BaseModel):
     id: int
     user_id: Optional[int]
     user_name: Optional[str]
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
     action: str
     entity_type: str
     entity_id: str

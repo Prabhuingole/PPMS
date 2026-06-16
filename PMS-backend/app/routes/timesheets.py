@@ -13,6 +13,8 @@ from app.models.user import User
 from app.models.notification import Notification
 from app.schemas.timesheet import TimesheetCreate, TimesheetResponse
 from app.core.deps import get_current_user, get_superadmin
+from app.core.tenant import require_project_access, current_tenant_ctx
+from app.services.visibility import TimesheetVisibilityService, ProjectVisibilityService
 from app.core.audit import create_audit_log
 from fastapi import BackgroundTasks
 from app.core.websockets import manager
@@ -135,9 +137,17 @@ def create_timesheets(
 
     created = []
     for ts in timesheets:
+        company_id = None
+        if ts.project_id:
+            project = db.query(Project).filter(Project.id == ts.project_id).first()
+            if not project or not ProjectVisibilityService.can_view(current_user, project):
+                raise HTTPException(status_code=403, detail="Not authorized to submit timesheets for this project")
+            company_id = project.owner_company_id
+            
         is_unassigned = ts.project_id in unassigned_project_ids if ts.project_id else False
         new_ts = Timesheet(
             user_id=current_user.id,
+            company_id=company_id,
             project_id=ts.project_id,
             date=ts.date,
             hours=ts.hours,
@@ -153,7 +163,9 @@ def create_timesheets(
             arrival_time=ts.arrival_time,
             half_day_period=ts.half_day_period,
             status="pending",
-            is_unassigned_project=is_unassigned
+            is_unassigned_project=is_unassigned,
+            billed_rate=current_user.hourly_rate,
+            billed_currency=current_user.currency
         )
         db.add(new_ts)
         created.append(new_ts)
@@ -249,7 +261,7 @@ def get_my_timesheets(
     from app.models.project import Project
     base_query = db.query(Timesheet).options(
         joinedload(Timesheet.user),
-        joinedload(Timesheet.project)
+        joinedload(Timesheet.project), joinedload(Timesheet.company)
     ).filter(Timesheet.user_id == current_user.id)
     
     if project_id:
@@ -384,10 +396,12 @@ def get_all_timesheets(
     db: Session = Depends(get_db),
     admin: User = Depends(get_superadmin)
 ):
-    timesheets = db.query(Timesheet).options(
+    query = db.query(Timesheet).options(
         joinedload(Timesheet.user),
-        joinedload(Timesheet.project)
-    ).order_by(Timesheet.updated_at.desc()).all()
+        joinedload(Timesheet.project), joinedload(Timesheet.company)
+    )
+    query = TimesheetVisibilityService.get_visible_query(admin, db, query)
+    timesheets = query.order_by(Timesheet.updated_at.desc()).all()
     for ts in timesheets:
         ts.user_name = ts.user.full_name if ts.user else None
     return timesheets
@@ -402,7 +416,7 @@ def get_timesheets_by_project(
 ):
     query = db.query(Timesheet).options(
         joinedload(Timesheet.user),
-        joinedload(Timesheet.project)
+        joinedload(Timesheet.project), joinedload(Timesheet.company)
     ).filter(Timesheet.project_id == project_id)
     
     total = query.count()
@@ -431,8 +445,9 @@ def get_grouped_timesheets(
     """Get grouped timesheets for the superadmin queue."""
     query = db.query(Timesheet).options(
         joinedload(Timesheet.user),
-        joinedload(Timesheet.project)
+        joinedload(Timesheet.project), joinedload(Timesheet.company)
     )
+    query = TimesheetVisibilityService.get_visible_query(admin, db, query)
     
     if status != "all":
         query = query.filter(Timesheet.status == status)
@@ -449,7 +464,7 @@ def get_grouped_timesheets(
                 "user_id": ts.user_id,
                 "user_name": user.full_name if user else "Unknown",
                 "user_email": user.email if user else "",
-                "user_designation": user.designation if user and hasattr(user, 'designation') else "",
+                "user_designation": user.designation if user and hasattr(user, 'designation') else "", "user_company_name": getattr(user.company, "name", None) if getattr(user, "company", None) else None,
                 "date": date_str,
                 "attendance": ts.attendance or "full-day",
                 "arrival_time": ts.arrival_time,
@@ -496,6 +511,8 @@ def get_grouped_timesheets_paginated(
     
     subq = db.query(Timesheet.user_id, func.date(Timesheet.date).label('date_group')).join(Timesheet.user)
     
+    subq = TimesheetVisibilityService.get_visible_query(admin, db, subq)
+    
     if status != "all":
         subq = subq.filter(Timesheet.status == status)
         
@@ -524,7 +541,7 @@ def get_grouped_timesheets_paginated(
     
     timesheets = db.query(Timesheet).options(
         joinedload(Timesheet.user),
-        joinedload(Timesheet.project)
+        joinedload(Timesheet.project), joinedload(Timesheet.company)
     ).filter(or_(*group_filters)).order_by(Timesheet.updated_at.desc()).all()
     
     groups = {}
@@ -537,7 +554,7 @@ def get_grouped_timesheets_paginated(
                 "user_id": ts.user_id,
                 "user_name": user.full_name if user else "Unknown",
                 "user_email": user.email if user else "",
-                "user_designation": user.designation if user and hasattr(user, 'designation') else "",
+                "user_designation": user.designation if user and hasattr(user, 'designation') else "", "user_company_name": getattr(user.company, "name", None) if getattr(user, "company", None) else None,
                 "date": date_str,
                 "attendance": ts.attendance or "full-day",
                 "arrival_time": ts.arrival_time,
@@ -667,9 +684,14 @@ def update_timesheet_status(
     if not status_update.feedback or not status_update.feedback.strip():
         raise HTTPException(status_code=400, detail="Feedback is compulsory when updating a timesheet.")
 
+
     ts = db.query(Timesheet).filter(Timesheet.id == timesheet_id).first()
     if not ts:
         raise HTTPException(status_code=404, detail="Timesheet not found")
+        
+    if ts.billing_status in ["invoiced", "paid"]:
+        raise HTTPException(status_code=403, detail="Financial record is locked")
+
     old_status = ts.status
     ts.status = status_update.status
     ts.feedback = status_update.feedback
@@ -718,7 +740,7 @@ def get_timesheets_for_day(
     target_date = dt.strptime(date, "%Y-%m-%d").date()
     timesheets = db.query(Timesheet).options(
         joinedload(Timesheet.user),
-        joinedload(Timesheet.project)
+        joinedload(Timesheet.project), joinedload(Timesheet.company)
     ).filter(
         Timesheet.user_id == current_user.id,
         cast(Timesheet.date, Date) == target_date
@@ -747,6 +769,12 @@ def update_timesheets_for_day(
         cast(Timesheet.date, Date) == target_date
     ).all()
 
+
+    # Enforce financial immutability
+    for ex in existing:
+        if ex.billing_status in ["invoiced", "paid"]:
+            raise HTTPException(status_code=403, detail="Financial record is locked")
+
     if not existing:
         raise HTTPException(status_code=404, detail="No timesheet found for this date")
 
@@ -770,8 +798,16 @@ def update_timesheets_for_day(
     # Insert new entries
     created = []
     for ts_data in timesheets:
+        company_id = None
+        if ts_data.project_id:
+            project = db.query(Project).filter(Project.id == ts_data.project_id).first()
+            if not project or not ProjectVisibilityService.can_view(current_user, project):
+                raise HTTPException(status_code=403, detail="Not authorized to submit timesheets for this project")
+            company_id = project.owner_company_id
+
         new_ts = Timesheet(
             user_id=current_user.id,
+            company_id=company_id,
             project_id=ts_data.project_id,
             date=ts_data.date,
             hours=ts_data.hours,
@@ -786,7 +822,9 @@ def update_timesheets_for_day(
             attendance=ts_data.attendance,
             arrival_time=ts_data.arrival_time,
             half_day_period=ts_data.half_day_period,
-            status="pending"
+            status="pending",
+            billed_rate=current_user.hourly_rate,
+            billed_currency=current_user.currency
         )
         db.add(new_ts)
         created.append(new_ts)

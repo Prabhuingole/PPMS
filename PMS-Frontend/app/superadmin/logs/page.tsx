@@ -88,7 +88,7 @@ export default function ActivityLogsPage() {
                   options={[
                     { value: 'all', label: 'All Activity' },
                     { value: 'project', label: 'Projects' },
-                    { value: 'employee', label: 'Employees' },
+                    { value: 'employee', label: 'Team Members' },
                     { value: 'reporting_manager', label: 'Managers' },
                     { value: 'timesheet', label: 'Timesheets' },
                     { value: 'template', label: 'Templates' },

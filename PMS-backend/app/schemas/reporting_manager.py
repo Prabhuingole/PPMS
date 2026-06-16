@@ -6,7 +6,7 @@ from pydantic import BaseModel, EmailStr, field_validator
 class ReportingManagerBase(BaseModel):
     full_name: str
     email: EmailStr
-    mobile_number: str
+    mobile_number: Optional[str] = None
     designation: Optional[str] = None
     status: str = "active"
 

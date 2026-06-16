@@ -80,7 +80,7 @@ export function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className={cn("flex-1 px-3 space-y-0.5 relative z-10", collapsed ? "pt-4" : "pt-1")}>
+        <nav className={cn("flex-1 px-3 space-y-0.5 relative z-10 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full", collapsed ? "pt-4" : "pt-1")}>
           {menuItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/employee/dashboard' && pathname.startsWith(item.href));
             return (
@@ -88,6 +88,7 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
+                  title={collapsed ? item.label : undefined}
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 relative",
                     collapsed && "justify-center px-0",
@@ -113,13 +114,7 @@ export function Sidebar() {
                   )}
                 </Link>
 
-                {/* Tooltip for collapsed mode */}
-                {collapsed && (
-                  <div className="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-popover text-popover-foreground text-xs font-bold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 ring-1 ring-border">
-                    {item.label}
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-2 h-2 bg-popover rotate-45 ring-1 ring-border ring-r-0 ring-t-0" />
-                  </div>
-                )}
+
               </div>
             );
           })}

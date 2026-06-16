@@ -3,36 +3,58 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 import uuid
 import hashlib
+import os
+from fastapi.responses import JSONResponse
 from app.database.session import get_db
 from app.models.user import User
 from app.models.session import UserSession
-from app.schemas.user import LoginSchema, TokenResponse, ProfileUpdateSchema, ChangePasswordSchema, ForgotPasswordSchema, ResetPasswordSchema
-from app.core.security import verify_password, create_access_token, get_password_hash, create_reset_token, verify_reset_token
+from app.schemas.user import LoginSchema, TokenResponse, ProfileUpdateSchema, ChangePasswordSchema, ForgotPasswordSchema, ResetPasswordSchema, VerifyMFASchema, SetupAccountSchema
+from app.core.security import verify_password, create_access_token, get_password_hash, create_reset_token, verify_reset_token, create_refresh_token, hash_refresh_token, verify_refresh_token_hash
 from app.core.deps import get_current_user, oauth2_scheme
 from app.core.email import send_password_reset_email, send_mfa_otp_email
 import random
 import string
 from app.core.limiter import limiter
-from datetime import datetime
-
-router = APIRouter(prefix="/auth", tags=["authentication"])
-
-from app.schemas.user import LoginSchema, TokenResponse, ProfileUpdateSchema, ChangePasswordSchema, ForgotPasswordSchema, ResetPasswordSchema, VerifyMFASchema, SetupAccountSchema
+from datetime import datetime, timedelta
+from fastapi import Response
 from app.core.audit import create_audit_log
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
 @router.post("/login")
 @limiter.limit("5/minute")
-def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db)):
+def login(request: Request, response: Response, payload: LoginSchema, db: Session = Depends(get_db)):
     email = payload.email.strip()
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
     
-    if not user or not verify_password(payload.password, user.hashed_password):
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
         )
+        
+    # Check lockout
+    if user.locked_until and user.locked_until > datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Account locked. Try again later."
+        )
+        
+    if not verify_password(payload.password, user.hashed_password):
+        from app.core.config import settings
+        user.failed_login_attempts = (user.failed_login_attempts or 0) + 1
+        if user.failed_login_attempts >= settings.MAX_FAILED_ATTEMPTS:
+            user.locked_until = datetime.utcnow() + timedelta(minutes=settings.LOCKOUT_MINUTES)
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials"
+        )
+        
+    # Reset lockout on successful password verification
+    user.failed_login_attempts = 0
+    user.locked_until = None
+    db.commit()
         
     if not user.is_active:
         reason_msg = f" Reason: {user.deactivation_reason}" if user.deactivation_reason else ""
@@ -42,7 +64,6 @@ def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db))
         )
 
     if user.is_mfa_enabled:
-        from datetime import timedelta
         # Check if user has verified MFA in the last 24 hours
         if user.last_mfa_verified_at and user.last_mfa_verified_at > datetime.utcnow() - timedelta(hours=24):
             # Skip MFA, proceed to token generation
@@ -66,12 +87,19 @@ def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db))
     user_agent = request.headers.get("user-agent", "Unknown Device")
     ip_address = request.client.host if request.client else "Unknown IP"
     
+    # Generate Refresh Token
+    refresh_token = create_refresh_token()
+    refresh_token_hash = hash_refresh_token(refresh_token)
+    refresh_expires_at = datetime.utcnow() + timedelta(days=7)
+    
     # Save session to DB
     new_session = UserSession(
         user_id=user.id,
         session_id=hashlib.sha256(session_id.encode()).hexdigest(),
         device_info=user_agent,
-        ip_address=ip_address
+        ip_address=ip_address,
+        refresh_token_hash=refresh_token_hash,
+        refresh_token_expires_at=refresh_expires_at
     )
     db.add(new_session)
     user.last_login_at = datetime.utcnow()
@@ -88,7 +116,10 @@ def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db))
 
     token = create_access_token(data={"sub": user.email, "role": user.role, "jti": session_id})
     
-    return {
+    # Set Cookies for Hybrid Auth
+    is_prod = os.environ.get("NODE_ENV") == "production"
+    
+    content = {
         "access_token": token,
         "token_type": "bearer",
         "user": {
@@ -107,10 +138,30 @@ def login(request: Request, payload: LoginSchema, db: Session = Depends(get_db))
             "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None
         }
     }
+    
+    json_response = JSONResponse(content=content)
+    json_response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=604800
+    )
+    json_response.set_cookie(
+        key="is_authenticated",
+        value="true",
+        httponly=False,
+        secure=True,
+        samesite="none",
+        max_age=604800
+    )
+    
+    return json_response
 
 @router.post("/verify-mfa", response_model=TokenResponse)
 @limiter.limit("5/minute")
-def verify_mfa(request: Request, payload: VerifyMFASchema, db: Session = Depends(get_db)):
+def verify_mfa(request: Request, response: Response, payload: VerifyMFASchema, db: Session = Depends(get_db)):
     email = payload.email.strip()
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
     
@@ -138,12 +189,19 @@ def verify_mfa(request: Request, payload: VerifyMFASchema, db: Session = Depends
     user_agent = request.headers.get("user-agent", "Unknown Device")
     ip_address = request.client.host if request.client else "Unknown IP"
     
+    # Generate Refresh Token
+    refresh_token = create_refresh_token()
+    refresh_token_hash = hash_refresh_token(refresh_token)
+    refresh_expires_at = datetime.utcnow() + timedelta(days=7)
+    
     # Save session to DB
     new_session = UserSession(
         user_id=user.id,
         session_id=hashlib.sha256(session_id.encode()).hexdigest(),
         device_info=user_agent,
-        ip_address=ip_address
+        ip_address=ip_address,
+        refresh_token_hash=refresh_token_hash,
+        refresh_token_expires_at=refresh_expires_at
     )
     db.add(new_session)
     user.last_login_at = datetime.utcnow()
@@ -161,7 +219,10 @@ def verify_mfa(request: Request, payload: VerifyMFASchema, db: Session = Depends
 
     token = create_access_token(data={"sub": user.email, "role": user.role, "jti": session_id})
     
-    return {
+    # Set Cookies for Hybrid Auth
+    is_prod = os.environ.get("NODE_ENV") == "production"
+
+    content = {
         "access_token": token,
         "token_type": "bearer",
         "user": {
@@ -179,6 +240,26 @@ def verify_mfa(request: Request, payload: VerifyMFASchema, db: Session = Depends
             "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None
         }
     }
+
+    json_response = JSONResponse(content=content)
+    json_response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=604800
+    )
+    json_response.set_cookie(
+        key="is_authenticated",
+        value="true",
+        httponly=False,
+        secure=True,
+        samesite="none",
+        max_age=604800
+    )
+    
+    return json_response
 
 @router.post("/setup-account")
 def setup_account(payload: SetupAccountSchema, request: Request, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -470,3 +551,80 @@ def reset_password(payload: ResetPasswordSchema, request: Request, db: Session =
     )
     
     return {"message": "Password has been successfully reset."}
+
+@router.post("/refresh")
+@limiter.limit("10/minute")
+def refresh_token_endpoint(request: Request, response: Response, db: Session = Depends(get_db)):
+    print("--- REFRESH COOKIE DEBUG ---")
+    print("Cookies:", request.cookies)
+    
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token missing")
+        
+    token_hash = hash_refresh_token(refresh_token)
+    session = db.query(UserSession).filter(UserSession.refresh_token_hash == token_hash, UserSession.is_active == True).first()
+    
+    if not session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+        
+    if session.refresh_token_expires_at and session.refresh_token_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token expired")
+        
+    user = session.user
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User inactive")
+        
+    # Rotate refresh token
+    new_refresh_token = create_refresh_token()
+    session.refresh_token_hash = hash_refresh_token(new_refresh_token)
+    session.refresh_token_expires_at = datetime.utcnow() + timedelta(days=7)
+    session.last_active_at = datetime.utcnow()
+    db.commit()
+    
+    # Issue new access token
+    token = create_access_token(data={"sub": user.email, "role": user.role, "jti": session.session_id})
+
+    is_prod = os.environ.get("NODE_ENV") == "production"
+    json_response = JSONResponse(content={"access_token": token, "token_type": "bearer"})
+    
+    # Update cookie
+    json_response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=is_prod,
+        samesite="lax",
+        max_age=604800
+    )
+    json_response.set_cookie(
+        key="is_authenticated",
+        value="true",
+        httponly=False,
+        secure=is_prod,
+        samesite="lax",
+        max_age=604800
+    )
+    
+    return json_response
+
+@router.post("/logout")
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
+    refresh_token = request.cookies.get("refresh_token")
+    if refresh_token:
+        token_hash = hash_refresh_token(refresh_token)
+        session = db.query(UserSession).filter(UserSession.refresh_token_hash == token_hash).first()
+        if session:
+            session.is_active = False
+            session.refresh_token_hash = None
+            session.refresh_token_expires_at = None
+            db.commit()
+            
+    json_response = JSONResponse(content={"message": "Logged out"})
+    
+    json_response.delete_cookie("refresh_token", path="/")
+    json_response.delete_cookie("is_authenticated", path="/")
+    json_response.delete_cookie("auth_token", path="/")
+    
+    return json_response
+

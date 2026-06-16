@@ -28,18 +28,18 @@ import { toast } from 'sonner';
  * Zod Schema for validation
  */
 const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required'),
+  email: z.string({ required_error: 'This field is required' }).trim().toLowerCase().email('Please enter a valid email address'),
+  password: z.string({ required_error: 'This field is required' }).min(1, 'This field is required'),
   rememberMe: z.boolean().optional(),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 const resetSchema = z.object({
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  confirmPassword: z.string()
+  password: z.string({ required_error: 'This field is required' }).min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string({ required_error: 'This field is required' })
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
@@ -156,7 +156,7 @@ export default function LoginPage() {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/login`, {
         email: values.email,
         password: sanitizedPassword,
-      });
+      }, { withCredentials: true });
 
       if (response.data.mfa_required) {
         setMfaEmail(response.data.email);
@@ -202,7 +202,7 @@ export default function LoginPage() {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/verify-mfa`, {
         email: mfaEmail,
         otp: otp
-      });
+      }, { withCredentials: true });
 
       const { user, access_token } = response.data;
       sessionStorage.setItem('sam_temp_pass', tempPassword);
@@ -234,7 +234,7 @@ export default function LoginPage() {
     try {
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/forgot-password`, {
         email: forgotEmail,
-      });
+      }, { withCredentials: true });
       toast.success('If an account exists, a password reset link has been sent to your email.');
       setViewMode('login');
       setForgotEmail('');
@@ -257,7 +257,8 @@ export default function LoginPage() {
         {
           headers: {
             Authorization: `Bearer ${useAuthStore.getState().token}`
-          }
+          },
+          withCredentials: true
         }
       );
 
@@ -351,7 +352,7 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
                           New Password
                         </FormLabel>
                         <FormControl>
@@ -380,7 +381,7 @@ export default function LoginPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
                           Confirm Password
                         </FormLabel>
                         <FormControl>
@@ -521,7 +522,7 @@ export default function LoginPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
                           Corporate Email
                         </FormLabel>
                         <FormControl>
@@ -545,7 +546,7 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
                           Access Password
                         </FormLabel>
                         <FormControl>

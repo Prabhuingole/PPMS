@@ -20,12 +20,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Retrieve token from cookies
+  // Retrieve tokens from cookies
   const authToken = request.cookies.get('auth_token')?.value;
+  const isAuthenticated = request.cookies.get('is_authenticated')?.value === 'true';
 
-  // If no token exists, redirect to login
-  if (!authToken) {
-    console.log(`[Middleware] No auth_token found for path: ${pathname}. Redirecting to /login`);
+  // If no valid authentication exists, redirect to login
+  if (!authToken && !isAuthenticated) {
+    console.log(`[Middleware] No valid authentication found for path: ${pathname}. Redirecting to /login`);
     const loginUrl = new URL('/login', request.url);
     // Optionally preserve the redirect URL
     // loginUrl.searchParams.set('redirect', pathname);

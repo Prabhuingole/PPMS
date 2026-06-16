@@ -29,7 +29,8 @@ import {
   ArrowRight,
   Trash2,
   UserCheck,
-  UserX
+  UserX,
+  Building2
 } from 'lucide-react';
 import api from '@/services/api';
 import { useRouter } from 'next/navigation';
@@ -100,7 +101,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
       setIsSubmitting(true);
       const updated = await employeeService.updateEmployee(employee.id, values);
       setEmployee(updated); // Update the local state
-      toast.success('Employee updated successfully');
+      toast.success('Team Member updated successfully');
       setIsEditModalOpen(false);
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Operation failed');
@@ -113,7 +114,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
     try {
       setIsDeleting(true);
       await employeeService.deleteEmployee(employee.id);
-      toast.success('Employee deleted successfully');
+      toast.success('Team Member deleted successfully');
       router.push('/superadmin/employees');
     } catch (error: any) {
       toast.error(error.response?.data?.detail || 'Failed to delete employee');
@@ -128,7 +129,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
       setIsStatusChanging(true);
       const updated = await employeeService.toggleStatus(employee.id, !employee.is_active, statusReason);
       setEmployee(updated);
-      toast.success(`Employee ${updated.is_active ? 'activated' : 'deactivated'} successfully`);
+      toast.success(`Team Member ${updated.is_active ? 'activated' : 'deactivated'} successfully`);
       setIsStatusModalOpen(false);
       setStatusReason('');
     } catch (error: any) {
@@ -237,6 +238,15 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                     <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs font-bold tracking-wider">ID: {employee.employee_id}</span>
                   </div>
+                  {employee.company_name && (
+                    <>
+                      <div className="w-px h-3.5 bg-slate-200 self-center"></div>
+                      <div className="flex items-center gap-1.5 px-2.5">
+                        <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                        <span className="text-xs font-bold tracking-wider">{employee.company_name}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -460,7 +470,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
         isOpen={isDeleteModalOpen}
         onOpenChange={setIsDeleteModalOpen}
         onConfirm={handleDelete}
-        itemName={`Employee "${employee.full_name}"`}
+        itemName={`Team Member "${employee.full_name}"`}
         isDeleting={isDeleting}
       />
 
@@ -701,7 +711,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
       <Dialog open={isStatusModalOpen} onOpenChange={setIsStatusModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{employee.is_active ? 'Deactivate' : 'Activate'} Employee</DialogTitle>
+            <DialogTitle>{employee.is_active ? 'Deactivate' : 'Activate'} Team Member</DialogTitle>
             <DialogDescription>
               Are you sure you want to {employee.is_active ? 'deactivate' : 'activate'} this employee? {employee.is_active && 'They will lose access to the system.'}
             </DialogDescription>

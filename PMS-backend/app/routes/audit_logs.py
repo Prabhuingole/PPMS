@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
 
@@ -25,7 +25,7 @@ def get_audit_logs(
     if current_user.role not in ["superadmin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to view audit logs")
         
-    query = db.query(AuditLog)
+    query = db.query(AuditLog).options(joinedload(AuditLog.company))
     
     if entity_type:
         query = query.filter(AuditLog.entity_type == entity_type)
@@ -47,7 +47,7 @@ def get_audit_logs_paginated(
     if current_user.role not in ["superadmin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to view audit logs")
         
-    query = db.query(AuditLog)
+    query = db.query(AuditLog).options(joinedload(AuditLog.company))
     
     if entity_type and entity_type != "all":
         query = query.filter(AuditLog.entity_type == entity_type)
@@ -78,7 +78,7 @@ def get_entity_audit_logs(
     if current_user.role not in ["superadmin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to view audit logs")
         
-    logs = db.query(AuditLog).filter(
+    logs = db.query(AuditLog).options(joinedload(AuditLog.company)).filter(
         AuditLog.entity_type == entity_type,
         AuditLog.entity_id == entity_id
     ).order_by(AuditLog.timestamp.desc()).all()

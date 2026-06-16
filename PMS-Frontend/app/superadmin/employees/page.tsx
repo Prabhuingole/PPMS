@@ -115,14 +115,14 @@ export default function EmployeeListPage() {
       setIsSubmitting(true);
       if (editingEmployee) {
         await employeeService.updateEmployee(editingEmployee.id, values);
-        toast.success('Employee updated successfully');
+        toast.success('Team Member updated successfully');
         setIsAddModalOpen(false);
       } else {
         const result = await employeeService.createEmployee(values);
         setNewEmployeeName(result.full_name);
         setIsAddModalOpen(false);
         setIsPasswordModalOpen(true);
-        toast.success('Employee deployed to the system');
+        toast.success('Team Member deployed to the system');
       }
       fetchEmployees();
     } catch (error: any) {
@@ -147,10 +147,10 @@ export default function EmployeeListPage() {
     setIsDeleting(true);
     try {
       await employeeService.deleteEmployee(employeeToDelete.id);
-      toast.success('Employee deleted');
+      toast.success('Team Member deleted');
       fetchEmployees();
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || error.message || 'Failed to delete employee');
+      toast.error(error.response?.data?.detail || error.message || 'Failed to delete team member');
     } finally {
       setIsDeleting(false);
       setDeleteModalOpen(false);
@@ -225,8 +225,8 @@ export default function EmployeeListPage() {
   return (
     <>
       <ManagementLayout
-        title="Employees"
-        description="Manage employees, interns and workforce records."
+        title="Team Members"
+        description="Manage your organization's team members."
         headerActions={
           <div className="flex items-center gap-3">
             <Button
@@ -243,7 +243,7 @@ export default function EmployeeListPage() {
               }}
               className="bg-primary text-white hover:bg-indigo-700 rounded-lg h-10 px-5 text-sm font-semibold shadow-sm transition-all"
             >
-              <Plus className="mr-2 h-4 w-4" /> Add Employee
+              <Plus className="mr-2 h-4 w-4" /> Add Team Member
             </Button>
           </div>
         }
@@ -251,19 +251,21 @@ export default function EmployeeListPage() {
         <DataTable
           data={employees}
           isLoading={loading}
-          searchPlaceholder="Search by name, email, or ID..."
+          searchPlaceholder="Search team members..."
           searchValue={searchTerm}
           onSearchChange={setSearchTerm}
           filters={
             <Select value={roleFilter} onValueChange={(val) => setRoleFilter(val || 'all')}>
               <SelectTrigger className="h-10 w-[140px] rounded-lg border-border bg-background shadow-sm font-semibold text-sm">
                 <SelectValue placeholder="Role">
-                  {roleFilter === 'all' ? 'All Roles' : roleFilter === 'employee' ? 'Employee' : roleFilter === 'intern' ? 'Intern' : 'Role'}
+                  {roleFilter === 'all' ? 'All Roles' : roleFilter === 'employee' ? 'Team Member' : roleFilter === 'team_member' ? 'Team Member' : roleFilter === 'consultant' ? 'Consultant' : roleFilter === 'intern' ? 'Intern' : 'Role'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-lg border-border shadow-xl p-1">
                 <SelectItem value="all" className="rounded-md py-2 font-bold text-xs">All Roles</SelectItem>
-                <SelectItem value="employee" className="rounded-md py-2 font-bold text-xs">Employee</SelectItem>
+                <SelectItem value="employee" className="rounded-md py-2 font-bold text-xs">Team Member</SelectItem>
+                <SelectItem value="team_member" className="rounded-md py-2 font-bold text-xs">Team Member</SelectItem>
+                <SelectItem value="consultant" className="rounded-md py-2 font-bold text-xs">Consultant</SelectItem>
                 <SelectItem value="intern" className="rounded-md py-2 font-bold text-xs">Intern</SelectItem>
               </SelectContent>
             </Select>
@@ -276,8 +278,8 @@ export default function EmployeeListPage() {
           emptyState={
             <EmptyState
               icon={Users}
-              title="No Employees Found"
-              description="There are currently no workforce records matching your criteria."
+              title="No Team Members Found"
+              description="There are currently no team member records matching your criteria."
               className="border-0 rounded-none w-full min-h-[400px]"
             />
           }
@@ -449,7 +451,7 @@ export default function EmployeeListPage() {
                 Transmission Sent
               </DialogTitle>
               <DialogDescription className="text-emerald-50 font-semibold text-xs mt-1 text-center max-w-sm mx-auto">
-                Resource <span className="font-bold text-white">{newEmployeeName}</span> has been securely initialized in the network.
+                Team Member <span className="font-bold text-white">{newEmployeeName}</span> has been securely initialized in the network.
               </DialogDescription>
             </DialogHeader>
           </div>

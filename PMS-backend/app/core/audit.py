@@ -3,6 +3,7 @@ from fastapi import Request
 from typing import Optional, Any, Dict
 from app.models.audit_log import AuditLog
 from app.models.user import User
+from app.core.tenant import current_tenant_ctx
 
 def create_audit_log(
     db: Session,
@@ -64,6 +65,7 @@ def create_audit_log(
     log_entry = AuditLog(
         user_id=user.id if user else None,
         user_name=user.full_name if user else "System",
+        company_id=current_tenant_ctx.get(),
         action=action,
         entity_type=entity_type,
         entity_id=str(entity_id),

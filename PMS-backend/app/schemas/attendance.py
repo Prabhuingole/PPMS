@@ -15,6 +15,9 @@ class AttendanceResponse(BaseModel):
     clock_out_photo: Optional[str] = None
     working_hours: Optional[float] = None
     status: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    location_accuracy: Optional[float] = None
     
     # Computed fields for the response
     user_name: Optional[str] = None

@@ -20,6 +20,11 @@ class UserResponse(BaseModel):
     is_mfa_enabled: bool = False
     account_status: str = "active"
     last_login_at: Optional[datetime] = None
+    last_mfa_verified_at: Optional[datetime] = None
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    currency: Optional[str] = None
 
 class SetupAccountSchema(BaseModel):
     new_password: str
@@ -69,6 +74,10 @@ class EmployeeBase(BaseModel):
     role: str # employee or intern
     designation: Optional[str] = None
     joining_date: Optional[datetime] = None
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    currency: Optional[str] = None
 
 class EmployeeCreate(EmployeeBase):
     pass

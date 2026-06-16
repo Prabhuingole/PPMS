@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     
+    # Security
+    MAX_FAILED_ATTEMPTS: int = 5
+    LOCKOUT_MINUTES: int = 15
+    
     # Superadmin
     SUPERADMIN_EMAIL: str 
     SUPERADMIN_PASSWORD: str

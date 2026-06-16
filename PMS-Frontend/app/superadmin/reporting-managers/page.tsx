@@ -67,7 +67,8 @@ import { cn } from '@/lib/utils';
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 import { motion, AnimatePresence } from 'motion/react';
 import { reportingManagerService } from '@/services/reportingManagerService';
-import { ReportingManager } from '@/types';
+import { companyService } from '@/services/companyService';
+import { ReportingManager, Company } from '@/types';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -75,12 +76,13 @@ import * as z from 'zod';
 import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 
 const reportingManagerSchema = z.object({
-  full_name: z.string().min(2, 'Full Name is required').regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
-  email: z.string().trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com'), 'Email must be a @gmail.com address'),
-  mobile_number: z.string()
-    .length(10, 'Mobile number must be exactly 10 digits')
-    .regex(/^[6-9]\d{9}$/, 'This format input is required (10 digits starting with 6-9)'),
-  designation: z.string().min(2, 'Designation is required'),
+  full_name: z.string({ required_error: 'This field is required' }).min(1, 'This field is required').regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
+  email: z.string({ required_error: 'This field is required' }).trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com'), 'Email must be a @gmail.com address'),
+  mobile_number: z.string({ required_error: 'This field is required' })
+    .length(10, 'Please enter a valid number')
+    .regex(/^[6-9]\d{9}$/, 'Please enter a valid number'),
+  designation: z.string({ required_error: 'This field is required' }).min(1, 'This field is required'),
+  company_id: z.string().optional(),
 });
 
 type ReportingManagerFormValues = z.infer<typeof reportingManagerSchema>;
@@ -113,8 +115,15 @@ export default function ReportingManagerListPage() {
       email: '',
       mobile_number: '',
       designation: '',
+      company_id: '',
     }
   });
+
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    companyService.getCompanies().then(setCompanies).catch(console.error);
+  }, []);
 
   const fetchManagers = async () => {
     try {
@@ -146,11 +155,12 @@ export default function ReportingManagerListPage() {
   const onSubmit = async (values: ReportingManagerFormValues) => {
     try {
       setIsSubmitting(true);
+      const payload = { ...values, company_id: values.company_id ? parseInt(values.company_id) : undefined };
       if (editingManager) {
-        await reportingManagerService.updateReportingManager(editingManager.id, values);
+        await reportingManagerService.updateReportingManager(editingManager.id, payload as any);
         toast.success('Reporting manager updated successfully');
       } else {
-        await reportingManagerService.createReportingManager(values);
+        await reportingManagerService.createReportingManager(payload as any);
         toast.success('Reporting manager created successfully');
       }
       setIsModalOpen(false);
@@ -171,6 +181,7 @@ export default function ReportingManagerListPage() {
       email: manager.email,
       mobile_number: manager.mobile_number || '',
       designation: manager.designation || '',
+      company_id: manager.company_id?.toString() || '',
     });
     setIsModalOpen(true);
   };
@@ -270,9 +281,16 @@ export default function ReportingManagerListPage() {
             sortable: true,
             hideOnMobile: true,
             cell: (manager) => (
-              <div className="flex items-center gap-2">
-                 <Briefcase className="h-3.5 w-3.5 text-slate-300" />
-                 <span className="text-xs font-bold text-foreground">{manager.designation || 'Specialist'}</span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                   <Briefcase className="h-3.5 w-3.5 text-slate-300" />
+                   <span className="text-xs font-bold text-foreground">{manager.designation || 'Specialist'}</span>
+                </div>
+                {manager.company_name && (
+                  <span className="text-[9px] font-bold text-indigo-500 tracking-wider mt-0.5">
+                    {manager.company_name}
+                  </span>
+                )}
               </div>
             )
           },
@@ -363,7 +381,7 @@ export default function ReportingManagerListPage() {
                     name="full_name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Full Name <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter full name..." {...field} className="h-10" />
                         </FormControl>
@@ -379,7 +397,7 @@ export default function ReportingManagerListPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Email Address <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Email Address</FormLabel>
                         <FormControl>
                           <Input placeholder="manager@system.com" {...field} className="h-10" />
                         </FormControl>
@@ -392,7 +410,7 @@ export default function ReportingManagerListPage() {
                     name="mobile_number"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Mobile Number <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Mobile Number</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="9876543210" 
@@ -411,16 +429,38 @@ export default function ReportingManagerListPage() {
                   />
                 </FormGrid>
 
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="designation"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Designation <span className="text-destructive">*</span></FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Designation</FormLabel>
                         <FormControl>
                           <Input placeholder="Senior Lead Manager" {...field} className="h-10" />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="company_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="h-10 w-full">
+                              <SelectValue placeholder="Select Company (Optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {companies.map(c => (
+                              <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

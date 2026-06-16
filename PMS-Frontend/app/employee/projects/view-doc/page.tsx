@@ -179,10 +179,10 @@ export default function DocumentViewerPage() {
   const handleDownload = async () => {
     try {
       const res = await api.get(
-        `/documents/download/${docId}?inline=false`
+        `/documents/download/${docId}?as_json=true&inline=false`
       );
       const a = document.createElement('a');
-      a.href = res.data.url || res.request?.responseURL || docUrl;
+      a.href = res.data.url;
       a.download = docName;
       document.body.appendChild(a);
       a.click();

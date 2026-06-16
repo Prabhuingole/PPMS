@@ -66,7 +66,7 @@ type GroupedTimesheet = {
   user_id: number;
   user_name: string;
   user_email: string;
-  user_designation: string;
+  user_designation: string; user_company_name?: string;
   date: string;
   total_hours: number;
   task_count: number;
@@ -273,7 +273,7 @@ export default function TimesheetApprovalPage() {
               }}
               columns={[
                 {
-                  header: 'Employee',
+                  header: 'Team Member',
                   accessorKey: 'user_name',
                   sortable: true,
                   cell: (group) => (
@@ -285,7 +285,14 @@ export default function TimesheetApprovalPage() {
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-foreground">{group.user_name}</span>
-                        <span className="text-xs text-muted-foreground">{group.user_designation || group.user_email}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-muted-foreground">{group.user_designation || group.user_email}</span>
+                          {group.user_company_name && (
+                            <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-indigo-500 border-indigo-200 bg-indigo-50/50 px-1 py-0">
+                              {group.user_company_name}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )

@@ -22,7 +22,8 @@ import {
   FileText,
   Eye,
   X,
-  Trash2
+  Trash2,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -151,12 +152,19 @@ export default function ProjectDetailsPage() {
           formData.append('display_name', fileData.name || fileData.file.name);
           formData.append('preparation_date', fileData.prepDate);
           
-          await api.post(`/documents/upload`, formData, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api'}/documents/upload`, {
+            method: 'POST',
             headers: { 
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data'
-            }
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
           });
+          
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.detail ? (typeof errData.detail === 'string' ? errData.detail : errData.detail[0]?.msg) : 'Upload failed');
+          }
+          
           successCount++;
         })
       );
@@ -164,9 +172,9 @@ export default function ProjectDetailsPage() {
       setIsUploadModalOpen(false);
       setUploadFiles([]);
       fetchProjectData();
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload some documents');
+    } catch (error: any) {
+      console.error('Upload error details:', error.response?.data || error.message || error);
+      toast.error(`Failed to upload: ${error.response?.data?.detail?.[0]?.msg || 'Unknown error'}`);
     } finally {
       setIsUploading(false);
     }
@@ -174,11 +182,10 @@ export default function ProjectDetailsPage() {
 
   const handleDownload = async (docId: number, filename: string) => {
     try {
-      const response = await api.get(`/documents/download/${docId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: 'blob'
+      const response = await api.get(`/documents/download/${docId}?as_json=true&inline=false`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = response.data.url;
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
@@ -276,6 +283,19 @@ export default function ProjectDetailsPage() {
                            </span>
                         </div>
                      </div>
+                     {project.owner_company_name && (
+                       <div className="flex items-center space-x-3">
+                          <div className="p-3 bg-muted/30 rounded-xl">
+                             <Building2 className="h-5 w-5 text-indigo-500" />
+                          </div>
+                          <div>
+                             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">Owner Company</span>
+                             <span className="text-base font-black text-foreground uppercase tracking-tight">
+                               {project.owner_company_name}
+                             </span>
+                          </div>
+                       </div>
+                     )}
                   </div>
                </div>
             </div>

@@ -55,12 +55,12 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 const reportingManagerSchema = z.object({
-  full_name: z.string().min(2, 'Full Name is required').regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
-  email: z.string().trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com'), 'Email must be a @gmail.com address'),
-  mobile_number: z.string()
-    .length(10, 'Mobile number must be exactly 10 digits')
-    .regex(/^[6-9]\d{9}$/, 'This format input is required (10 digits starting with 6-9)'),
-  designation: z.string().min(2, 'Designation is required'),
+  full_name: z.string({ required_error: 'This field is required' }).min(1, 'This field is required').regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
+  email: z.string({ required_error: 'This field is required' }).trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com'), 'Email must be a @gmail.com address'),
+  mobile_number: z.string({ required_error: 'This field is required' })
+    .length(10, 'Please enter a valid number')
+    .regex(/^[6-9]\d{9}$/, 'Please enter a valid number'),
+  designation: z.string({ required_error: 'This field is required' }).min(1, 'This field is required'),
 });
 
 type ReportingManagerFormValues = z.infer<typeof reportingManagerSchema>;
@@ -350,8 +350,8 @@ export default function ReportingManagerProfilePage() {
                       name="full_name"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <User className="h-3 w-3" /> Full Name <span className="text-red-500">*</span>
+                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
+                             <User className="h-3 w-3" /> Full Name
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -371,8 +371,8 @@ export default function ReportingManagerProfilePage() {
                       name="email"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <Mail className="h-3 w-3" /> Email Address <span className="text-red-500">*</span>
+                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
+                             <Mail className="h-3 w-3" /> Email Address
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -389,8 +389,8 @@ export default function ReportingManagerProfilePage() {
                       name="mobile_number"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <Phone className="h-3 w-3" /> Mobile Number <span className="text-red-500">*</span>
+                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
+                             <Phone className="h-3 w-3" /> Mobile Number
                           </FormLabel>
                           <FormControl>
                             <div className="relative">
@@ -419,8 +419,8 @@ export default function ReportingManagerProfilePage() {
                       name="designation"
                       render={({ field }) => (
                         <FormItem className="space-y-3">
-                          <FormLabel className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <Briefcase className="h-3 w-3" /> Designation <span className="text-red-500">*</span>
+                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
+                             <Briefcase className="h-3 w-3" /> Designation
                           </FormLabel>
                           <FormControl>
                             <div className="relative">

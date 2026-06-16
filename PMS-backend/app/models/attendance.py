@@ -20,6 +20,9 @@ class Attendance(Base):
     working_hours = Column(Float, nullable=True)
     
     status = Column(String, default="Working", index=True) # "Working", "Completed"
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    location_accuracy = Column(Float, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -4,7 +4,7 @@ from typing import Optional, List
 
 class ProjectBase(BaseModel):
     name: str
-    code: str
+    code: Optional[str] = None
     description: Optional[str] = None
     client_name: Optional[str] = None
     status: str = "active"
@@ -12,9 +12,11 @@ class ProjectBase(BaseModel):
     end_date: Optional[datetime] = None
     total_hours: float = 0.0
     reporting_manager_id: Optional[int] = None
+    owner_company_id: Optional[int] = None
 
 class ProjectCreate(ProjectBase):
     member_ids: Optional[List[int]] = []
+    participating_company_ids: Optional[List[int]] = []
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -26,9 +28,12 @@ class ProjectUpdate(BaseModel):
     end_date: Optional[datetime] = None
     total_hours: Optional[float] = None
     reporting_manager_id: Optional[int] = None
+    owner_company_id: Optional[int] = None
     member_ids: Optional[List[int]] = None
+    participating_company_ids: Optional[List[int]] = None
 
 from app.schemas.reporting_manager import ReportingManagerResponse
+from app.schemas.company import CompanyResponse
 
 class ProjectMemberResponse(BaseModel):
     id: int
@@ -44,6 +49,8 @@ class ProjectResponse(ProjectBase):
     id: int
     reporting_manager: Optional[ReportingManagerResponse] = None
     members: List[ProjectMemberResponse] = []
+    owner_company_name: Optional[str] = None
+    participating_companies: List[CompanyResponse] = []
     total_hours_worked: float = 0.0
     total_hours_remaining: float = 0.0
     my_hours_worked: Optional[float] = None

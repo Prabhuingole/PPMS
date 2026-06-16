@@ -18,6 +18,7 @@ class TimesheetBase(BaseModel):
     attendance: Optional[str] = "full-day"
     arrival_time: Optional[str] = None
     half_day_period: Optional[str] = None
+    company_id: Optional[int] = None
 
 class TimesheetCreate(TimesheetBase):
     pass
@@ -30,6 +31,7 @@ class TimesheetResponse(TimesheetBase):
     user_name: Optional[str] = None
     feedback: Optional[str] = None
     is_unassigned_project: Optional[bool] = False
+    company_name: Optional[str] = None
 
     class Config:
         from_attributes = True

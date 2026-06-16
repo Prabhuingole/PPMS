@@ -6,7 +6,9 @@ import math
 from app.database.session import get_db
 from app.models.project import Project
 from app.models.user import User
+from app.models.company import Company
 from app.models.reporting_manager import ReportingManager
+from app.models.timesheet import Timesheet
 from app.schemas.project import (
     ProjectCreate, 
     ProjectUpdate, 
@@ -28,26 +30,11 @@ def create_project(
     db: Session = Depends(get_db),
     admin: User = Depends(get_superadmin)
 ):
-    project_code = payload.code
-    if not project_code:
-        # Auto-generate code: Prefix-001
-        prefix = payload.name.split()[0]
-        # Count existing projects with this prefix to determine the next sequence
-        count = db.query(Project).filter(Project.code.like(f"{prefix}-%")).count()
-        project_code = f"{prefix}-{str(count + 1).zfill(3)}"
+    project_code = payload.code if payload.code else None
 
     # Check if project code already exists
-    if db.query(Project).filter(Project.code == project_code).first():
-        # If auto-generated conflicted or manual exists, we might need a fallback or error
-        # but for now, let's just use the generated/manual code
-        if not payload.code: # If it was auto-generated and somehow exists (race condition or manual collision)
-            # Try once more with a more robust count if needed, but zfill(3) should be fine
-            existing_count = db.query(Project).filter(Project.code.like(f"{prefix}-%")).count()
-            project_code = f"{prefix}-{str(existing_count + 1).zfill(3)}"
-            if db.query(Project).filter(Project.code == project_code).first():
-                raise HTTPException(status_code=400, detail="Unable to auto-generate unique project code. Please provide one manually.")
-        else:
-            raise HTTPException(status_code=400, detail="Project with this code already exists")
+    if project_code and db.query(Project).filter(Project.code == project_code).first():
+        raise HTTPException(status_code=400, detail="Project with this code already exists")
 
     # Validate Reporting Manager
     if payload.reporting_manager_id:
@@ -56,6 +43,13 @@ def create_project(
             raise HTTPException(status_code=404, detail="Reporting Manager not found")
         if rm.status != "active":
             raise HTTPException(status_code=400, detail="Selected Reporting Manager is not active")
+
+    if not payload.owner_company_id:
+        raise HTTPException(status_code=400, detail="Owner company is required")
+        
+    owner_company = db.query(Company).filter(Company.id == payload.owner_company_id).first()
+    if not owner_company:
+        raise HTTPException(status_code=404, detail="Owner company not found")
 
     new_project = Project(
         name=payload.name,
@@ -66,8 +60,15 @@ def create_project(
         start_date=payload.start_date,
         end_date=payload.end_date,
         total_hours=payload.total_hours,
-        reporting_manager_id=payload.reporting_manager_id
+        reporting_manager_id=payload.reporting_manager_id,
+        owner_company_id=payload.owner_company_id
     )
+
+    if payload.participating_company_ids:
+        part_companies = db.query(Company).filter(Company.id.in_(payload.participating_company_ids)).all()
+        if len(part_companies) != len(payload.participating_company_ids):
+            raise HTTPException(status_code=404, detail="One or more participating companies not found")
+        new_project.participating_companies = part_companies
 
     # Validate and Assign Team Members
     if payload.member_ids:
@@ -264,11 +265,14 @@ def update_project(
     }
 
     # Check code uniqueness
-    if payload.code and payload.code != project.code:
-        if db.query(Project).filter(Project.code == payload.code).first():
+    code_val = payload.code if payload.code else None
+    if code_val and code_val != project.code:
+        if db.query(Project).filter(Project.code == code_val).first():
             raise HTTPException(status_code=400, detail="Project with this code already exists")
 
     payload_dict = payload.dict(exclude_unset=True)
+    if "code" in payload_dict and not payload_dict["code"]:
+        payload_dict["code"] = None
 
     # Validate Reporting Manager
     if "reporting_manager_id" in payload_dict:
@@ -297,8 +301,24 @@ def update_project(
             
             project.members = members
 
+    # Update Owner Company
+    if "owner_company_id" in payload_dict:
+        owner_company = db.query(Company).filter(Company.id == payload_dict["owner_company_id"]).first()
+        if not owner_company:
+            raise HTTPException(status_code=404, detail="Owner company not found")
+        project.owner_company_id = payload_dict["owner_company_id"]
+
+    # Update Participating Companies
+    if "participating_company_ids" in payload_dict:
+        p_ids = payload_dict["participating_company_ids"]
+        if p_ids is not None:
+            part_companies = db.query(Company).filter(Company.id.in_(p_ids)).all()
+            if len(part_companies) != len(p_ids):
+                raise HTTPException(status_code=404, detail="One or more participating companies not found")
+            project.participating_companies = part_companies
+
     # Update other fields
-    update_data = payload.dict(exclude_unset=True, exclude={"member_ids", "reporting_manager_id"})
+    update_data = payload.dict(exclude_unset=True, exclude={"member_ids", "reporting_manager_id", "owner_company_id", "participating_company_ids"})
     for key, value in update_data.items():
         setattr(project, key, value)
 

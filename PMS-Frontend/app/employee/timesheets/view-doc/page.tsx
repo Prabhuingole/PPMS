@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 import api from '@/services/api';
+import axios from 'axios';
 import { handleApiError } from '@/utils/handleApiError';
 import { ErrorState } from '@/components/ui/error-state';
 import { useAuthStore } from '@/store/authStore';
@@ -52,10 +53,10 @@ export default function DocumentViewerPage() {
 
         const lowerName = res.data.filename.toLowerCase();
         if (lowerName.endsWith('.docx')) {
-           const blobRes = await api.get(res.data.url, { responseType: 'blob' });
+           const blobRes = await axios.get(res.data.url, { responseType: 'blob' });
            setDocxBlob(blobRes.data);
         } else if (lowerName.endsWith('.html') || lowerName.endsWith('.htm')) {
-           const textRes = await api.get(res.data.url, { responseType: 'text' });
+           const textRes = await axios.get(res.data.url, { responseType: 'text' });
            setHtmlContent(textRes.data);
         }
       } catch (error: any) {

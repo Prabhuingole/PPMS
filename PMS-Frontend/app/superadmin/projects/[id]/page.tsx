@@ -46,6 +46,11 @@ import { toast } from 'sonner';
 import { ProjectFormModal } from '../ProjectFormModal';
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
+import { useDeliverables } from '@/services/deliverableService';
+import { useTasks } from '@/services/taskService';
+import { DeliverablesTab } from '@/components/projects/DeliverablesTab';
+import { TasksTab } from '@/components/projects/TasksTab';
+
 const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, userId: string, token: string | null }) => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +119,9 @@ export default function ProjectDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.id as string;
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
+
+  const canEdit = user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'reporting_manager';
 
   const [project, setProject] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
@@ -129,6 +136,22 @@ export default function ProjectDetailsPage() {
   const [docToDelete, setDocToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  const [taskFilters, setTaskFilters] = useState({
+    status: 'all',
+    priority: 'all',
+    assignee_id: 'all',
+    search: ''
+  });
+
+  const { data: deliverables = [] } = useDeliverables(Number(projectId));
+  const { data: tasks = [] } = useTasks({ 
+    project_id: Number(projectId),
+    ...(taskFilters.status !== 'all' && { status: taskFilters.status }),
+    ...(taskFilters.priority !== 'all' && { priority: taskFilters.priority }),
+    ...(taskFilters.assignee_id !== 'all' && { assignee_id: Number(taskFilters.assignee_id) }),
+  });
 
   const fetchTimesheets = async (page: number) => {
     if (!token || !projectId) return;
@@ -259,10 +282,8 @@ export default function ProjectDetailsPage() {
     );
   }
 
-
-
   return (
-    <div className="flex-1 p-4 sm:p-8 bg-muted/30 overflow-y-auto">
+    <div className="max-w-[1440px] mx-auto w-full">
       <div className="mb-4">
         <Button 
           variant="ghost" 
@@ -276,36 +297,35 @@ export default function ProjectDetailsPage() {
         </Button>
       </div>
 
-      <Card className="rounded-xl shadow-sm border border-border bg-background overflow-hidden mb-8">
-        {/* Header Section */}
-        <div className="bg-muted/30 border-b border-border px-6 py-6 md:px-8 md:py-8 flex flex-col md:flex-row md:items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-black text-foreground tracking-tight">{project.name}</h1>
-              <Badge className={
-                project.status === 'active' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0' :
-                project.status === 'on-hold' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-0' :
-                'bg-muted text-muted-foreground hover:bg-slate-200 border-0'
-              }>
-                {project.status === 'active' ? <CheckCircle2 className="w-3 h-3 mr-1" /> :
-                 project.status === 'on-hold' ? <PauseCircle className="w-3 h-3 mr-1" /> :
-                 <ShieldCheck className="w-3 h-3 mr-1" />}
-                {project.status.toUpperCase()}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground font-medium">
-              <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
-                <Briefcase className="h-4 w-4 text-blue-500" />
-                <span className="font-mono text-xs">{project.code}</span>
-              </div>
-              {project.client_name && (
-                <div className="flex items-center gap-1.5">
-                  <Building2 className="h-4 w-4" />
-                  <span>{project.client_name}</span>
-                </div>
-              )}
-            </div>
+      <div className="bg-background rounded-xl shadow-sm border border-border p-6 md:p-8 mb-6 flex flex-col md:flex-row md:items-start justify-between gap-4 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-3 mb-2 min-w-0">
+            <h1 className="text-3xl font-black text-foreground tracking-tight truncate">{project.name}</h1>
+            <Badge className={
+              project.status === 'active' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 shrink-0' :
+              project.status === 'on-hold' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 border-0 shrink-0' :
+              'bg-muted text-muted-foreground hover:bg-slate-200 border-0 shrink-0'
+            }>
+              {project.status === 'active' ? <CheckCircle2 className="w-3 h-3 mr-1" /> :
+                project.status === 'on-hold' ? <PauseCircle className="w-3 h-3 mr-1" /> :
+                <ShieldCheck className="w-3 h-3 mr-1" />}
+              {project.status.toUpperCase()}
+            </Badge>
           </div>
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground font-medium">
+            <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
+              <Briefcase className="h-4 w-4 text-blue-500" />
+              <span className="font-mono text-xs">{project.code}</span>
+            </div>
+            {project.client_name && (
+              <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
+                <Building2 className="h-4 w-4 text-emerald-500" />
+                <span>{project.client_name}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        {canEdit && (
           <Button 
             onClick={() => setIsEditModalOpen(true)}
             variant="outline"
@@ -313,14 +333,35 @@ export default function ProjectDetailsPage() {
           >
             Edit Project Details
           </Button>
-        </div>
+        )}
+      </div>
 
-        {/* Content Section (Information Grid) */}
-        <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-12">
+      {/* Custom Tabs Navigation */}
+      <div className="flex flex-wrap border-b border-border mb-8 gap-1">
+        {['overview', 'deliverables', 'tasks', 'timesheets'].map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-6 py-3 text-sm font-bold uppercase tracking-wider border-b-2 transition-all ${
+              activeTab === tab 
+                ? 'border-primary text-primary bg-primary/5' 
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/30'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      <div className="w-full">
+        {activeTab === 'overview' && (
+          <>
+          <Card className="rounded-xl shadow-sm border border-border bg-background overflow-hidden mb-8 w-full">
+            <div className="p-6 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-12 w-full">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-10">
+          <div className="lg:col-span-2 space-y-10 min-w-0">
             {/* Project Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 w-full">
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Team Size</span>
                 <div className="flex items-end gap-1.5">
@@ -532,6 +573,11 @@ export default function ProjectDetailsPage() {
                                   {member.designation}
                                 </Badge>
                               )}
+                              {member.company_name && (
+                                <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-indigo-500 border-indigo-200 bg-indigo-50/50 group-hover:bg-indigo-100 transition-colors">
+                                  {member.company_name}
+                                </Badge>
+                              )}
                               {hasTasks && (
                                 <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-slate-100/80 px-1.5 py-0.5 rounded-sm">
                                   <CheckCircle2 className={`w-3 h-3 ${uTask.completed_tasks === uTask.total_tasks ? 'text-emerald-500' : 'text-muted-foreground'}`} />
@@ -553,148 +599,173 @@ export default function ProjectDetailsPage() {
             </div>
           </div>
         </div>
-      </Card>
+        </Card>
 
-      {/* Employee To-Do Lists Section */}
-      <Card className="border-0 shadow-sm rounded-xl overflow-hidden bg-background mb-8">
-        <CardHeader className="bg-muted/30 border-b border-border px-6 py-5">
-          <h3 className="font-bold text-foreground flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Employee To-Do Lists
-          </h3>
-        </CardHeader>
-        <CardContent className="p-6 bg-muted/30">
-          {userTasks && userTasks.filter(u => u.total_tasks > 0).length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {userTasks.filter(u => u.total_tasks > 0).map(u => (
-                <div key={u.user_id} className="bg-muted/30 rounded-xl border border-border p-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 border border-border shrink-0">
-                      <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm">
-                        {u.user_name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-foreground truncate">{u.user_name}</p>
-                      <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground mt-0.5">
-                        <CheckCircle2 className={`w-3 h-3 ${u.completed_tasks === u.total_tasks ? 'text-emerald-500' : 'text-muted-foreground'}`} />
-                        <span>{u.completed_tasks}/{u.total_tasks} Tasks Completed</span>
+        {/* Employee To-Do Lists Section */}
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden bg-background mb-8">
+          <CardHeader className="bg-muted/30 border-b border-border px-6 py-5">
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Team Member To-Do Lists
+            </h3>
+          </CardHeader>
+          <CardContent className="p-6 bg-muted/30">
+            {userTasks && userTasks.filter(u => u.total_tasks > 0).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {userTasks.filter(u => u.total_tasks > 0).map(u => (
+                  <div key={u.user_id} className="bg-muted/30 rounded-xl border border-border p-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10 border border-border shrink-0">
+                        <AvatarFallback className="bg-blue-50 text-blue-700 font-bold text-sm">
+                          {u.user_name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-foreground truncate">{u.user_name}</p>
+                        <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground mt-0.5">
+                          <CheckCircle2 className={`w-3 h-3 ${u.completed_tasks === u.total_tasks ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                          <span>{u.completed_tasks}/{u.total_tasks} Tasks Completed</span>
+                        </div>
                       </div>
                     </div>
+                    <EmployeeTaskView projectId={projectId} userId={u.user_id} token={token} />
                   </div>
-                  <EmployeeTaskView projectId={projectId} userId={u.user_id} token={token} />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center p-8 text-muted-foreground">
-              <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3 opacity-50" />
-              <p className="text-sm font-medium">No tasks assigned to employees for this project.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Activity & Timesheets Section */}
-      <Card className="border-0 shadow-sm rounded-xl overflow-hidden bg-background mb-8">
-        <CardHeader className="bg-muted/30 border-b border-border px-6 py-5">
-          <h3 className="font-bold text-foreground flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-500" /> Timesheet Logs
-          </h3>
-        </CardHeader>
-        <CardContent className="p-0">
-          {timesheets.length > 0 ? (
-            <>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead className="pl-6">Date</TableHead>
-                    <TableHead>Team Member</TableHead>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Hours</TableHead>
-                    <TableHead className="pr-6">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {timesheets.map((ts) => (
-                        <TableRow key={ts.id} className="transition-colors">
-                          <TableCell className="font-medium text-muted-foreground text-sm align-top py-4 pl-6">
-                            {format(new Date(ts.date), 'dd MMM yyyy')}
-                          </TableCell>
-                          <TableCell className="align-top py-4">
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="bg-indigo-100 text-indigo-700 text-[10px] font-bold">
-                                  {ts.user_name?.charAt(0) || 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span className="text-sm font-semibold text-foreground">{ts.user_name}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[300px] align-top py-4">
-                            <div className="text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">
-                              {ts.task_title}
-                            </div>
-                            <div className="text-xs text-muted-foreground break-words whitespace-pre-wrap mt-1">
-                              {ts.description}
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top py-4">
-                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 mt-0.5">
-                              {ts.hours} hrs
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="align-top py-4 pr-6">
-                            <Badge className={`mt-0.5 ${
-                              ts.status === 'approved' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0' :
-                              ts.status === 'rejected' ? 'bg-red-100 text-red-700 hover:bg-red-200 border-0' :
-                              'bg-amber-100 text-amber-700 hover:bg-amber-200 border-0'
-                            }`}>
-                              {ts.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {totalPages > 1 && (
-                  <div className="p-4 border-t border-border flex items-center justify-between bg-muted/50/30">
-                    <span className="text-xs text-muted-foreground font-medium">
-                      Showing {Math.min((currentPage - 1) * 10 + 1, totalTimesheets)} to {Math.min(currentPage * 10, totalTimesheets)} of {totalTimesheets} entries
-                    </span>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                        className="bg-background border-border text-slate-600 hover:bg-muted"
-                      >
-                        Previous
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        disabled={currentPage === totalPages || totalPages === 0}
-                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                        className="bg-background border-border text-slate-600 hover:bg-muted"
-                      >
-                        Next
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </>
+                ))}
+              </div>
             ) : (
-              <div className="p-12 text-center flex flex-col items-center">
-                <Clock className="h-12 w-12 text-slate-300 mb-4" />
-                <h3 className="text-lg font-bold text-foreground">No Activity Logged</h3>
-                <p className="text-sm text-muted-foreground mt-1 max-w-md">There are no timesheets submitted for this project yet.</p>
+              <div className="text-center p-8 text-muted-foreground">
+                <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3 opacity-50" />
+                <p className="text-sm font-medium">No tasks assigned to team members for this project.</p>
               </div>
             )}
           </CardContent>
         </Card>
+        </>
+        )}
+
+        {activeTab === 'deliverables' && (
+          <DeliverablesTab 
+            projectId={Number(projectId)} 
+            deliverables={deliverables} 
+            tasks={tasks}
+            canEdit={canEdit}
+          />
+        )}
+
+        {activeTab === 'tasks' && (
+          <TasksTab 
+            projectId={Number(projectId)}
+            tasks={tasks}
+            deliverables={deliverables}
+            teamMembers={project.members}
+            canEdit={canEdit}
+            filters={taskFilters}
+            setFilters={setTaskFilters}
+          />
+        )}
+
+        {activeTab === 'timesheets' && (
+        <Card className="border-0 shadow-sm rounded-xl overflow-hidden bg-background mb-8">
+          <CardHeader className="bg-muted/30 border-b border-border px-6 py-5">
+            <h3 className="font-bold text-foreground flex items-center gap-2">
+              <Clock className="w-5 h-5 text-emerald-500" /> Timesheet Logs
+            </h3>
+          </CardHeader>
+          <CardContent className="p-0">
+            {timesheets.length > 0 ? (
+              <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="pl-6">Date</TableHead>
+                      <TableHead>Team Member</TableHead>
+                      <TableHead>Task</TableHead>
+                      <TableHead>Hours</TableHead>
+                      <TableHead className="pr-6">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {timesheets.map((ts) => (
+                          <TableRow key={ts.id} className="transition-colors">
+                            <TableCell className="font-medium text-muted-foreground text-sm align-top py-4 pl-6">
+                              {format(new Date(ts.date), 'dd MMM yyyy')}
+                            </TableCell>
+                            <TableCell className="align-top py-4">
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback className="bg-indigo-100 text-indigo-700 text-[10px] font-bold">
+                                    {ts.user_name?.charAt(0) || 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm font-semibold text-foreground">{ts.user_name}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-[300px] align-top py-4">
+                              <div className="text-sm font-medium text-muted-foreground break-words whitespace-pre-wrap">
+                                {ts.task_title}
+                              </div>
+                              <div className="text-xs text-muted-foreground break-words whitespace-pre-wrap mt-1">
+                                {ts.description}
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top py-4">
+                              <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 mt-0.5">
+                                {ts.hours} hrs
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="align-top py-4 pr-6">
+                              <Badge className={`mt-0.5 ${
+                                ts.status === 'approved' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0' :
+                                ts.status === 'rejected' ? 'bg-red-100 text-red-700 hover:bg-red-200 border-0' :
+                                'bg-amber-100 text-amber-700 hover:bg-amber-200 border-0'
+                              }`}>
+                                {ts.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {totalPages > 1 && (
+                    <div className="p-4 border-t border-border flex items-center justify-between bg-muted/50/30">
+                      <span className="text-xs text-muted-foreground font-medium">
+                        Showing {Math.min((currentPage - 1) * 10 + 1, totalTimesheets)} to {Math.min(currentPage * 10, totalTimesheets)} of {totalTimesheets} entries
+                      </span>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={currentPage === 1}
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          className="bg-background border-border text-slate-600 hover:bg-muted"
+                        >
+                          Previous
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={currentPage === totalPages || totalPages === 0}
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          className="bg-background border-border text-slate-600 hover:bg-muted"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="p-12 text-center flex flex-col items-center">
+                  <Clock className="h-12 w-12 text-slate-300 mb-4" />
+                  <h3 className="text-lg font-bold text-foreground">No Activity Logged</h3>
+                  <p className="text-sm text-muted-foreground mt-1 max-w-md">There are no timesheets submitted for this project yet.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
         <DeleteConfirmationModal
           isOpen={docToDelete !== null}

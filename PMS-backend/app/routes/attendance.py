@@ -14,6 +14,8 @@ from app.schemas.attendance import AttendanceResponse, AttendanceListResponse
 from app.core.deps import get_current_user
 from app.core.audit import create_audit_log
 from app.core.s3 import storage
+from app.core.tenant import current_tenant_ctx
+from fastapi import Form
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
 
@@ -32,6 +34,9 @@ def get_timesheet_status(db: Session, user_id: int, target_date: date) -> str:
 async def clock_in(
     request: Request,
     photo: UploadFile = File(...),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+    location_accuracy: Optional[float] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -59,6 +64,9 @@ async def clock_in(
         date=today,
         clock_in_time=now,
         clock_in_photo=unique_key,
+        latitude=latitude,
+        longitude=longitude,
+        location_accuracy=location_accuracy,
         status="Working"
     )
     db.add(att)
@@ -83,6 +91,9 @@ async def clock_in(
 async def clock_out(
     request: Request,
     photo: UploadFile = File(...),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
+    location_accuracy: Optional[float] = Form(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -110,6 +121,12 @@ async def clock_out(
     att.clock_out_time = now
     att.clock_out_photo = unique_key
     att.status = "Completed"
+    if latitude is not None:
+        att.latitude = latitude
+    if longitude is not None:
+        att.longitude = longitude
+    if location_accuracy is not None:
+        att.location_accuracy = location_accuracy
     
     # Calculate working hours
     diff = now - att.clock_in_time
@@ -180,6 +197,9 @@ def get_all_attendance(
     
     query = db.query(Attendance)
     
+    if current_user.role == "admin":
+        query = query.join(Attendance.user).filter(User.company_id == current_tenant_ctx.get())
+    
     if month:
         query = query.filter(extract('month', Attendance.date) == month)
     if year:
@@ -218,7 +238,12 @@ def get_attendance_photo(
         raise HTTPException(status_code=404, detail="Attendance record not found")
         
     if current_user.role not in ["superadmin", "admin"] and att.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
+        raise HTTPException(status_code=404, detail="Attendance record not found")
+        
+    if current_user.role == "admin":
+        user = db.query(User).filter(User.id == att.user_id).first()
+        if user and user.company_id != current_tenant_ctx.get():
+            raise HTTPException(status_code=404, detail="Attendance record not found")
         
     path = att.clock_in_photo if type == "in" else att.clock_out_photo
     if not path:

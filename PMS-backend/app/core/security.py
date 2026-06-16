@@ -2,8 +2,23 @@ from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from app.core.config import settings
+import secrets
+import hashlib
+import hmac
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__rounds=10)
+
+def create_refresh_token() -> str:
+    return secrets.token_urlsafe(64)
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+def verify_refresh_token_hash(plain_token: str, hashed_token: str) -> bool:
+    if not hashed_token:
+        return False
+    expected_hash = hash_refresh_token(plain_token)
+    return hmac.compare_digest(expected_hash, hashed_token)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

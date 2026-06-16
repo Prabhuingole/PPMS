@@ -23,10 +23,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 
 const resetSchema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string()
+  password: z.string({ required_error: 'This field is required' }).min(8, 'Password must be at least 8 characters'),
+  confirmPassword: z.string({ required_error: 'This field is required' })
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
@@ -108,7 +108,7 @@ function ResetPasswordForm() {
               name="password"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
+                  <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
                     New Password
                   </FormLabel>
                   <FormControl>
@@ -139,7 +139,7 @@ function ResetPasswordForm() {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem className="space-y-2">
-                  <FormLabel className="text-xs font-bold tracking-wider text-slate-400">
+                  <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
                     Confirm Password
                   </FormLabel>
                   <FormControl>

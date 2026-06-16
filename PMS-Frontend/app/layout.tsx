@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { ReactQueryProvider } from "@/components/query-provider";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -28,10 +29,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <AxiosInterceptor />
-          <WebSocketProvider />
-          {children}
-          <Toaster position="top-right" />
+          <ReactQueryProvider>
+            <AxiosInterceptor />
+            <WebSocketProvider />
+            {children}
+            <Toaster position="top-right" />
+          </ReactQueryProvider>
         </ThemeProvider>
       </body>
     </html>
