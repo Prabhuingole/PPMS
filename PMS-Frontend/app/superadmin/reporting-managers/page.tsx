@@ -119,12 +119,12 @@ export default function ReportingManagerListPage() {
           },
           {
             header: 'Company',
-            accessorKey: 'company.name',
+            accessorKey: 'company_name',
             cell: (manager) => (
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-slate-400" />
                 <span className="text-xs font-semibold text-slate-700">
-                  {manager.company?.name || 'In-House'}
+                  {manager.company_name || 'In-House'}
                 </span>
               </div>
             )
