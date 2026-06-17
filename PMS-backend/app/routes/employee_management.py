@@ -100,6 +100,7 @@ def get_employees(
     search: Optional[str] = None,
     user_type: Optional[str] = None,
     status_filter: Optional[bool] = None,
+    is_reporting_manager: Optional[bool] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
@@ -114,6 +115,9 @@ def get_employees(
         query = query.filter(User.role == user_type)
     if status_filter is not None:
         query = query.filter(User.is_active == status_filter)
+    if is_reporting_manager:
+        from app.models.project import Project
+        query = query.filter(User.id.in_(db.query(Project.reporting_manager_id).filter(Project.reporting_manager_id != None)))
     
     # Search (Name, Employee ID, Email)
     if search:

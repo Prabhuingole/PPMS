@@ -8,7 +8,7 @@ from app.database.session import get_db
 from app.models.resource_allocation import ResourceAllocation
 from app.models.project import Project
 from app.models.user import User
-from app.models.reporting_manager import ReportingManager
+
 from app.schemas.resource_allocation import ResourceAllocationCreate, ResourceAllocationUpdate, ResourceAllocationResponse, ResourceAllocationListResponse
 from app.core.deps import get_current_user
 from app.core.tenant import verify_tenant_access, current_tenant_ctx
@@ -75,9 +75,7 @@ def create_allocation(
         if project.owner_company_id == tenant_id:
             is_authorized = True
     elif current_user.role == "reporting_manager":
-        rm = db.query(ReportingManager).filter(ReportingManager.email == current_user.email).first()
-        rm_id = rm.id if rm else -1
-        if project.reporting_manager_id == rm_id:
+        if project.reporting_manager_id == current_user.id:
             is_authorized = True
 
     if not is_authorized:

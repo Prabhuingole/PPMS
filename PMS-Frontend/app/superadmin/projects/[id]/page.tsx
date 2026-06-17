@@ -126,7 +126,6 @@ export default function ProjectDetailsPage() {
   const [project, setProject] = useState<any>(null);
   const [documents, setDocuments] = useState<any[]>([]);
   const [timesheets, setTimesheets] = useState<any[]>([]);
-  const [managers, setManagers] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [userTasks, setUserTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,18 +174,20 @@ export default function ProjectDetailsPage() {
     if (!token || !projectId) return;
     try {
       setLoading(true);
-      const [projRes, docRes, mgrRes, empRes, userTasksRes] = await Promise.all([
+      const [projRes, docRes, empRes, userTasksRes] = await Promise.all([
         api.get(`/projects/${projectId}`),
         api.get(`/documents/project/${projectId}`),
-        api.get(`/reporting-managers/?status_filter=active`),
         api.get(`/employees/?status_filter=true`),
         api.get(`/notes/admin/projects/${projectId}/users`).catch(() => ({ data: [] }))
       ]);
 
-      setProject(projRes.data);
+      if (projRes.data) {
+        setProject(projRes.data);
+      }
       setDocuments(docRes.data);
-      setManagers(mgrRes.data.items || mgrRes.data);
-      setEmployees(empRes.data.items || empRes.data);
+      if (empRes.data.items) {
+        setEmployees(empRes.data.items);
+      }
       setUserTasks(userTasksRes.data);
     } catch (error: any) {
       if (error.response?.status === 404 || error.response?.status === 422) {
@@ -216,7 +217,7 @@ export default function ProjectDetailsPage() {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const backPath = searchParams.get('backPath');
-      if (backPath && backPath.includes('/reporting-managers')) {
+      if (backPath && (backPath.includes('/reporting-managers') || backPath.includes('/employees'))) {
         setBackConfig({ path: backPath, label: 'Back to Profile' });
       }
     }
@@ -780,7 +781,6 @@ export default function ProjectDetailsPage() {
           isOpen={isEditModalOpen}
           onClose={() => setIsEditModalOpen(false)}
           editingProject={project}
-          managers={managers}
           employees={employees}
           onSuccess={() => {
             fetchData();

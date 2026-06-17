@@ -11,6 +11,8 @@ import { Company } from '@/types';
 import { useCreateCompany, useUpdateCompany } from '@/services/companyService';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 interface CompanyFormModalProps {
   open: boolean;
@@ -44,7 +46,7 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
   useEffect(() => {
     if (open) {
       if (company) {
-        setFormData({ 
+        setFormData({
           ...company,
           address: company.address || '',
           city: company.city || '',
@@ -79,15 +81,20 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
     const newErrors: Record<string, string> = {};
     let hasError = false;
 
+    const emailToValidate = (formData.email || '').trim();
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-    if (formData.email && !emailRegex.test(formData.email)) {
+    if (emailToValidate && !emailRegex.test(emailToValidate)) {
       newErrors.email = 'Please enter a valid email address';
       hasError = true;
     }
 
-    const phoneRegex = /^(?:\+91|91|0)?[6-9]\d{9}$/;
-    if (formData.phone && !phoneRegex.test(formData.phone.replace(/[\s-]/g, ''))) {
-      newErrors.phone = 'Please enter a valid Indian phone number (e.g. +91 9876543210)';
+    if (formData.phone && formData.phone.replace(/\D/g, '').length < 8) {
+      newErrors.phone = 'Please enter a valid phone number';
+      hasError = true;
+    }
+
+    if (formData.gst_number && formData.gst_number.length !== 15) {
+      newErrors.gst_number = 'GST Number must be exactly 15 alphanumeric characters';
       hasError = true;
     }
 
@@ -96,14 +103,19 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
       return;
     }
 
+    const payloadToSubmit = {
+      ...formData,
+      email: emailToValidate
+    };
+
     try {
       if (company) {
-        await updateMutation.mutateAsync({ id: company.id, payload: formData });
+        await updateMutation.mutateAsync({ id: company.id, payload: payloadToSubmit });
         toast.success('Client updated successfully');
         onOpenChange(false);
         if (onSuccess) onSuccess();
       } else {
-        const newCompany = await createMutation.mutateAsync(formData);
+        const newCompany = await createMutation.mutateAsync(payloadToSubmit);
         toast.success('Client created successfully');
         onOpenChange(false);
         if (onSuccessCreate) {
@@ -122,7 +134,7 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
         <DialogHeader>
           <DialogTitle>{company ? 'Edit Client' : 'Create New Client'}</DialogTitle>
           <DialogDescription>
-            {company ? 'Update the details for this tenant.' : 'Onboard a new tenant client.'}
+            {company ? 'Update the details' : 'Onboard a new tenant client.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -133,7 +145,10 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
               <Input
                 id="name"
                 value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setFormData({ ...formData, name: val });
+                }}
                 required
               />
             </div>
@@ -168,8 +183,8 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select 
-                value={formData.status} 
+              <Select
+                value={formData.status}
                 onValueChange={(value) => setFormData({ ...formData, status: value })}
               >
                 <SelectTrigger>
@@ -200,14 +215,30 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>Phone</Label>
-              <Input
-                id="phone"
+              <PhoneInput
+                country={'in'}
+                enableSearch={true}
                 value={formData.phone || ''}
-                className={errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, phone: e.target.value });
+                onChange={(phone) => {
+                  setFormData({ ...formData, phone });
                   if (errors.phone) setErrors({ ...errors, phone: '' });
                 }}
+                inputStyle={{
+                  width: '100%',
+                  height: '40px',
+                  borderRadius: '0.375rem',
+                  borderColor: errors.phone ? 'red' : '#e2e8f0',
+                  backgroundColor: 'transparent'
+                }}
+                buttonStyle={{
+                  borderColor: errors.phone ? 'red' : '#e2e8f0',
+                  backgroundColor: 'transparent',
+                  borderTopLeftRadius: '0.375rem',
+                  borderBottomLeftRadius: '0.375rem'
+                }}
+                containerStyle={{ width: '100%' }}
+                searchPlaceholder="Search country..."
+                searchNotFound="No country found"
               />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
@@ -223,12 +254,20 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gst_number">GST Number</Label>
+              <Label htmlFor="gst_number" className={errors.gst_number ? "text-red-500" : ""}>GST Number</Label>
               <Input
                 id="gst_number"
                 value={formData.gst_number || ''}
-                onChange={(e) => setFormData({ ...formData, gst_number: e.target.value })}
+                className={errors.gst_number ? "border-red-500 focus-visible:ring-red-500 uppercase" : "uppercase"}
+                maxLength={15}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
+                  setFormData({ ...formData, gst_number: val });
+                  if (errors.gst_number) setErrors({ ...errors, gst_number: '' });
+                }}
+                placeholder="e.g. 22AAAAA0000A1Z5"
               />
+              {errors.gst_number && <p className="text-xs text-red-500 mt-1">{errors.gst_number}</p>}
             </div>
           </div>
 

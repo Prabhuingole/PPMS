@@ -7,7 +7,7 @@ from app.database.session import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.models.company import Company
-from app.models.reporting_manager import ReportingManager
+
 from app.models.timesheet import Timesheet
 from app.schemas.project import (
     ProjectCreate, 
@@ -38,10 +38,10 @@ def create_project(
 
     # Validate Reporting Manager
     if payload.reporting_manager_id:
-        rm = db.query(ReportingManager).filter(ReportingManager.id == payload.reporting_manager_id).first()
+        rm = db.query(User).filter(User.id == payload.reporting_manager_id).first()
         if not rm:
             raise HTTPException(status_code=404, detail="Reporting Manager not found")
-        if rm.status != "active":
+        if not rm.is_active:
             raise HTTPException(status_code=400, detail="Selected Reporting Manager is not active")
 
     new_project = Project(
@@ -273,10 +273,10 @@ def update_project(
         if rm_id is None or rm_id == 0:
             project.reporting_manager_id = None
         else:
-            rm = db.query(ReportingManager).filter(ReportingManager.id == rm_id).first()
+            rm = db.query(User).filter(User.id == rm_id).first()
             if not rm:
                 raise HTTPException(status_code=404, detail="Reporting Manager not found")
-            if rm.status != "active":
+            if not rm.is_active:
                 raise HTTPException(status_code=400, detail="Selected Reporting Manager is not active")
             project.reporting_manager_id = rm_id
 

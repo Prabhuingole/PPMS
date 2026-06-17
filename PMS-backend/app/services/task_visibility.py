@@ -3,7 +3,7 @@ from sqlalchemy import or_
 from app.models.user import User
 from app.models.task import Task
 from app.models.project import Project
-from app.models.reporting_manager import ReportingManager
+
 from app.core.tenant import current_tenant_ctx
 
 class TaskVisibilityService:
@@ -22,14 +22,10 @@ class TaskVisibilityService:
             return base_query.join(Task.project).filter(Project.owner_company_id == tenant_id)
 
         if user.role == "reporting_manager":
-            # Find ReportingManager record corresponding to user's email
-            rm = db.query(ReportingManager).filter(ReportingManager.email == user.email).first()
-            rm_id = rm.id if rm else -1
-            
             # RM sees tasks where they manage the project OR they are a member of the project
             return base_query.join(Task.project).filter(
                 or_(
-                    Project.reporting_manager_id == rm_id,
+                    Project.reporting_manager_id == user.id,
                     Project.members.any(User.id == user.id)
                 )
             )
@@ -50,9 +46,7 @@ class TaskVisibilityService:
             return task.project.owner_company_id == tenant_id
 
         if user.role == "reporting_manager":
-            rm = db.query(ReportingManager).filter(ReportingManager.email == user.email).first()
-            rm_id = rm.id if rm else -1
-            if task.project.reporting_manager_id == rm_id:
+            if task.project.reporting_manager_id == user.id:
                 return True
             return user.id in [m.id for m in task.project.members]
 
@@ -72,10 +66,8 @@ class TaskVisibilityService:
             return task.project.owner_company_id == tenant_id
 
         if user.role == "reporting_manager":
-            rm = db.query(ReportingManager).filter(ReportingManager.email == user.email).first()
-            rm_id = rm.id if rm else -1
             # RMs can edit tasks on projects they manage
-            if task.project.reporting_manager_id == rm_id:
+            if task.project.reporting_manager_id == user.id:
                 return True
             # If they are just a member, they can only edit if assigned to them
             return task.assignee_id == user.id
@@ -96,10 +88,8 @@ class TaskVisibilityService:
             return task.project.owner_company_id == tenant_id
 
         if user.role == "reporting_manager":
-            rm = db.query(ReportingManager).filter(ReportingManager.email == user.email).first()
-            rm_id = rm.id if rm else -1
             # RMs can delete tasks on projects they manage
-            return task.project.reporting_manager_id == rm_id
+            return task.project.reporting_manager_id == user.id
 
         # Consultant / Employee / Intern: cannot delete unless it is assigned to them (foreign task constraint)
         return task.assignee_id == user.id

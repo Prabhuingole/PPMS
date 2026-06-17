@@ -209,8 +209,8 @@ export default function AdminListPage() {
   return (
     <>
       <ManagementLayout
-        title="Administrators" 
-        description="Manage administrative accounts and permissions." 
+        title="Administrators"
+        description="Manage administrative accounts and permissions."
         headerActions={
           user?.role === 'superadmin' && (
             <Button
@@ -238,7 +238,7 @@ export default function AdminListPage() {
             </div>
           }
           emptyState={
-            <EmptyState 
+            <EmptyState
               icon={ShieldAlert}
               title="No Admins Found"
               description="There are currently no administrative accounts matching your criteria."
@@ -315,11 +315,11 @@ export default function AdminListPage() {
                 <div className="flex justify-end items-center">
                   <DropdownMenu>
                     <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
-<span className="sr-only">Open menu</span>
-<MoreHorizontal className="h-4 w-4" />
-</DropdownMenuTrigger>
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           setAdminToEdit(emp);
@@ -339,7 +339,7 @@ export default function AdminListPage() {
                         <Edit2 className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           setAdminToDelete(emp);
@@ -362,7 +362,7 @@ export default function AdminListPage() {
         <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-border gap-0">
           <EnterpriseModalHeader
             title="Add New Admin"
-            subtitle="Configure root-level access parameters securely."
+            subtitle="Admin Has Root Level Access to Specific Company"
             icon={ShieldCheck}
             intent="normal"
           />
@@ -371,23 +371,6 @@ export default function AdminListPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
               <div className="space-y-6 p-6 bg-background">
                 <FormGrid>
-                  <FormField
-                    control={form.control}
-                    name="employee_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Identifier</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            readOnly
-                            className="h-10 bg-muted/30 cursor-not-allowed text-muted-foreground"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                   <FormField
                     control={form.control}
                     name="full_name"
@@ -401,9 +384,6 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
-                </FormGrid>
-
-                <FormGrid>
                   <FormField
                     control={form.control}
                     name="email"
@@ -417,6 +397,9 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
+                </FormGrid>
+
+                <FormGrid>
                   <FormField
                     control={form.control}
                     name="mobile_number"
@@ -438,9 +421,6 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
-                </FormGrid>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="designation"
@@ -454,16 +434,19 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
+                </FormGrid>
+
+                <div className="grid grid-cols-1 gap-4">
                   <FormField
                     control={form.control}
                     name="company_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Company</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-10 w-full">
-                              <SelectValue placeholder="Select Company (Optional)" />
+                              <SelectValue placeholder="Select Company" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -524,23 +507,6 @@ export default function AdminListPage() {
                 <FormGrid>
                   <FormField
                     control={form.control}
-                    name="employee_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Identifier</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            readOnly
-                            className="h-10 bg-muted/30 cursor-not-allowed text-muted-foreground"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
                     name="full_name"
                     render={({ field }) => (
                       <FormItem>
@@ -552,9 +518,6 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
-                </FormGrid>
-
-                <FormGrid>
                   <FormField
                     control={form.control}
                     name="email"
@@ -562,10 +525,10 @@ export default function AdminListPage() {
                       <FormItem>
                         <FormLabel required className="text-sm font-semibold text-foreground">Email Address</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="admin@gmail.com" 
-                            {...field} 
-                            className="h-10" 
+                          <Input
+                            placeholder="admin@gmail.com"
+                            {...field}
+                            className="h-10"
                             readOnly={adminToEdit?.email === 'admin@sambhav.com'}
                           />
                         </FormControl>
@@ -573,6 +536,9 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
+                </FormGrid>
+
+                <FormGrid>
                   <FormField
                     control={form.control}
                     name="mobile_number"
@@ -594,9 +560,6 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
-                </FormGrid>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="designation"
@@ -610,16 +573,19 @@ export default function AdminListPage() {
                       </FormItem>
                     )}
                   />
+                </FormGrid>
+
+                <div className="grid grid-cols-1 gap-4">
                   <FormField
                     control={form.control}
                     name="company_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
+                        <FormLabel required className="text-sm font-semibold text-foreground">Company</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger className="h-10 w-full">
-                              <SelectValue placeholder="Select Company (Optional)" />
+                              <SelectValue placeholder="Select Company" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>

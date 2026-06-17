@@ -34,7 +34,6 @@ class ProjectUpdate(BaseModel):
     member_ids: Optional[List[int]] = None
     participating_company_ids: Optional[List[int]] = None
 
-from app.schemas.reporting_manager import ReportingManagerResponse
 from app.schemas.company import CompanyResponse
 
 class ProjectMemberResponse(BaseModel):
@@ -49,7 +48,7 @@ class ProjectMemberResponse(BaseModel):
 
 class ProjectResponse(ProjectBase):
     id: int
-    reporting_manager: Optional[ReportingManagerResponse] = None
+    reporting_manager: Optional[ProjectMemberResponse] = None
     members: List[ProjectMemberResponse] = []
     owner_company_name: Optional[str] = None
     client_company: Optional[CompanyResponse] = None

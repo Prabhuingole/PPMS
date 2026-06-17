@@ -16,9 +16,11 @@ import {
   X,
   Eye,
   Loader2,
-  Search
+  Search,
+  ChevronDown
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Dialog,
@@ -41,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { EnterpriseModalHeader } from '@/components/ui/enterprise-modal-header';
 import { EnterpriseModalFooter } from '@/components/ui/enterprise-modal-footer';
 import { FormSection } from '@/components/ui/form-section';
@@ -91,23 +94,23 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 interface ProjectFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  editingProject: Project | null;
-  managers: ReportingManager[];
-  employees: Employee[];
   onSuccess: () => void;
+  editingProject: Project | null;
+  employees: Employee[];
 }
 
 export function ProjectFormModal({
   isOpen,
   onClose,
   editingProject,
-  managers,
   employees,
   onSuccess
 }: ProjectFormModalProps) {
   const { token } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
+  const [reportingManagerSearch, setReportingManagerSearch] = useState('');
+  const [managerPopoverOpen, setManagerPopoverOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
@@ -117,6 +120,11 @@ export function ProjectFormModal({
   const filteredEmployees = employees.filter(emp =>
     (emp?.full_name?.toLowerCase().includes(employeeSearch.toLowerCase())) ||
     (emp?.designation?.toLowerCase().includes(employeeSearch.toLowerCase()))
+  );
+
+  const filteredReportingManagers = employees.filter(emp =>
+    (emp?.full_name?.toLowerCase().includes(reportingManagerSearch.toLowerCase())) ||
+    (emp?.designation?.toLowerCase().includes(reportingManagerSearch.toLowerCase()))
   );
 
   // Document upload state
@@ -387,30 +395,76 @@ export function ProjectFormModal({
                     control={form.control}
                     name="reporting_manager_id"
                     render={({ field }) => (
-                      <FormItem>
+                      <FormItem className="flex flex-col">
                         <FormLabel className="text-sm font-semibold text-foreground">Reporting Manager</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value ? String(field.value) : "none"}
-                        >
+                        <Popover open={managerPopoverOpen} onOpenChange={setManagerPopoverOpen}>
                           <FormControl>
-                            <SelectTrigger className="h-10 w-full">
-                              <SelectValue placeholder="Assign a manager">
-                                {field.value && field.value !== 'none'
-                                  ? managers.find(m => String(m.id) === String(field.value))?.full_name || field.value
-                                  : "Unassigned"}
-                              </SelectValue>
-                            </SelectTrigger>
+                            <PopoverTrigger
+                              className={cn(
+                                buttonVariants({ variant: "outline" }),
+                                "w-full justify-between font-normal h-10",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value && field.value !== 'none'
+                                ? employees.find(
+                                    (e) => String(e.id) === String(field.value)
+                                  )?.full_name
+                                : "Unassigned"}
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </PopoverTrigger>
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">Unassigned</SelectItem>
-                            {managers.map(m => (
-                              <SelectItem key={m.id} value={String(m.id)}>
-                                {m.full_name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <PopoverContent className="w-[300px] p-0" align="start">
+                            <div className="flex items-center border-b px-3">
+                              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                              <input
+                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                placeholder="Search team members..."
+                                value={reportingManagerSearch}
+                                onChange={(e) => setReportingManagerSearch(e.target.value)}
+                              />
+                            </div>
+                            <div className="max-h-[250px] overflow-y-auto p-1 custom-scrollbar">
+                              <div
+                                className={cn(
+                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                  (!field.value || field.value === 'none') && "bg-accent text-accent-foreground font-semibold"
+                                )}
+                                onClick={() => {
+                                  field.onChange('none');
+                                  setManagerPopoverOpen(false);
+                                  setReportingManagerSearch('');
+                                }}
+                              >
+                                Unassigned
+                              </div>
+                              {filteredReportingManagers.map((emp) => (
+                                <div
+                                  key={emp.id}
+                                  className={cn(
+                                    "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                    String(field.value) === String(emp.id) && "bg-accent text-accent-foreground font-semibold"
+                                  )}
+                                  onClick={() => {
+                                    field.onChange(String(emp.id));
+                                    setManagerPopoverOpen(false);
+                                    setReportingManagerSearch('');
+                                  }}
+                                >
+                                  <div className="flex flex-col">
+                                    <span>{emp.full_name}</span>
+                                    {emp.designation && <span className="text-[10px] text-muted-foreground">{emp.designation}</span>}
+                                  </div>
+                                </div>
+                              ))}
+                              {filteredReportingManagers.length === 0 && (
+                                <div className="py-6 text-center text-sm text-muted-foreground">
+                                  No team member found.
+                                </div>
+                              )}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}

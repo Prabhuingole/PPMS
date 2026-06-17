@@ -9,7 +9,6 @@ from app.database.session import engine, Base, SessionLocal
 from app.models.user import User
 from app.models.project import Project
 from app.models.timesheet import Timesheet
-from app.models.reporting_manager import ReportingManager
 from app.models.document import ProjectDocument
 from app.models.template import DocumentTemplate
 from app.models.notification import Notification
@@ -27,7 +26,7 @@ from app.routes.tasks import router as tasks_router
 from app.routes.task_comments import router as task_comments_router
 from app.routes.allocations import router as allocations_router
 from app.routes.resource_reporting import router as resource_reporting_router
-from app.routes import auth, employee_management, reporting_manager, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance, companies
+from app.routes import auth, employee_management, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance, companies
 from app.core.websockets import manager
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -37,9 +36,19 @@ from app.core.limiter import limiter
 # TEMPORARILY DISABLED FOR VERCEL ISOLATION TEST
 # Base.metadata.create_all(bind=engine)
 
-# 1. Database Seeding - Creates superadmin if it doesn't exist
+import alembic.config
+
+# 1. Database Migrations & Seeding
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("--- RUNNING DATABASE MIGRATIONS ---")
+    try:
+        alembic_args = ['--raiseerr', 'upgrade', 'head']
+        alembic.config.main(argv=alembic_args)
+        print("--- DATABASE MIGRATIONS COMPLETE ---")
+    except Exception as e:
+        print(f"Error running migrations: {e}")
+
     print("--- STARTING DATABASE SEEDING ---")
     db = SessionLocal()
     try:
@@ -107,7 +116,7 @@ async def add_security_headers(request: Request, call_next):
 # 3. Authentication & Management Routes
 app.include_router(auth.router)
 app.include_router(employee_management.router)
-app.include_router(reporting_manager.router)
+
 app.include_router(project_management.router)
 app.include_router(documents.router)
 app.include_router(billing_router, prefix='/api/billing', tags=['billing'])

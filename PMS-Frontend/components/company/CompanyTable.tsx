@@ -89,7 +89,7 @@ export function CompanyTable({ companies, onEdit, onView }: CompanyTableProps) {
             {companies.map((company) => (
               <TableRow key={company.id} className="hover:bg-muted/20">
                 <TableCell>
-                  <div className="font-semibold text-foreground">{company.name}</div>
+                  <div className="font-semibold text-foreground">{company.company_name || company.name}</div>
                   <div className="text-xs font-mono text-muted-foreground mt-0.5">{company.code}</div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{company.contact_person || '—'}</TableCell>

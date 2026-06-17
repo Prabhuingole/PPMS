@@ -72,7 +72,6 @@ import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-mod
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { projectService } from '@/services/projectService';
-import { reportingManagerService } from '@/services/reportingManagerService';
 import { employeeService } from '@/services/employeeService';
 import { Project, ReportingManager, Employee } from '@/types';
 import { toast } from 'sonner';
@@ -93,7 +92,6 @@ export default function ProjectListPage() {
   const searchParams = useSearchParams();
   const { token } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [managers, setManagers] = useState<ReportingManager[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
@@ -119,7 +117,7 @@ export default function ProjectListPage() {
     try {
       setLoading(true);
       setIsError(false);
-      const [projectData, managerData, employeeData] = await Promise.all([
+      const [projectData, employeeData] = await Promise.all([
         projectService.getProjects({ 
           page: 1, 
           limit: 1000, 
@@ -127,13 +125,11 @@ export default function ProjectListPage() {
           status: statusFilter === 'all' ? undefined : statusFilter,
           manager_id: managerFilter === 'all' ? undefined : Number(managerFilter)
         }),
-        reportingManagerService.getReportingManagers({ limit: 1000, status_filter: 'active' }),
         employeeService.getEmployees({ limit: 1000, status_filter: true })
       ]);
 
       setProjects(projectData.items);
       setTotal(projectData.total);
-      setManagers(managerData.items);
       setEmployees(employeeData.items);
     } catch (error) {
       setIsError(true);
@@ -238,12 +234,12 @@ export default function ProjectListPage() {
                   <SelectValue placeholder="Reporting Manager" className="truncate">
                     {managerFilter === 'all' 
                       ? 'Reporting Manager' 
-                      : managers?.find((m: any) => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
+                      : employees?.find((m: any) => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-md border-border shadow-lg max-h-[300px] w-[90vw] sm:w-[250px]">
                   <SelectItem value="all" className="text-sm font-medium">Reporting Manager</SelectItem>
-                  {managers?.map((m: any) => (
+                  {employees?.map((m: any) => (
                     <SelectItem key={m.id} value={m.id.toString()} className="text-sm font-medium">
                       {m.full_name}
                     </SelectItem>
@@ -419,7 +415,7 @@ export default function ProjectListPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         editingProject={editingProject}
-        managers={managers}
+
         employees={employees}
         onSuccess={fetchData}
       />

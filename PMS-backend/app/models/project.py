@@ -17,9 +17,9 @@ class Project(Base):
     end_date = Column(DateTime, nullable=True)
     total_hours = Column(Float, default=0.0)
     
-    reporting_manager_id = Column(Integer, ForeignKey("reporting_managers.id"), nullable=True)
+    reporting_manager_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     
-    reporting_manager = relationship("ReportingManager", backref="managed_projects")
+    reporting_manager = relationship("User", foreign_keys=[reporting_manager_id])
     members = relationship("User", secondary="user_projects", backref="projects")
     owner_company = relationship("Company", foreign_keys=[owner_company_id], backref="owned_projects")
     client_company_id = Column(Integer, ForeignKey("companies.id", ondelete="RESTRICT"), nullable=True, index=True)
