@@ -1,518 +1,238 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { 
-  ArrowLeft, 
-  Briefcase, 
-  Mail, 
-  Phone, 
-  ShieldCheck, 
-  CalendarDays,
-  User,
-  MoreVertical,
-  Activity,
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  Mail,
+  Phone,
   Edit2,
-  UserPlus,
-  Loader2
+  Briefcase,
+  Loader2,
+  FolderKanban,
+  AtSign,
+  Trash2,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { reportingManagerService } from '@/services/reportingManagerService';
-import { ReportingManager } from '@/types';
-import { toast } from 'sonner';
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
+import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { employeeService } from '@/services/employeeService';
+import { projectService } from '@/services/projectService';
+import { toast } from 'sonner';
+import { ReportingManagerFormModal } from '@/components/reporting-managers/ReportingManagerFormModal';
 
-const reportingManagerSchema = z.object({
-  full_name: z.string({ required_error: 'This field is required' }).min(1, 'This field is required').regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
-  email: z.string({ required_error: 'This field is required' }).trim().toLowerCase().email('Please enter a valid email address').refine(val => val.endsWith('@gmail.com'), 'Email must be a @gmail.com address'),
-  mobile_number: z.string({ required_error: 'This field is required' })
-    .length(10, 'Please enter a valid number')
-    .regex(/^[6-9]\d{9}$/, 'Please enter a valid number'),
-  designation: z.string({ required_error: 'This field is required' }).min(1, 'This field is required'),
-});
-
-type ReportingManagerFormValues = z.infer<typeof reportingManagerSchema>;
-
-export default function ReportingManagerProfilePage() {
-  const params = useParams();
+export default function ReportingManagerProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
   const router = useRouter();
-  const managerId = parseInt(params.id as string, 10);
-
-  const [manager, setManager] = useState<ReportingManager | null>(null);
+  const [manager, setManager] = useState<any>(null);
+  const [managedProjects, setManagedProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [backPath, setBackPath] = useState('/superadmin/reporting-managers');
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const fetchDetails = async () => {
+    try {
+      setLoading(true);
+      const [data, managedData] = await Promise.all([
+        employeeService.getEmployee(parseInt(resolvedParams.id)),
+        projectService.getProjects({ manager_id: parseInt(resolvedParams.id), limit: 100 })
+      ]);
+      setManager(data);
+      setManagedProjects(managedData.items || []);
+    } catch (error) {
+      toast.error('Failed to load reporting manager data');
+      router.push('/superadmin/reporting-managers');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const bp = searchParams.get('backPath');
-      if (bp) {
-        setBackPath(bp);
-      }
+    fetchDetails();
+  }, [resolvedParams.id, router]);
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await employeeService.deleteEmployee(manager.id);
+      toast.success('Reporting Manager deleted successfully');
+      router.push('/superadmin/reporting-managers');
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || 'Failed to delete reporting manager');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
     }
-  }, []);
-
-  const form = useForm<ReportingManagerFormValues>({
-    resolver: zodResolver(reportingManagerSchema),
-    defaultValues: {
-      full_name: '',
-      email: '',
-      mobile_number: '',
-      designation: '',
-    }
-  });
-
-  useEffect(() => {
-    const fetchManager = async () => {
-      try {
-        setLoading(true);
-        if (isNaN(managerId)) {
-          toast.error("Invalid Manager ID");
-          router.push('/superadmin/reporting-managers');
-          return;
-        }
-        const data = await reportingManagerService.getReportingManager(managerId);
-        setManager(data);
-      } catch (error: any) {
-        toast.error(error.response?.data?.detail || 'Failed to fetch manager details');
-        router.push('/superadmin/reporting-managers');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchManager();
-  }, [managerId, router]);
+  };
 
   if (loading) {
-    return <ProfileSkeleton />;
+    return (
+      <div className="flex h-[80vh] w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+          <p className="text-sm font-bold text-muted-foreground tracking-wider animate-pulse">Loading Profile...</p>
+        </div>
+      </div>
+    );
   }
 
-  if (!manager) {
-    return null; // Will redirect in useEffect
-  }
-
-  const handleEditClick = () => {
-    if (!manager) return;
-    form.reset({
-      full_name: manager.full_name,
-      email: manager.email,
-      mobile_number: manager.mobile_number || '',
-      designation: manager.designation || '',
-    });
-    setIsEditModalOpen(true);
-  };
-
-  const onSubmit = async (values: ReportingManagerFormValues) => {
-    try {
-      setIsSubmitting(true);
-      await reportingManagerService.updateReportingManager(managerId, values);
-      toast.success('Reporting manager updated successfully');
-      setIsEditModalOpen(false);
-      setManager({ ...manager, ...values });
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Failed to save reporting manager');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const assignedProjectsCount = manager.managed_projects?.length || 0;
-  
-  // Note: 'status' was requested to be removed, but the mock instructions say:
-  // "Status badge (Active)". I will omit it based on previous prompt to remove status completely,
-  // or I can show a generic "Registered" badge. Let's just omit status since we removed it from the model entirely.
+  if (!manager) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
-      {/* Sticky Top Bar */}
-      <div className="sticky top-0 z-30 bg-slate-50/80 backdrop-blur-md border-b border-border/60 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => router.push(backPath)}
-            className="h-10 w-10 rounded-full hover:bg-slate-200/50 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight leading-tight">Manager Profile</h1>
-            <p className="text-xs font-medium text-muted-foreground">Profile & Assigned Projects</p>
-          </div>
-        </div>
+    <div className="max-w-6xl mx-auto space-y-6 pb-6 p-4 md:p-8">
+      {/* Header Actions */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          onClick={() => router.back()}
+          className="rounded-xl hover:bg-muted font-bold text-xs tracking-wider text-muted-foreground"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
         <div className="flex items-center gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleEditClick}
-            className="h-10 rounded-xl bg-background border-border text-foreground font-bold text-xs tracking-wider hover:bg-muted"
-          >
-            <Edit2 className="h-4 w-4 mr-2" />
-            Edit Profile
+          <Button onClick={() => setIsEditModalOpen(true)} className="bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl shadow-lg shadow-indigo-200 px-6 font-bold text-xs tracking-wider">
+            <Edit2 className="mr-2 h-3.5 w-3.5" /> Edit Details
+          </Button>
+          <Button onClick={() => setIsDeleteModalOpen(true)} className="bg-rose-600 text-white hover:bg-rose-700 rounded-xl shadow-lg shadow-rose-200 px-6 font-bold text-xs tracking-wider">
+            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
           </Button>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 mt-6 space-y-6">
-        {/* Hero Profile Card */}
-        <Card className="border border-border/60 shadow-sm rounded-xl bg-background overflow-hidden">
-          <CardContent className="p-6 sm:p-8">
+      {/* Hero Profile Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full"
+      >
+        <Card className="border border-border shadow-sm rounded-xl bg-background overflow-hidden relative">
+          <div className="h-2 w-full bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600"></div>
+          <CardContent className="p-5 sm:p-6">
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-              <Avatar className="h-24 w-24 sm:h-32 sm:w-32 ring-1 ring-slate-200 shadow-sm">
-                <AvatarFallback className="bg-muted text-slate-600 text-3xl sm:text-4xl font-semibold tracking-tight">
-                  {manager.full_name?.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 space-y-4">
-                <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-slate-200 border-none px-2.5 py-0.5 rounded-md font-medium text-xs tracking-wider">
-                      Reporting Manager
-                    </Badge>
-                  </div>
-                  <h2 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
-                    {manager.full_name}
-                  </h2>
+              <div className="relative group">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-white shadow-md rounded-full relative z-10">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-900 to-indigo-800 text-white text-2xl font-bold rounded-full">
+                    {manager.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+
+              <div className="flex-1 space-y-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-xl sm:text-3xl font-bold text-foreground tracking-tight">{manager.full_name}</h1>
+                  <Badge className="rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wider border-none bg-indigo-100 text-indigo-700">
+                    Reporting Manager
+                  </Badge>
                 </div>
 
-                <div className="flex flex-wrap gap-y-3 gap-x-6 text-sm font-medium text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="h-4 w-4 text-muted-foreground" />
-                    <span>{manager.designation || 'Specialist'}</span>
+                <div className="flex flex-wrap gap-3.5 text-slate-600 bg-muted/30 w-fit p-1.5 rounded-xl border border-border shadow-sm">
+                  <div className="flex items-center gap-2 px-2.5">
+                    <Mail className="h-3.5 w-3.5 text-pink-500" />
+                    <span className="text-xs font-bold tracking-wider">{manager.email}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span>ID: #{manager.id}</span>
-                  </div>
-                  {manager.updated_at && (
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                      <span>Updated: {format(new Date(manager.updated_at), 'MMM d, yyyy')}</span>
-                    </div>
+                  {manager.mobile_number && (
+                    <>
+                      <div className="w-px h-3.5 bg-slate-200 self-center"></div>
+                      <div className="flex items-center gap-2 px-2.5">
+                        <Phone className="h-3.5 w-3.5 text-emerald-500" />
+                        <span className="text-xs font-bold tracking-wider">{manager.mobile_number}</span>
+                      </div>
+                    </>
+                  )}
+                  {manager.company_name && (
+                    <>
+                      <div className="w-px h-3.5 bg-slate-200 self-center"></div>
+                      <div className="flex items-center gap-2 px-2.5">
+                        <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                        <span className="text-xs font-bold tracking-wider">{manager.company_name}</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
-              
-              {/* Stats Block */}
-              <div className="flex gap-6 pt-6 md:pt-0 md:pl-8 md:border-l border-border w-full md:w-auto">
-                <div className="flex flex-col">
-                  <span className="text-xs font-semibold tracking-wider text-muted-foreground mb-1">Projects</span>
-                  <span className="text-3xl font-bold text-foreground tracking-tight">{assignedProjectsCount}</span>
+
+              <div className="flex w-full md:w-auto md:flex-col gap-2.5 shrink-0">
+                <div className="flex-1 text-center p-2.5 bg-gradient-to-br from-indigo-50 to-blue-50/50 rounded-xl border border-indigo-100/50 shadow-sm min-w-[140px]">
+                  <div className="text-[10px] font-bold text-indigo-500 tracking-wider mb-0.5 flex justify-center items-center gap-1"><FolderKanban className="h-3 w-3" /> Managed Projects</div>
+                  <div className="text-2xl font-bold text-indigo-700">{managedProjects.length}</div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+      </motion.div>
 
-        {/* Information Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border border-border/60 shadow-sm rounded-xl bg-background">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold tracking-wider text-muted-foreground">Identity Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <InfoRow label="Full Name" value={manager.full_name} />
-              <InfoRow label="Manager ID" value={`#${manager.id}`} />
-              <InfoRow label="Designation" value={manager.designation || 'N/A'} />
-            </CardContent>
-          </Card>
-
-          <Card className="border border-border/60 shadow-sm rounded-xl bg-background">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold tracking-wider text-muted-foreground">Contact Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <InfoRow label="Email Address" value={manager.email} icon={<Mail className="h-4 w-4 text-muted-foreground" />} />
-              <InfoRow label="Mobile Number" value={manager.mobile_number || 'Not provided'} icon={<Phone className="h-4 w-4 text-muted-foreground" />} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Managed Projects Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-foreground tracking-tight px-1">Managed Projects</h3>
-          <Card className="border border-border/60 shadow-sm rounded-xl bg-background overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Project Details</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {manager.managed_projects && manager.managed_projects.length > 0 ? (
-                  manager.managed_projects.map((project) => (
-                    <TableRow 
-                      key={project.id} 
-                      onClick={() => router.push(`/superadmin/projects/${project.id}?backPath=/superadmin/reporting-managers/${manager.id}`)}
-                      className="transition-colors cursor-pointer"
-                    >
-                      <TableCell className="py-4">
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-foreground group-hover:text-primary transition-colors">{project.name}</span>
-                          <span className="text-xs text-muted-foreground mt-0.5">{project.code}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <Badge 
-                          variant="outline" 
-                          className={cn(
-                            " text-xs font-semibold tracking-wider px-2 py-0.5 border-none rounded-md",
-                            project.status === 'active' ? "bg-emerald-50 text-emerald-700" :
-                            project.status === 'completed' ? "bg-indigo-50 text-indigo-700" :
-                            project.status === 'on-hold' ? "bg-amber-50 text-amber-700" :
-                            "bg-muted text-slate-600"
-                          )}
-                        >
-                          {project.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={2} className="h-48 text-center">
-                      <div className="flex flex-col items-center justify-center space-y-3">
-                        <Briefcase className="h-10 w-10 text-slate-300" />
-                        <p className="text-sm font-medium text-muted-foreground">No projects assigned yet</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-      </div>
-
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0 overflow-hidden flex flex-col border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2.5rem] bg-background">
-          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-6 sm:p-10 text-white relative shrink-0 overflow-hidden">
-             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl"></div>
-             <div className="flex items-center gap-4 sm:gap-6 relative z-10">
-               <div className="h-16 w-16 bg-white/10 rounded-[1.5rem] backdrop-blur-md flex items-center justify-center border border-white/20 shadow-2xl">
-                 <UserPlus className="h-8 w-8 text-indigo-400" />
-               </div>
-                <DialogHeader>
-                  <DialogTitle className="text-xl sm:text-3xl font-bold tracking-tighter text-white">
-                    Edit Manager
-                  </DialogTitle>
-                  <DialogDescription className="text-indigo-300 font-bold text-xs tracking-[0.2em] mt-1">
-                    Update manager profile
-                  </DialogDescription>
-                </DialogHeader>
-             </div>
+      {/* Managed Projects List */}
+      <Card className="border border-indigo-100/50 shadow-sm rounded-xl overflow-hidden bg-background relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-blue-50/10 pointer-events-none" />
+        <CardHeader className="bg-indigo-50/50 py-4 px-6 border-b border-indigo-100/50 flex flex-row items-center justify-between relative z-10">
+          <div>
+            <CardTitle className="text-sm font-bold text-indigo-800 tracking-wider flex items-center gap-2">
+              <FolderKanban className="h-4.5 w-4.5 text-indigo-500" /> Managed Projects
+            </CardTitle>
+            <CardDescription className="text-[10px] font-bold text-indigo-600/70 tracking-wider mt-0.5">
+              Projects where {manager.full_name} acts as the Reporting Manager
+            </CardDescription>
           </div>
-          
-          <div className="p-6 sm:p-10 bg-background overflow-y-auto flex flex-col max-h-[90vh]">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="full_name"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <User className="h-3 w-3" /> Full Name
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input placeholder="Enter full name..." {...field} className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" />
-                              <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-xs font-bold text-red-500" />
-                        </FormItem>
-                      )}
-                    />
+        </CardHeader>
+        <CardContent className="p-6 relative z-10">
+          {managedProjects.length === 0 ? (
+            <div className="py-12 text-center bg-white rounded-xl border border-dashed border-indigo-100">
+              <FolderKanban className="h-8 w-8 text-indigo-200 mx-auto mb-3" />
+              <p className="text-sm font-bold text-indigo-400 tracking-wider">No managed projects assigned yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {managedProjects.map((proj: any) => (
+                <div
+                  key={proj.id}
+                  onClick={() => router.push(`/superadmin/projects/${proj.id}`)}
+                  className="cursor-pointer p-4 rounded-xl bg-background border border-indigo-100 shadow-sm hover:shadow-md hover:border-indigo-300 hover:bg-indigo-50/30 transition-all duration-300 group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="h-9 w-9 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Briefcase className="h-4 w-4 text-indigo-600" />
+                    </div>
+                    <Badge className={cn(
+                      "rounded-md px-2 py-0.5 text-[8px] font-bold tracking-wider shadow-none border-none",
+                      proj.status === 'active' ? "bg-emerald-50 text-emerald-600" : "bg-muted/30 text-muted-foreground"
+                    )}>
+                      <span className={cn("h-1 w-1 rounded-full mr-1 inline-block", proj.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')}></span>
+                      {proj.status}
+                    </Badge>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <Mail className="h-3 w-3" /> Email Address
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input placeholder="manager@gmail.com" {...field} className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" />
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-xs font-bold text-red-500" />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="mobile_number"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <Phone className="h-3 w-3" /> Mobile Number
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input 
-                                placeholder="9876543210" 
-                                {...field} 
-                                maxLength={10}
-                                onChange={(e) => {
-                                  const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                                  field.onChange(value);
-                                }}
-                                className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" 
-                              />
-                              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-xs font-bold text-red-500" />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-8">
-                    <FormField
-                      control={form.control}
-                      name="designation"
-                      render={({ field }) => (
-                        <FormItem className="space-y-3">
-                          <FormLabel required className="text-xs font-bold text-muted-foreground tracking-[0.2em] flex items-center gap-2">
-                             <Briefcase className="h-3 w-3" /> Designation
-                          </FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Input placeholder="Senior Lead Manager" {...field} className="h-14 rounded-xl border-border/80 bg-slate-50/50 focus:bg-background transition-all pl-12 text-sm font-bold shadow-sm" />
-                              <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300" />
-                            </div>
-                          </FormControl>
-                          <FormMessage className="text-xs font-bold text-red-500" />
-                        </FormItem>
-                      )}
-                    />
+                  <div className="space-y-0.5">
+                    <div className="text-sm font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-700 transition-colors">{proj.name}</div>
+                    <div className="text-[10px] font-bold text-muted-foreground tracking-wider line-clamp-1">{proj.code || 'NO-CODE'} &bull; {proj.client_name}</div>
                   </div>
                 </div>
-
-                <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-4 pt-6 border-t border-border flex-wrap shrink-0">
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    onClick={() => setIsEditModalOpen(false)}
-                    className="h-14 px-8 rounded-xl font-bold text-xs tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Discard Changes
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="h-14 px-10 rounded-xl bg-primary hover:bg-indigo-700 text-white font-bold text-xs tracking-wider shadow-2xl shadow-indigo-200 disabled:opacity-50 transition-all hover:-translate-y-1 active:scale-95"
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-3">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span>Saving...</span>
-                      </div>
-                    ) : (
-                      'Save Changes'
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function InfoRow({ label, value, icon }: { label: string; value: string; icon?: React.ReactNode }) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3 last:border-0 last:pb-0">
-      <span className="text-sm font-medium text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="text-sm font-semibold text-foreground">{value}</span>
-      </div>
-    </div>
-  );
-}
-
-function ProfileSkeleton() {
-  return (
-    <div className="min-h-screen bg-slate-50/50 pb-20">
-      <div className="sticky top-0 z-30 bg-background border-b border-border px-6 py-4 flex items-center">
-        <Skeleton className="h-10 w-10 rounded-full mr-4" />
-        <div>
-          <Skeleton className="h-6 w-48 mb-2" />
-          <Skeleton className="h-4 w-32" />
-        </div>
-      </div>
-      <div className="max-w-6xl mx-auto px-6 mt-8 space-y-8">
-        <Card className="rounded-xl border-border/60 shadow-sm">
-          <CardContent className="p-8 sm:p-10 flex flex-col md:flex-row gap-8 items-center">
-            <Skeleton className="h-32 w-32 rounded-full" />
-            <div className="flex-1 space-y-4 w-full">
-              <Skeleton className="h-6 w-32" />
-              <Skeleton className="h-10 w-64" />
-              <div className="flex gap-4">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-5 w-24" />
-              </div>
+              ))}
             </div>
-            <div className="pl-8 border-l border-border hidden md:block">
-              <Skeleton className="h-16 w-20" />
-            </div>
-          </CardContent>
-        </Card>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <Skeleton className="h-64 rounded-xl border-border/60" />
-          <Skeleton className="h-64 rounded-xl border-border/60" />
-        </div>
-        <Skeleton className="h-[400px] rounded-xl border-border/60 w-full" />
-      </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <ReportingManagerFormModal
+        open={isEditModalOpen}
+        onOpenChange={setIsEditModalOpen}
+        editingManager={manager}
+        onSuccess={fetchDetails}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        onConfirm={handleDelete}
+        itemName={`Reporting Manager "${manager.full_name}"`}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

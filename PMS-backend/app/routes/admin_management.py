@@ -39,6 +39,9 @@ def create_admin(
     
     if payload.employee_id and db.query(User).filter(User.employee_id == payload.employee_id).first():
         raise HTTPException(status_code=400, detail="Employee ID already exists")
+        
+    if payload.mobile_number and db.query(User).filter(User.mobile_number == payload.mobile_number).first():
+        raise HTTPException(status_code=400, detail="Phone number already registered")
 
     if not payload.company_id:
         raise HTTPException(status_code=400, detail="Company assignment is required")

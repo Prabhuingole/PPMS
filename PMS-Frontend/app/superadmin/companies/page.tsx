@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useCompanies } from '@/services/companyService';
 import { CompanyTable } from '@/components/company/CompanyTable';
 import { CompanyFormModal } from '@/components/company/CompanyFormModal';
-import { CompanyDetailsDrawer } from '@/components/company/CompanyDetailsDrawer';
 import { Company } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,9 +31,6 @@ export default function CompaniesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [viewCompany, setViewCompany] = useState<Company | null>(null);
-  
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [newCompanyId, setNewCompanyId] = useState<number | null>(null);
   const router = useRouter();
@@ -50,8 +46,7 @@ export default function CompaniesPage() {
   };
 
   const handleView = (company: Company) => {
-    setViewCompany(company);
-    setIsDrawerOpen(true);
+    router.push(`/superadmin/companies/${company.id}`);
   };
 
   return (
@@ -166,16 +161,7 @@ export default function CompaniesPage() {
         }}
       />
 
-      <CompanyDetailsDrawer
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-        company={viewCompany}
-        onEdit={handleEdit}
-        onReactivateSuccess={() => {
-          setPage(1); // Refresh data
-        }}
-      />
-      
+
       <Dialog open={showAdminPrompt} onOpenChange={setShowAdminPrompt}>
         <DialogContent>
           <DialogHeader>

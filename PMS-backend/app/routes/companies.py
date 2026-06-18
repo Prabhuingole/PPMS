@@ -35,7 +35,10 @@ def get_companies(
     query = db.query(Company)
 
     if admin.role == UserRole.ADMIN:
-        query = query.filter(Company.id == admin.company_id)
+        query = query.filter(
+            (Company.id == admin.company_id) | 
+            (Company.company_type == 'client')
+        )
 
     if status_filter:
         query = query.filter(Company.status == status_filter)
@@ -110,12 +113,12 @@ def get_company(
     db: Session = Depends(get_db),
     admin: User = require_superadmin_or_admin
 ):
-    if admin.role == UserRole.ADMIN and company_id != admin.company_id:
-        raise HTTPException(status_code=404, detail="Company not found")
-
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+
+    if admin.role == UserRole.ADMIN and company.id != admin.company_id and company.company_type != 'client':
+        raise HTTPException(status_code=403, detail="Not authorized to view this company")
         
     return company
 
@@ -125,8 +128,11 @@ def create_company(
     background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
-    admin: User = require_superadmin_strict
+    admin: User = require_superadmin_or_admin
 ):
+    if admin.role == UserRole.ADMIN and payload.company_type != 'client':
+        raise HTTPException(status_code=403, detail="Admins can only create client companies")
+
     code_val = payload.code if payload.code else None
 
     # Check uniqueness of code
@@ -146,7 +152,8 @@ def create_company(
         status=payload.status,
         company_type=payload.company_type,
         company_owner=payload.company_owner,
-        logo_url=payload.logo_url
+        logo_url=payload.logo_url,
+        points_of_contact=[poc.model_dump() if hasattr(poc, 'model_dump') else poc.dict() for poc in payload.points_of_contact] if payload.points_of_contact else []
     )
     
     db.add(new_company)
@@ -173,11 +180,14 @@ def update_company(
     background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
-    admin: User = require_superadmin_strict
+    admin: User = require_superadmin_or_admin
 ):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+        
+    if admin.role == UserRole.ADMIN and company.id != admin.company_id and company.company_type != 'client':
+        raise HTTPException(status_code=403, detail="Not authorized to edit this company")
         
     old_values = {
         "name": company.name,
@@ -224,11 +234,14 @@ def delete_company(
     request: Request,
     hard: bool = Query(False, description="Whether to hard delete the company from the database"),
     db: Session = Depends(get_db),
-    admin: User = require_superadmin_strict
+    admin: User = require_superadmin_or_admin
 ):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+        
+    if admin.role == UserRole.ADMIN and company.id != admin.company_id and company.company_type != 'client':
+        raise HTTPException(status_code=403, detail="Not authorized to delete this company")
         
     import traceback
     if hard:
@@ -292,11 +305,14 @@ def reactivate_company(
     background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
-    admin: User = require_superadmin_strict
+    admin: User = require_superadmin_or_admin
 ):
     company = db.query(Company).filter(Company.id == company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+        
+    if admin.role == UserRole.ADMIN and company.id != admin.company_id and company.company_type != 'client':
+        raise HTTPException(status_code=403, detail="Not authorized to reactivate this company")
         
     old_status = company.status
     if old_status == "active":

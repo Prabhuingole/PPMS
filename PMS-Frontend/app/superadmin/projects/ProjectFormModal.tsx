@@ -23,6 +23,16 @@ import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -48,6 +58,7 @@ import { EnterpriseModalHeader } from '@/components/ui/enterprise-modal-header';
 import { EnterpriseModalFooter } from '@/components/ui/enterprise-modal-footer';
 import { FormSection } from '@/components/ui/form-section';
 import { FormGrid } from '@/components/ui/form-grid';
+import { Switch } from '@/components/ui/switch';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { projectService } from '@/services/projectService';
@@ -73,23 +84,47 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   'Other': 'Other Document'
 };
 
-const projectSchema = z.object({
+const baseProjectSchema = z.object({
   name: z.string({ required_error: 'This field is required' })
     .min(1, 'This field is required')
     .regex(/^[a-zA-Z _\-().&]+$/, 'Project name must not contain numbers or special characters'),
   code: z.string().optional().nullable(),
-  description: z.string().optional(),
+  description: z.string().optional().refine(val => {
+    if (!val) return true;
+    return val.trim().split(/\s+/).filter(w => w.length > 0).length <= 5000;
+  }, { message: 'Description cannot exceed 5000 words' }),
   status: z.enum(['planning', 'active', 'on-hold', 'completed'], { required_error: 'Please select an option' }),
   start_date: z.string().optional().nullable(),
   end_date: z.string().optional().nullable(),
   total_hours: z.coerce.number().optional(),
   reporting_manager_id: z.string().optional().nullable(),
   member_ids: z.array(z.number()),
+  is_in_house: z.boolean().default(true),
   client_company_id: z.string().optional().nullable(),
-  participating_company_ids: z.array(z.string()).min(1, 'This field is required'),
+  participating_company_ids: z.array(z.string()).optional(),
 });
 
-type ProjectFormValues = z.infer<typeof projectSchema>;
+const projectSchema = baseProjectSchema.superRefine((data, ctx) => {
+  if (data.is_in_house) {
+    if (!data.participating_company_ids || data.participating_company_ids.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'This field is required',
+        path: ['participating_company_ids'],
+      });
+    }
+  } else {
+    if (!data.client_company_id || data.client_company_id === 'none') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please select a client company',
+        path: ['client_company_id'],
+      });
+    }
+  }
+});
+
+type ProjectFormValues = z.infer<typeof baseProjectSchema>;
 
 interface ProjectFormModalProps {
   isOpen: boolean;
@@ -97,6 +132,7 @@ interface ProjectFormModalProps {
   onSuccess: () => void;
   editingProject: Project | null;
   employees: Employee[];
+  reportingManagers: Employee[];
 }
 
 export function ProjectFormModal({
@@ -104,6 +140,7 @@ export function ProjectFormModal({
   onClose,
   editingProject,
   employees,
+  reportingManagers,
   onSuccess
 }: ProjectFormModalProps) {
   const { token } = useAuthStore();
@@ -112,6 +149,7 @@ export function ProjectFormModal({
   const [reportingManagerSearch, setReportingManagerSearch] = useState('');
   const [managerPopoverOpen, setManagerPopoverOpen] = useState(false);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   useEffect(() => {
     companyService.getCompanies().then(setCompanies).catch(console.error);
@@ -122,7 +160,7 @@ export function ProjectFormModal({
     (emp?.designation?.toLowerCase().includes(employeeSearch.toLowerCase()))
   );
 
-  const filteredReportingManagers = employees.filter(emp =>
+  const filteredReportingManagers = reportingManagers.filter(emp =>
     (emp?.full_name?.toLowerCase().includes(reportingManagerSearch.toLowerCase())) ||
     (emp?.designation?.toLowerCase().includes(reportingManagerSearch.toLowerCase()))
   );
@@ -140,7 +178,7 @@ export function ProjectFormModal({
   const [isLoadingDocs, setIsLoadingDocs] = useState<boolean>(false);
 
   const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectSchema),
+    resolver: zodResolver(projectSchema) as any,
     defaultValues: {
       name: '',
       code: '',
@@ -151,6 +189,7 @@ export function ProjectFormModal({
       total_hours: 0,
       reporting_manager_id: '',
       member_ids: [],
+      is_in_house: true,
       client_company_id: '',
       participating_company_ids: [],
     }
@@ -158,6 +197,7 @@ export function ProjectFormModal({
 
   const startDate = form.watch('start_date');
   const endDate = form.watch('end_date');
+  const isInHouse = form.watch('is_in_house');
   const calculatedDays = startDate && endDate
     ? Math.max(0, differenceInDays(new Date(endDate), new Date(startDate)))
     : 0;
@@ -176,7 +216,8 @@ export function ProjectFormModal({
           total_hours: editingProject.total_hours || 0,
           reporting_manager_id: editingProject.reporting_manager_id?.toString() || '',
           member_ids: editingProject.members?.map(m => m.id) || [],
-          client_company_id: editingProject.client_company_id?.toString() || '',
+          is_in_house: !editingProject.client_company_id,
+          client_company_id: editingProject.client_company_id?.toString() || 'none',
           participating_company_ids: editingProject.participating_companies?.map(c => c.id.toString()) || [],
         });
 
@@ -195,7 +236,8 @@ export function ProjectFormModal({
           total_hours: 0,
           reporting_manager_id: '',
           member_ids: [],
-          client_company_id: '',
+          is_in_house: true,
+          client_company_id: 'none',
           participating_company_ids: [],
         });
         setProjectDocs([]);
@@ -250,8 +292,8 @@ export function ProjectFormModal({
         reporting_manager_id: (values.reporting_manager_id && values.reporting_manager_id !== 'none') ? parseInt(values.reporting_manager_id) : null,
         start_date: values.start_date ? new Date(values.start_date).toISOString() : null,
         end_date: values.end_date ? new Date(values.end_date).toISOString() : null,
-        client_company_id: values.client_company_id && values.client_company_id !== 'none' ? parseInt(values.client_company_id) : null,
-        participating_company_ids: values.participating_company_ids ? values.participating_company_ids.map(id => parseInt(id)) : []
+        client_company_id: !values.is_in_house && values.client_company_id && values.client_company_id !== 'none' ? parseInt(values.client_company_id) : null,
+        participating_company_ids: values.is_in_house && values.participating_company_ids ? values.participating_company_ids.map(id => parseInt(id)) : []
       };
 
       let projectId = editingProject?.id;
@@ -293,606 +335,690 @@ export function ProjectFormModal({
     }
   };
 
+  const handleClose = () => {
+    if (!editingProject) {
+      setShowConfirmClose(true);
+    } else {
+      onClose();
+    }
+  };
+
+  const confirmClose = () => {
+    setShowConfirmClose(false);
+    onClose();
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      handleClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-border gap-0">
-        <EnterpriseModalHeader
-          title={editingProject ? 'Edit Project' : 'Add New Project'}
-          subtitle={editingProject ? 'Update project information' : 'Fill in the details to create a new project'}
-          icon={Briefcase}
-          intent="normal"
-        />
+    <>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange} disablePointerDismissal={true}>
+        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-border gap-0">
+          <EnterpriseModalHeader
+            title={editingProject ? 'Edit Project' : 'Add New Project'}
+            subtitle={editingProject ? 'Update project information' : 'Fill in the details to create a new project'}
+            icon={Briefcase}
+            intent="normal"
+          />
 
-        <div className="max-h-[70vh] overflow-y-auto p-6 bg-background custom-scrollbar">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormSection title="Project Details">
-                <FormGrid>
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Project Name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="Enter project name..."
-                            {...field}
-                            onChange={(e) => {
-                              const cleaned = e.target.value.replace(/[^a-zA-Z _\-().&]/g, '');
-                              field.onChange(cleaned);
-                            }}
-                            className="h-10"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Project ID (Optional)</FormLabel>
-                        <FormControl>
-                          <Input placeholder="e.g. ARK-001" {...field} value={field.value || ''} className="h-10 uppercase" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </FormGrid>
-
-                <div className="grid grid-cols-1 gap-4 mt-4">
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Project Description
-                        </FormLabel>
-                        <FormControl>
-                          <textarea
-                            placeholder="Detailed project description..."
-                            {...field}
-                            value={field.value || ''}
-                            className="flex min-h-[100px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormGrid className="mt-4">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Project Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-10 w-full">
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="planning" className="text-blue-600">Planning</SelectItem>
-                            <SelectItem value="active" className="text-emerald-600">Active</SelectItem>
-                            <SelectItem value="on-hold" className="text-amber-600">On Hold</SelectItem>
-                            <SelectItem value="completed" className="text-foreground">Completed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="reporting_manager_id"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-sm font-semibold text-foreground">Reporting Manager</FormLabel>
-                        <Popover open={managerPopoverOpen} onOpenChange={setManagerPopoverOpen}>
-                          <FormControl>
-                            <PopoverTrigger
-                              className={cn(
-                                buttonVariants({ variant: "outline" }),
-                                "w-full justify-between font-normal h-10",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value && field.value !== 'none'
-                                ? employees.find(
-                                    (e) => String(e.id) === String(field.value)
-                                  )?.full_name
-                                : "Unassigned"}
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </PopoverTrigger>
-                          </FormControl>
-                          <PopoverContent className="w-[300px] p-0" align="start">
-                            <div className="flex items-center border-b px-3">
-                              <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-                              <input
-                                className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="Search team members..."
-                                value={reportingManagerSearch}
-                                onChange={(e) => setReportingManagerSearch(e.target.value)}
-                              />
-                            </div>
-                            <div className="max-h-[250px] overflow-y-auto p-1 custom-scrollbar">
-                              <div
-                                className={cn(
-                                  "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                  (!field.value || field.value === 'none') && "bg-accent text-accent-foreground font-semibold"
-                                )}
-                                onClick={() => {
-                                  field.onChange('none');
-                                  setManagerPopoverOpen(false);
-                                  setReportingManagerSearch('');
-                                }}
-                              >
-                                Unassigned
-                              </div>
-                              {filteredReportingManagers.map((emp) => (
-                                <div
-                                  key={emp.id}
-                                  className={cn(
-                                    "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
-                                    String(field.value) === String(emp.id) && "bg-accent text-accent-foreground font-semibold"
-                                  )}
-                                  onClick={() => {
-                                    field.onChange(String(emp.id));
-                                    setManagerPopoverOpen(false);
-                                    setReportingManagerSearch('');
-                                  }}
-                                >
-                                  <div className="flex flex-col">
-                                    <span>{emp.full_name}</span>
-                                    {emp.designation && <span className="text-[10px] text-muted-foreground">{emp.designation}</span>}
-                                  </div>
-                                </div>
-                              ))}
-                              {filteredReportingManagers.length === 0 && (
-                                <div className="py-6 text-center text-sm text-muted-foreground">
-                                  No team member found.
-                                </div>
-                              )}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </FormGrid>
-
-                <FormGrid className="mt-4">
-                  <FormField
-                    control={form.control}
-                    name="client_company_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">Client Company</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || 'none'}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="h-10 w-full">
-                              <SelectValue placeholder="Select Client Company" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {companies.filter(c => c.company_type === 'client').map(c => (
-                              <SelectItem key={c.id} value={String(c.id)}>
-                                {c.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="participating_company_ids"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Participating Companies</FormLabel>
-                        <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md custom-scrollbar bg-card">
-                          {companies.filter(c => c.company_type === 'in_house').map(c => (
-                            <div key={c.id} className="flex flex-row items-center space-x-3">
-                              <Checkbox
-                                checked={field.value?.includes(String(c.id))}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...(field.value || []), String(c.id)]);
-                                  } else {
-                                    field.onChange(field.value?.filter(id => id !== String(c.id)));
-                                  }
-                                }}
-                              />
-                              <span className="text-sm">{c.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </FormGrid>
-              </FormSection>
-
-              <FormSection title="Timeline & Scope">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="start_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Start Date
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value || ''} className="h-10" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="end_date"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          End Date
-                        </FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} value={field.value || ''} className="h-10" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="space-y-2">
-                    <FormLabel className="text-sm font-semibold text-foreground">
-                      Duration (Days)
-                    </FormLabel>
-                    <div className="h-10 rounded-md border border-border bg-muted flex items-center px-3 text-sm text-muted-foreground shadow-sm cursor-not-allowed">
-                      {calculatedDays > 0 ? `${calculatedDays} days` : '-'}
-                    </div>
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="total_hours"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-sm font-semibold text-foreground">
-                          Total Hours
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            {...field}
-                            onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                            className="h-10"
-                            placeholder="100"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </FormSection>
-
-              <FormSection title="Team Members">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <FormLabel className="text-sm font-medium text-muted-foreground">
-                    Team Members
-                  </FormLabel>
-                  <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search team members..."
-                      value={employeeSearch}
-                      onChange={(e) => setEmployeeSearch(e.target.value)}
-                      className="pl-9 h-9 rounded-md border-border text-sm bg-card"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-lg bg-muted border border-border max-h-[250px] overflow-y-auto custom-scrollbar">
-                  {filteredEmployees.length > 0 ? filteredEmployees.map((employee) => (
+          <div className="max-h-[70vh] overflow-y-auto p-6 bg-background custom-scrollbar">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormSection title="Project Details">
+                  <FormGrid>
                     <FormField
-                      key={employee.id}
                       control={form.control}
-                      name="member_ids"
-                      render={({ field }) => {
-                        const isSelected = field.value?.includes(employee.id);
-                        return (
-                          <FormItem
-                            className={`flex flex-row items-center space-x-3 space-y-0 p-3 rounded-md border transition-all cursor-pointer shadow-sm ${isSelected ? 'bg-indigo-50 border-indigo-200' : 'bg-card border-border hover:border-slate-300'}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              const checked = !isSelected;
-                              if (checked) {
-                                field.onChange([...(field.value || []), employee.id]);
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required className="text-sm font-semibold text-foreground">Project Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter project name..."
+                              {...field}
+                              onChange={(e) => {
+                                const cleaned = e.target.value.replace(/[^a-zA-Z _\-().&]/g, '');
+                                field.onChange(cleaned);
+                              }}
+                              className="h-10"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="code"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-foreground">Project ID (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. ARK-001" {...field} value={field.value || ''} className="h-10 uppercase" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </FormGrid>
 
-                                // Auto-select employee's company as participating company
-                                if (employee.company_id) {
-                                  const companyIdStr = employee.company_id.toString();
-                                  const currentParticipating = form.getValues('participating_company_ids') || [];
-                                  if (!currentParticipating.includes(companyIdStr)) {
-                                    form.setValue('participating_company_ids', [...currentParticipating, companyIdStr], { shouldValidate: true });
-                                  }
-                                }
-                              } else {
-                                field.onChange(field.value?.filter((value) => value !== employee.id));
-                              }
-                            }}
-                          >
+                  <div className="grid grid-cols-1 gap-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => {
+                        const words = field.value ? field.value.trim().split(/\s+/).filter((w: string) => w.length > 0).length : 0;
+                        const maxWords = 5000;
+                        return (
+                          <FormItem>
+                            <FormLabel className="text-sm font-semibold text-foreground">
+                              Project Description
+                            </FormLabel>
                             <FormControl>
-                              <Checkbox
-                                checked={isSelected}
-                                tabIndex={-1}
-                                className="h-4 w-4 rounded-sm border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-indigo-600 pointer-events-none"
+                              <textarea
+                                placeholder="Detailed project description..."
+                                {...field}
+                                value={field.value || ''}
+                                className={cn(
+                                  "flex min-h-[100px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none",
+                                  words > maxWords && "border-destructive focus:border-destructive focus:ring-destructive"
+                                )}
                               />
                             </FormControl>
-                            <div className="flex items-center gap-3 w-full">
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="bg-muted text-slate-600 text-xs font-medium border border-border">
-                                  {employee?.full_name ? employee.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="flex flex-col flex-1 min-w-0">
-                                <span className="text-sm font-medium text-foreground leading-none mb-1 truncate" title={employee.full_name}>{employee.full_name}</span>
-                                <span className="text-xs text-muted-foreground truncate" title={employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}>{employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}</span>
-                              </div>
+                            <div className="flex justify-between items-start pt-1">
+                              <div className="flex-1"><FormMessage /></div>
+                              <span className={cn(
+                                "text-xs text-right pl-2 shrink-0",
+                                words > maxWords ? "text-destructive font-medium" : "text-muted-foreground"
+                              )}>
+                                {words} / {maxWords} words
+                              </span>
                             </div>
                           </FormItem>
                         )
                       }}
                     />
-                  )) : (
-                    <div className="col-span-1 md:col-span-2 py-8 text-center text-sm text-muted-foreground">
-                      "No team members found matching "{employeeSearch}"
+                  </div>
+
+                  <FormGrid className="mt-4">
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel required className="text-sm font-semibold text-foreground">Project Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-10 w-full">
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="planning" className="text-blue-600">Planning</SelectItem>
+                              <SelectItem value="active" className="text-emerald-600">Active</SelectItem>
+                              <SelectItem value="on-hold" className="text-amber-600">On Hold</SelectItem>
+                              <SelectItem value="completed" className="text-foreground">Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="reporting_manager_id"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                          <FormLabel className="text-sm font-semibold text-foreground">Reporting Manager</FormLabel>
+                          <Popover open={managerPopoverOpen} onOpenChange={setManagerPopoverOpen}>
+                            <FormControl>
+                              <PopoverTrigger
+                                className={cn(
+                                  buttonVariants({ variant: "outline" }),
+                                  "w-full justify-between font-normal h-10",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value && field.value !== 'none'
+                                  ? reportingManagers.find(
+                                    (e) => String(e.id) === String(field.value)
+                                  )?.full_name
+                                  : "Unassigned"}
+                                <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </PopoverTrigger>
+                            </FormControl>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <div className="flex items-center border-b px-3">
+                                <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                                <input
+                                  className="flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                  placeholder="Search Reporting Manager..."
+                                  value={reportingManagerSearch}
+                                  onChange={(e) => setReportingManagerSearch(e.target.value)}
+                                />
+                              </div>
+                              <div className="max-h-[250px] overflow-y-auto p-1 custom-scrollbar">
+                                <div
+                                  className={cn(
+                                    "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                    (!field.value || field.value === 'none') && "bg-accent text-accent-foreground font-semibold"
+                                  )}
+                                  onClick={() => {
+                                    field.onChange('none');
+                                    setManagerPopoverOpen(false);
+                                    setReportingManagerSearch('');
+                                  }}
+                                >
+                                  Unassigned
+                                </div>
+                                {filteredReportingManagers.map((emp) => (
+                                  <div
+                                    key={emp.id}
+                                    className={cn(
+                                      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                                      String(field.value) === String(emp.id) && "bg-accent text-accent-foreground font-semibold"
+                                    )}
+                                    onClick={() => {
+                                      field.onChange(String(emp.id));
+                                      setManagerPopoverOpen(false);
+                                      setReportingManagerSearch('');
+                                    }}
+                                  >
+                                    <div className="flex flex-col">
+                                      <span>{emp.full_name}</span>
+                                      {emp.designation && <span className="text-[10px] text-muted-foreground">{emp.designation}</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                                {filteredReportingManagers.length === 0 && (
+                                  <div className="py-6 text-center text-sm text-muted-foreground">
+                                    No reporting manager found.
+                                  </div>
+                                )}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </FormGrid>
+
+                  <FormGrid className="mt-4">
+                    <FormField
+                      control={form.control}
+                      name="is_in_house"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 bg-card h-14 col-span-1">
+                          <div className="space-y-0.5">
+                            <FormLabel className="text-sm font-semibold">In-House Project</FormLabel>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={(val) => {
+                                field.onChange(val);
+                                if (val) {
+                                  form.setValue('client_company_id', 'none');
+                                } else {
+                                  form.setValue('participating_company_ids', []);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </FormGrid>
+
+                  <FormGrid className="mt-4">
+                    {!isInHouse && (
+                      <FormField
+                        control={form.control}
+                        name="client_company_id"
+                        render={({ field }) => (
+                          <FormItem className="col-span-2">
+                            <FormLabel required className="text-sm font-semibold text-foreground">Client Company</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || 'none'}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-10 w-full">
+                                  <SelectValue placeholder="Select Client Company" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">None</SelectItem>
+                                {companies.filter(c => c.company_type === 'client').map(c => (
+                                  <SelectItem key={c.id} value={String(c.id)}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                    {isInHouse && (
+                      <FormField
+                        control={form.control}
+                        name="participating_company_ids"
+                        render={({ field }) => (
+                          <FormItem className="col-span-2">
+                            <FormLabel required className="text-sm font-semibold text-foreground">In House Company</FormLabel>
+                            <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md custom-scrollbar bg-card">
+                              {companies.filter(c => c.company_type === 'in_house').map(c => (
+                                <div key={c.id} className="flex flex-row items-center space-x-3">
+                                  <Checkbox
+                                    checked={field.value?.includes(String(c.id))}
+                                    onCheckedChange={(checked) => {
+                                      if (checked) {
+                                        field.onChange([...(field.value || []), String(c.id)]);
+                                      } else {
+                                        field.onChange(field.value?.filter(id => id !== String(c.id)));
+                                      }
+                                    }}
+                                  />
+                                  <span className="text-sm">{c.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+                  </FormGrid>
+                </FormSection>
+
+                <FormSection title="Timeline & Scope">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="start_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-foreground">
+                            Start Date
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} value={field.value || ''} className="h-10" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="end_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-foreground">
+                            End Date
+                          </FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} value={field.value || ''} className="h-10" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="space-y-2">
+                      <FormLabel className="text-sm font-semibold text-foreground">
+                        Duration (Days)
+                      </FormLabel>
+                      <div className="h-10 rounded-md border border-border bg-muted flex items-center px-3 text-sm text-muted-foreground shadow-sm cursor-not-allowed">
+                        {calculatedDays > 0 ? `${calculatedDays} days` : '-'}
+                      </div>
+                    </div>
+                    <FormField
+                      control={form.control}
+                      name="total_hours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-sm font-semibold text-foreground">
+                            Total Hours
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.5"
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                              className="h-10"
+                              placeholder="100"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </FormSection>
+
+                <FormSection title="Team Members">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <FormLabel className="text-sm font-medium text-muted-foreground">
+                      Team Members
+                    </FormLabel>
+                    <div className="relative w-full sm:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search team members..."
+                        value={employeeSearch}
+                        onChange={(e) => setEmployeeSearch(e.target.value)}
+                        className="pl-9 h-9 rounded-md border-border text-sm bg-card"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 rounded-lg bg-muted border border-border max-h-[250px] overflow-y-auto custom-scrollbar">
+                    {filteredEmployees.length > 0 ? filteredEmployees.map((employee) => (
+                      <FormField
+                        key={employee.id}
+                        control={form.control}
+                        name="member_ids"
+                        render={({ field }) => {
+                          const isSelected = field.value?.includes(employee.id);
+                          return (
+                            <FormItem
+                              className={`flex flex-row items-center space-x-3 space-y-0 p-3 rounded-md border transition-all cursor-pointer shadow-sm ${isSelected ? 'bg-indigo-50 border-indigo-200' : 'bg-card border-border hover:border-slate-300'}`}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const checked = !isSelected;
+                                if (checked) {
+                                  field.onChange([...(field.value || []), employee.id]);
+
+                                  // Auto-select employee's company as participating company
+                                  if (employee.company_id) {
+                                    const companyIdStr = employee.company_id.toString();
+                                    const currentParticipating = form.getValues('participating_company_ids') || [];
+                                    if (!currentParticipating.includes(companyIdStr)) {
+                                      form.setValue('participating_company_ids', [...currentParticipating, companyIdStr], { shouldValidate: true });
+                                    }
+                                  }
+                                } else {
+                                  field.onChange(field.value?.filter((value) => value !== employee.id));
+                                }
+                              }}
+                            >
+                              <FormControl>
+                                <Checkbox
+                                  checked={isSelected}
+                                  tabIndex={-1}
+                                  className="h-4 w-4 rounded-sm border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-indigo-600 pointer-events-none"
+                                />
+                              </FormControl>
+                              <div className="flex items-center gap-3 w-full">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarFallback className="bg-muted text-slate-600 text-xs font-medium border border-border">
+                                    {employee?.full_name ? employee.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="text-sm font-medium text-foreground leading-none mb-1 truncate" title={employee.full_name}>{employee.full_name}</span>
+                                  <span className="text-xs text-muted-foreground truncate" title={employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}>{employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}</span>
+                                </div>
+                              </div>
+                            </FormItem>
+                          )
+                        }}
+                      />
+                    )) : (
+                      <div className="col-span-1 md:col-span-2 py-8 text-center text-sm text-muted-foreground">
+                        "No team members found matching "{employeeSearch}"
+                      </div>
+                    )}
+                  </div>
+                </FormSection>
+
+                {/* Project Documents Section */}
+                <FormSection title="Project Documents">
+
+                  {/* Existing Documents */}
+                  {editingProject && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-medium text-muted-foreground">Uploaded Documents</span>
+                      {isLoadingDocs ? (
+                        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                          <span>Loading documents...</span>
+                        </div>
+                      ) : projectDocs.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No documents uploaded for this project yet.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {projectDocs.map((doc: any) => (
+                            <div
+                              key={doc.id}
+                              className="flex items-center justify-between p-3 rounded-md bg-card border border-border shadow-sm hover:shadow transition-all group"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="px-2 py-1 rounded-md bg-indigo-50 flex items-center justify-center text-primary shrink-0 text-xs font-semibold border border-indigo-100 whitespace-nowrap">
+                                  {doc.doc_type}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-sm font-medium text-foreground truncate" title={doc.display_name}>
+                                    {doc.display_name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {doc.preparation_date ? format(new Date(doc.preparation_date), 'dd MMM yyyy') : 'No Date'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')}
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                  title="View Document"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)}
+                                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                  title="Download"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              </FormSection>
 
-              {/* Project Documents Section */}
-              <FormSection title="Project Documents">
+                  {/* Upload New Document Form */}
+                  <div className="space-y-4 p-4 rounded-lg bg-muted border border-border">
+                    <span className="text-xs font-medium text-muted-foreground block">Upload New Documents</span>
 
-                {/* Existing Documents */}
-                {editingProject && (
-                  <div className="space-y-3">
-                    <span className="text-xs font-medium text-muted-foreground">Uploaded Documents</span>
-                    {isLoadingDocs ? (
-                      <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
-                        <span>Loading documents...</span>
+                    <div className="space-y-1.5">
+                      <div className="relative group border border-dashed border-slate-300 hover:border-indigo-500 rounded-md p-6 transition-all bg-card cursor-pointer flex flex-col items-center justify-center gap-2">
+                        <input
+                          type="file"
+                          multiple
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            if (files.length > 0) {
+                              const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.csv', '.xlsx', '.docx', '.zip', '.txt'];
+                              const validFiles = files.filter(file => {
+                                const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
+                                return ALLOWED_EXTENSIONS.includes(ext);
+                              });
+
+                              if (validFiles.length !== files.length) {
+                                toast.error(`Some files were removed. Supported formats are: ${ALLOWED_EXTENSIONS.join(', ')}`);
+                              }
+
+                              if (validFiles.length > 0) {
+                                const newDocs: PendingDoc[] = validFiles.map(file => {
+                                  const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                                  return {
+                                    id: Math.random().toString(36).substring(7),
+                                    file,
+                                    docType: 'PRD',
+                                    displayName: nameWithoutExt,
+                                    prepDate: format(new Date(), 'yyyy-MM-dd')
+                                  };
+                                });
+                                setPendingDocs(prev => [...prev, ...newDocs]);
+                              }
+                            }
+                            // Reset input value so same files can be re-selected if needed
+                            e.target.value = '';
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Upload className="h-6 w-6 text-muted-foreground group-hover:text-indigo-500" />
+                        <span className="text-sm font-medium text-slate-600 group-hover:text-primary">
+                          Click or drag files to upload
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          Upload multiple files at once
+                        </span>
                       </div>
-                    ) : projectDocs.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">No documents uploaded for this project yet.</p>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {projectDocs.map((doc: any) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center justify-between p-3 rounded-md bg-card border border-border shadow-sm hover:shadow transition-all group"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className="px-2 py-1 rounded-md bg-indigo-50 flex items-center justify-center text-primary shrink-0 text-xs font-semibold border border-indigo-100 whitespace-nowrap">
-                                {doc.doc_type}
-                              </div>
+                    </div>
+
+                    {pendingDocs.length > 0 && (
+                      <div className="space-y-3 mt-4">
+                        {pendingDocs.map(doc => (
+                          <div key={doc.id} className="p-4 rounded-md bg-card border border-border shadow-sm space-y-4 relative group">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => {
+                                setPendingDocs(prev => prev.filter(d => d.id !== doc.id));
+                              }}
+                              className="absolute right-2 top-2 h-6 w-6 text-muted-foreground hover:text-red-600 bg-card"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+
+                            <div className="flex items-center gap-2 pr-8">
+                              <FileIcon className="h-4 w-4 text-indigo-500 shrink-0" />
                               <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-medium text-foreground truncate" title={doc.display_name}>
-                                  {doc.display_name}
+                                <span className="text-xs font-medium text-slate-800 truncate" title={doc.file.name}>
+                                  {doc.file.name}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {doc.preparation_date ? format(new Date(doc.preparation_date), 'dd MMM yyyy') : 'No Date'}
+                                <span className="text-[10px] text-muted-foreground">
+                                  {(doc.file.size / 1024).toFixed(1)} KB
                                 </span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')}
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                title="View Document"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)}
-                                className="h-8 w-8 text-muted-foreground hover:text-primary"
-                                title="Download"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] text-muted-foreground font-medium">Document Type</label>
+                                <Select
+                                  onValueChange={(val) => {
+                                    setPendingDocs(prev => prev.map(d => d.id === doc.id ? { ...d, docType: val || '' } : d));
+                                  }}
+                                  value={doc.docType}
+                                >
+                                  <SelectTrigger className="h-8 w-full rounded-md border-border bg-card text-xs shadow-sm">
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                  <SelectContent className="rounded-md border-border min-w-[240px]">
+                                    {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
+                                      <SelectItem key={key} value={key} className="text-xs">
+                                        {label} ({key})
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] text-muted-foreground font-medium">Display Name</label>
+                                <Input
+                                  value={doc.displayName}
+                                  onChange={(e) => {
+                                    setPendingDocs(prev => prev.map(d => d.id === doc.id ? { ...d, displayName: e.target.value } : d));
+                                  }}
+                                  placeholder="Enter custom display name"
+                                  className="h-8 rounded-md border-border bg-card text-xs shadow-sm"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] text-muted-foreground font-medium">Preparation Date</label>
+                                <Input
+                                  type="date"
+                                  value={doc.prepDate}
+                                  onChange={(e) => {
+                                    setPendingDocs(prev => prev.map(d => d.id === doc.id ? { ...d, prepDate: e.target.value } : d));
+                                  }}
+                                  className="h-8 rounded-md border-border bg-card text-xs shadow-sm"
+                                />
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
-                )}
+                </FormSection>
+              </form>
+            </Form>
+          </div>
 
-                {/* Upload New Document Form */}
-                <div className="space-y-4 p-4 rounded-lg bg-muted border border-border">
-                  <span className="text-xs font-medium text-muted-foreground block">Upload New Documents</span>
-
-                  <div className="space-y-1.5">
-                    <div className="relative group border border-dashed border-slate-300 hover:border-indigo-500 rounded-md p-6 transition-all bg-card cursor-pointer flex flex-col items-center justify-center gap-2">
-                      <input
-                        type="file"
-                        multiple
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || []);
-                          if (files.length > 0) {
-                            const ALLOWED_EXTENSIONS = ['.pdf', '.jpg', '.jpeg', '.png', '.csv', '.xlsx', '.docx', '.zip', '.txt'];
-                            const validFiles = files.filter(file => {
-                              const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')).toLowerCase() : '';
-                              return ALLOWED_EXTENSIONS.includes(ext);
-                            });
-
-                            if (validFiles.length !== files.length) {
-                              toast.error(`Some files were removed. Supported formats are: ${ALLOWED_EXTENSIONS.join(', ')}`);
-                            }
-
-                            if (validFiles.length > 0) {
-                              const newDocs: PendingDoc[] = validFiles.map(file => {
-                                const nameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-                                return {
-                                  id: Math.random().toString(36).substring(7),
-                                  file,
-                                  docType: 'PRD',
-                                  displayName: nameWithoutExt,
-                                  prepDate: format(new Date(), 'yyyy-MM-dd')
-                                };
-                              });
-                              setPendingDocs(prev => [...prev, ...newDocs]);
-                            }
-                          }
-                          // Reset input value so same files can be re-selected if needed
-                          e.target.value = '';
-                        }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      />
-                      <Upload className="h-6 w-6 text-muted-foreground group-hover:text-indigo-500" />
-                      <span className="text-sm font-medium text-slate-600 group-hover:text-primary">
-                        Click or drag files to upload
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        Upload multiple files at once
-                      </span>
-                    </div>
-                  </div>
-
-                  {pendingDocs.length > 0 && (
-                    <div className="space-y-3 mt-4">
-                      {pendingDocs.map(doc => (
-                        <div key={doc.id} className="p-4 rounded-md bg-card border border-border shadow-sm space-y-4 relative group">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => {
-                              setPendingDocs(prev => prev.filter(d => d.id !== doc.id));
-                            }}
-                            className="absolute right-2 top-2 h-6 w-6 text-muted-foreground hover:text-red-600 bg-card"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-
-                          <div className="flex items-center gap-2 pr-8">
-                            <FileIcon className="h-4 w-4 text-indigo-500 shrink-0" />
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-xs font-medium text-slate-800 truncate" title={doc.file.name}>
-                                {doc.file.name}
-                              </span>
-                              <span className="text-[10px] text-muted-foreground">
-                                {(doc.file.size / 1024).toFixed(1)} KB
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] text-muted-foreground font-medium">Document Type</label>
-                              <Select
-                                onValueChange={(val) => {
-                                  setPendingDocs(prev => prev.map(d => d.id === doc.id ? { ...d, docType: val || '' } : d));
-                                }}
-                                value={doc.docType}
-                              >
-                                <SelectTrigger className="h-8 w-full rounded-md border-border bg-card text-xs shadow-sm">
-                                  <SelectValue placeholder="Select type" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-md border-border min-w-[240px]">
-                                  {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
-                                    <SelectItem key={key} value={key} className="text-xs">
-                                      {label} ({key})
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] text-muted-foreground font-medium">Display Name</label>
-                              <Input
-                                value={doc.displayName}
-                                onChange={(e) => {
-                                  setPendingDocs(prev => prev.map(d => d.id === doc.id ? { ...d, displayName: e.target.value } : d));
-                                }}
-                                placeholder="Enter custom display name"
-                                className="h-8 rounded-md border-border bg-card text-xs shadow-sm"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] text-muted-foreground font-medium">Preparation Date</label>
-                              <Input
-                                type="date"
-                                value={doc.prepDate}
-                                onChange={(e) => {
-                                  setPendingDocs(prev => prev.map(d => d.id === doc.id ? { ...d, prepDate: e.target.value } : d));
-                                }}
-                                className="h-8 rounded-md border-border bg-card text-xs shadow-sm"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+          <EnterpriseModalFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              className="h-10 px-4"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              onClick={form.handleSubmit(onSubmit)}
+              className="h-10 px-6"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{editingProject ? 'Saving...' : 'Creating...'}</span>
                 </div>
-              </FormSection>
-            </form>
-          </Form>
-        </div>
+              ) : (
+                editingProject ? 'Save Changes' : 'Create Project'
+              )}
+            </Button>
+          </EnterpriseModalFooter>
+        </DialogContent>
+      </Dialog>
 
-        <EnterpriseModalFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="h-10 px-4"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            onClick={form.handleSubmit(onSubmit)}
-            className="h-10 px-6"
-          >
-            {isSubmitting ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{editingProject ? 'Saving...' : 'Creating...'}</span>
-              </div>
-            ) : (
-              editingProject ? 'Save Changes' : 'Create Project'
-            )}
-          </Button>
-        </EnterpriseModalFooter>
-      </DialogContent>
-    </Dialog>
+      <AlertDialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+        <AlertDialogContent className="sm:max-w-[400px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Discard Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to quit creating new project? All unsaved data will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowConfirmClose(false)}>Continue Editing</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClose} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, Discard
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

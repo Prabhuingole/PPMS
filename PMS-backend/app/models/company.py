@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime
+from sqlalchemy import Column, String, Integer, Text, DateTime, JSON
 from sqlalchemy.orm import relationship
 from app.database.session import Base
 from datetime import datetime
@@ -20,6 +20,7 @@ class Company(Base):
     company_type = Column(String, default="client", index=True)
     company_owner = Column(String, nullable=True)
     logo_url = Column(String, nullable=True)
+    points_of_contact = Column(JSON, default=list)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

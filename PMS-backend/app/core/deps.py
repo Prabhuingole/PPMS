@@ -34,6 +34,12 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
             detail=f"Your account has been deactivated.{reason_msg} Please contact your administrator."
         )
         
+    if user.role == "reporting_manager":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reporting manager profiles are for structural use only and cannot authenticate."
+        )
+        
     # Validate session if jti is present (for backwards compatibility with old tokens, we only check if jti exists)
     if jti:
         from app.models.session import UserSession

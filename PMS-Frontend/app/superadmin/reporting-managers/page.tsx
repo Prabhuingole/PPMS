@@ -18,6 +18,9 @@ import { cn } from '@/lib/utils';
 import { employeeService } from '@/services/employeeService';
 import { Employee } from '@/types';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { ReportingManagerFormModal } from '@/components/reporting-managers/ReportingManagerFormModal';
 
 export default function ReportingManagerListPage() {
   const [managers, setManagers] = useState<Employee[]>([]);
@@ -26,6 +29,7 @@ export default function ReportingManagerListPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   const router = useRouter();
 
@@ -60,7 +64,12 @@ export default function ReportingManagerListPage() {
     <ManagementLayout
       title="Reporting Managers"
       description="View the leaders who oversee project delivery."
-      headerActions={undefined}
+      headerActions={
+        <Button onClick={() => setIsAddModalOpen(true)} className="h-9 shadow-sm font-semibold">
+          <Plus className="w-4 h-4 mr-2" />
+          Add Reporting Manager
+        </Button>
+      }
     >
       <DataTable
         data={managers}
@@ -81,7 +90,7 @@ export default function ReportingManagerListPage() {
             className="border-0 rounded-none w-full min-h-[400px]"
           />
         }
-        onRowClick={(manager) => router.push(`/superadmin/employees/${manager.id}`)}
+        onRowClick={(manager) => router.push(`/superadmin/reporting-managers/${manager.id}`)}
         columns={[
           {
             header: 'Manager Name',
@@ -164,6 +173,11 @@ export default function ReportingManagerListPage() {
         ]}
       />
     </ManagementLayout>
+    <ReportingManagerFormModal 
+      open={isAddModalOpen} 
+      onOpenChange={setIsAddModalOpen}
+      onSuccess={fetchManagers}
+    />
     </>
   );
 }

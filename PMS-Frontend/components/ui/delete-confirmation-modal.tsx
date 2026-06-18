@@ -30,7 +30,7 @@ export function DeleteConfirmationModal({
   isDeleting = false,
 }: DeleteConfirmationModalProps) {
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange} disablePointerDismissal={true}>
       <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2rem] bg-card">
         <div className="bg-gradient-to-br from-red-600 to-rose-700 p-8 text-white relative overflow-hidden">
            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>

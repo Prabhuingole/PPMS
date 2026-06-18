@@ -77,7 +77,7 @@ export function CompanyTable({ companies, onEdit, onView }: CompanyTableProps) {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Company</TableHead>
-              <TableHead>Contact Person</TableHead>
+              <TableHead>Client Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Status</TableHead>

@@ -281,22 +281,9 @@ export default function ProjectDetailsPage() {
                            <span className="text-base font-black text-foreground uppercase tracking-tight">
                              {project.start_date ? format(new Date(project.start_date), 'MMM yyyy') : 'TBD'}
                            </span>
-                        </div>
                      </div>
-                     {project.client_company?.name && (
-                       <div className="flex items-center space-x-3">
-                          <div className="p-3 bg-muted/30 rounded-xl">
-                             <Building2 className="h-5 w-5 text-indigo-500" />
-                          </div>
-                          <div>
-                             <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest block">Client Company</span>
-                             <span className="text-base font-black text-foreground uppercase tracking-tight">
-                               {project.client_company.name}
-                             </span>
-                          </div>
-                       </div>
-                     )}
                   </div>
+               </div>
                </div>
             </div>
           </motion.div>

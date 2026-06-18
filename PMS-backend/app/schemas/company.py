@@ -2,6 +2,12 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
+class PointOfContact(BaseModel):
+    name: str
+    email: str
+    phone: str
+    designation: str
+
 class CompanyBase(BaseModel):
     name: str
     company_name: Optional[str] = None
@@ -16,6 +22,7 @@ class CompanyBase(BaseModel):
     company_type: Optional[str] = "client"
     company_owner: Optional[str] = None
     logo_url: Optional[str] = None
+    points_of_contact: Optional[List[PointOfContact]] = []
 
 class CompanyCreate(CompanyBase):
     pass
@@ -34,6 +41,7 @@ class CompanyUpdate(BaseModel):
     company_type: Optional[str] = None
     company_owner: Optional[str] = None
     logo_url: Optional[str] = None
+    points_of_contact: Optional[List[PointOfContact]] = None
 
 class CompanyMetrics(BaseModel):
     team_member_count: int = 0

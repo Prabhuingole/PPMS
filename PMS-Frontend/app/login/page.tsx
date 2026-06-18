@@ -435,7 +435,7 @@ export default function LoginPage() {
                       type="email"
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="admin@sambhav.com"
+                      placeholder="Enter your email"
                       required
                       className="h-12 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                     />
@@ -529,7 +529,7 @@ export default function LoginPage() {
                           <div className="relative">
                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                             <Input
-                              placeholder="admin@sambhav.com"
+                              placeholder="Enter your email"
                               className="h-12 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />

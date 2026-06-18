@@ -164,7 +164,12 @@ export function EmployeeForm({
                     <FormItem>
                       <FormLabel required className="text-sm font-semibold text-foreground">Email Address</FormLabel>
                       <FormControl>
-                        <Input placeholder="name@gmail.com" {...field} className="h-10" />
+                        <Input 
+                          placeholder="name@gmail.com" 
+                          {...field} 
+                          disabled={isProfileEdit} 
+                          className={isProfileEdit ? "h-10 bg-muted cursor-not-allowed text-muted-foreground" : "h-10"} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -252,7 +257,12 @@ export function EmployeeForm({
                     <FormItem className={isProfileEdit ? "md:col-span-2" : ""}>
                       <FormLabel required className="text-sm font-semibold text-foreground">Designation</FormLabel>
                       <FormControl>
-                        <Input placeholder="Software Engineer" {...field} className="h-10" />
+                        <Input 
+                          placeholder="Software Engineer" 
+                          {...field} 
+                          disabled={isProfileEdit} 
+                          className={isProfileEdit ? "h-10 bg-muted cursor-not-allowed text-muted-foreground" : "h-10"} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

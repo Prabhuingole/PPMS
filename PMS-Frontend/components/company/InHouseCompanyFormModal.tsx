@@ -11,6 +11,8 @@ import { Company } from '@/types';
 import { useCreateCompany, useUpdateCompany } from '@/services/companyService';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 
 interface InHouseCompanyFormModalProps {
   open: boolean;
@@ -79,16 +81,40 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
     const newErrors: Record<string, string> = {};
     let hasError = false;
 
+    if (!formData.name || !formData.name.trim()) {
+      newErrors.name = 'Company Name is required';
+      hasError = true;
+    }
+
     const emailRegex = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-    if (formData.email && !emailRegex.test(formData.email)) {
+    if (!formData.email || !emailRegex.test(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
       hasError = true;
     }
 
-    const phoneRegex = /^(?:\+91|91|0)?[6-9]\d{9}$/;
-    if (formData.phone && !phoneRegex.test(formData.phone.replace(/[\s-]/g, ''))) {
-      newErrors.phone = 'Please enter a valid Indian phone number (e.g. +91 9876543210)';
+    const phoneDigits = formData.phone ? formData.phone.replace(/\D/g, '') : '';
+    if (formData.phone && !(phoneDigits.startsWith('91') && phoneDigits.length === 12)) {
+      newErrors.phone = 'Please enter a valid 10-digit Indian mobile number';
       hasError = true;
+    }
+
+    const lettersOnlyRegex = /^[a-zA-Z\s]+$/;
+    if (formData.contact_person && !lettersOnlyRegex.test(formData.contact_person)) {
+      newErrors.contact_person = 'Contact person can only contain letters and spaces';
+      hasError = true;
+    }
+
+    if (formData.company_owner && !lettersOnlyRegex.test(formData.company_owner)) {
+      newErrors.company_owner = 'Company owner can only contain letters and spaces';
+      hasError = true;
+    }
+
+    if (formData.gst_number) {
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
+      if (!gstRegex.test(formData.gst_number)) {
+        newErrors.gst_number = 'Please enter a valid GST Number format (e.g., 22AAAAA0000A1Z5)';
+        hasError = true;
+      }
     }
 
     if (hasError) {
@@ -116,8 +142,19 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
     }
   };
 
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setShowConfirmClose(true);
+    } else {
+      onOpenChange(newOpen);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleOpenChange} disablePointerDismissal={true}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{company ? 'Edit In house Company' : 'Add In house Company'}</DialogTitle>
@@ -129,13 +166,18 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Company Name <span className="text-red-500">*</span></Label>
+              <Label htmlFor="name" className={errors.name ? "text-red-500" : ""}>Company Name <span className="text-red-500">*</span></Label>
               <Input
                 id="name"
                 value={formData.name || ''}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
+                className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setFormData({ ...formData, name: val });
+                  if (errors.name) setErrors({ ...errors, name: '' });
+                }}
               />
+              {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="code">Company Code</Label>
@@ -151,20 +193,32 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="contact_person">Contact Person</Label>
+              <Label htmlFor="contact_person" className={errors.contact_person ? "text-red-500" : ""}>Contact Person</Label>
               <Input
                 id="contact_person"
                 value={formData.contact_person || ''}
-                onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                className={errors.contact_person ? "border-red-500 focus-visible:ring-red-500" : ""}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setFormData({ ...formData, contact_person: val });
+                  if (errors.contact_person) setErrors({ ...errors, contact_person: '' });
+                }}
               />
+              {errors.contact_person && <p className="text-xs text-red-500 mt-1">{errors.contact_person}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company_owner">Company Owner</Label>
+              <Label htmlFor="company_owner" className={errors.company_owner ? "text-red-500" : ""}>Company Owner</Label>
               <Input
                 id="company_owner"
                 value={formData.company_owner || ''}
-                onChange={(e) => setFormData({ ...formData, company_owner: e.target.value })}
+                className={errors.company_owner ? "border-red-500 focus-visible:ring-red-500" : ""}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setFormData({ ...formData, company_owner: val });
+                  if (errors.company_owner) setErrors({ ...errors, company_owner: '' });
+                }}
               />
+              {errors.company_owner && <p className="text-xs text-red-500 mt-1">{errors.company_owner}</p>}
             </div>
           </div>
 
@@ -188,14 +242,20 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>Email</Label>
+              <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>Email <span className="text-red-500">*</span></Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email || ''}
                 className={errors.email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                onKeyDown={(e) => {
+                  if (e.key === ' ') {
+                    e.preventDefault();
+                  }
+                }}
                 onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
+                  const val = e.target.value.replace(/[^a-zA-Z0-9@.\-_+]/g, '');
+                  setFormData({ ...formData, email: val });
                   if (errors.email) setErrors({ ...errors, email: '' });
                 }}
               />
@@ -203,14 +263,30 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>Phone</Label>
-              <Input
-                id="phone"
+              <PhoneInput
+                country={'in'}
+                onlyCountries={['in']}
                 value={formData.phone || ''}
-                className={errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, phone: e.target.value });
+                onChange={(phone) => {
+                  setFormData({ ...formData, phone });
                   if (errors.phone) setErrors({ ...errors, phone: '' });
                 }}
+                inputStyle={{
+                  width: '100%',
+                  height: '40px',
+                  borderRadius: '0.375rem',
+                  borderColor: errors.phone ? 'red' : '#e2e8f0',
+                  backgroundColor: 'transparent'
+                }}
+                buttonStyle={{
+                  borderColor: errors.phone ? 'red' : '#e2e8f0',
+                  backgroundColor: 'transparent',
+                  borderTopLeftRadius: '0.375rem',
+                  borderBottomLeftRadius: '0.375rem'
+                }}
+                containerStyle={{ width: '100%' }}
+                searchPlaceholder="Search country..."
+                searchNotFound="No country found"
               />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
@@ -226,12 +302,19 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="gst_number">GST Number</Label>
+              <Label htmlFor="gst_number" className={errors.gst_number ? "text-red-500" : ""}>GST Number</Label>
               <Input
                 id="gst_number"
                 value={formData.gst_number || ''}
-                onChange={(e) => setFormData({ ...formData, gst_number: e.target.value })}
+                className={errors.gst_number ? "border-red-500 focus-visible:ring-red-500 uppercase" : "uppercase"}
+                maxLength={15}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 15);
+                  setFormData({ ...formData, gst_number: val });
+                  if (errors.gst_number) setErrors({ ...errors, gst_number: '' });
+                }}
               />
+              {errors.gst_number && <p className="text-xs text-red-500 mt-1">{errors.gst_number}</p>}
             </div>
           </div>
 
@@ -246,16 +329,53 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={() => setShowConfirmClose(true)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {company ? 'Save Changes' : 'Add In house Company'}
+              {company ? 'Save Changes' : 'Create Company'}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+      <DialogContent className="sm:max-w-[340px] p-0 overflow-hidden border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2rem] bg-card" showCloseButton={false}>
+        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-6 text-white relative overflow-hidden">
+           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+           <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl"></div>
+           
+           <div className="flex flex-col items-center text-center relative z-10">
+             <div className="h-16 w-16 bg-white/10 rounded-[1.25rem] backdrop-blur-md flex items-center justify-center border border-white/20 shadow-2xl mb-3 relative">
+                <div className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-rose-500 rounded-full flex items-center justify-center animate-ping opacity-75"></div>
+                <div className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-rose-500 rounded-full flex items-center justify-center shadow-lg border border-white/20">
+                  <div className="h-1.5 w-1.5 bg-white rounded-full"></div>
+                </div>
+               <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white drop-shadow-md"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+             </div>
+             <DialogTitle className="text-xl font-black tracking-tight text-white mb-1.5">
+               Are you sure?
+             </DialogTitle>
+             <DialogDescription className="text-blue-100 font-medium text-xs leading-relaxed px-2">
+               You are about to quit creating this company. Unsaved data will be lost.
+             </DialogDescription>
+           </div>
+        </div>
+        <div className="p-5 bg-card flex flex-col gap-2">
+          <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm h-10" onClick={() => {
+            setShowConfirmClose(false);
+            onOpenChange(false);
+          }}>
+            Yes, Quit
+          </Button>
+          <Button variant="outline" onClick={() => setShowConfirmClose(false)} className="w-full rounded-xl h-10">
+            Continue Editing
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }

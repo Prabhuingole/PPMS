@@ -93,6 +93,7 @@ export default function ProjectListPage() {
   const { token } = useAuthStore();
   const [projects, setProjects] = useState<Project[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [reportingManagers, setReportingManagers] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -117,7 +118,7 @@ export default function ProjectListPage() {
     try {
       setLoading(true);
       setIsError(false);
-      const [projectData, employeeData] = await Promise.all([
+      const [projectData, employeeData, rmData] = await Promise.all([
         projectService.getProjects({ 
           page: 1, 
           limit: 1000, 
@@ -125,12 +126,14 @@ export default function ProjectListPage() {
           status: statusFilter === 'all' ? undefined : statusFilter,
           manager_id: managerFilter === 'all' ? undefined : Number(managerFilter)
         }),
-        employeeService.getEmployees({ limit: 1000, status_filter: true })
+        employeeService.getEmployees({ limit: 1000, status_filter: true }),
+        employeeService.getEmployees({ limit: 1000, is_reporting_manager: true, status_filter: true })
       ]);
 
       setProjects(projectData.items);
       setTotal(projectData.total);
       setEmployees(employeeData.items);
+      setReportingManagers(rmData.items);
     } catch (error) {
       setIsError(true);
       toast.error('Failed to load projects data');
@@ -415,8 +418,8 @@ export default function ProjectListPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         editingProject={editingProject}
-
         employees={employees}
+        reportingManagers={reportingManagers}
         onSuccess={fetchData}
       />
 

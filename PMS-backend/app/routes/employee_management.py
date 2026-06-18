@@ -33,8 +33,10 @@ def create_employee(
     # Check if email or employee_id already exists
     if db.query(User).filter(func.lower(User.email) == func.lower(payload.email)).first():
         raise HTTPException(status_code=400, detail="Email already registered")
-    if db.query(User).filter(User.employee_id == payload.employee_id).first():
+    if payload.employee_id and db.query(User).filter(User.employee_id == payload.employee_id).first():
         raise HTTPException(status_code=400, detail="Employee ID already exists")
+    if payload.mobile_number and db.query(User).filter(User.mobile_number == payload.mobile_number).first():
+        raise HTTPException(status_code=400, detail="Phone number already registered")
 
     if admin.role == UserRole.ADMIN:
         payload.company_id = admin.company_id
@@ -45,6 +47,9 @@ def create_employee(
     company = db.query(Company).filter(Company.id == payload.company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+        
+    if company.company_type != "in_house":
+        raise HTTPException(status_code=400, detail="Employees and managers can only be assigned to in-house companies")
 
     # Generate secure random temporary password
     alphabet = string.ascii_letters + string.digits + "@#*!?"
@@ -70,13 +75,14 @@ def create_employee(
     db.refresh(new_user)
     
     # Dispatch welcome email asynchronously
-    print(f"Adding task to send welcome email to {payload.email}")
-    background_tasks.add_task(
-        send_temporary_password_email,
-        to_email=payload.email,
-        employee_name=payload.full_name,
-        temp_password=temp_password
-    )
+    if payload.role != "reporting_manager":
+        print(f"Adding task to send welcome email to {payload.email}")
+        background_tasks.add_task(
+            send_temporary_password_email,
+            to_email=payload.email,
+            employee_name=payload.full_name,
+            temp_password=temp_password
+        )
     
     create_audit_log(
         db=db,
@@ -115,9 +121,11 @@ def get_employees(
         query = query.filter(User.role == user_type)
     if status_filter is not None:
         query = query.filter(User.is_active == status_filter)
+        
     if is_reporting_manager:
-        from app.models.project import Project
-        query = query.filter(User.id.in_(db.query(Project.reporting_manager_id).filter(Project.reporting_manager_id != None)))
+        query = query.filter(User.role == UserRole.REPORTING_MANAGER)
+    elif user_type != UserRole.REPORTING_MANAGER:
+        query = query.filter(User.role != UserRole.REPORTING_MANAGER)
     
     # Search (Name, Employee ID, Email)
     if search:

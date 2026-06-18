@@ -782,6 +782,7 @@ export default function ProjectDetailsPage() {
           onClose={() => setIsEditModalOpen(false)}
           editingProject={project}
           employees={employees}
+          reportingManagers={employees.filter(e => e.role === 'reporting_manager' || e.role === 'admin' || e.role === 'superadmin')}
           onSuccess={() => {
             fetchData();
           }}

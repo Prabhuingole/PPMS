@@ -371,11 +371,11 @@ export default function EmployeeListPage() {
                 <div onClick={(e) => e.stopPropagation()} className="flex justify-end items-center ">
                   <DropdownMenu>
                     <DropdownMenuTrigger className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground">
-<span className="sr-only">Open menu</span>
-<MoreHorizontal className="h-4 w-4" />
-</DropdownMenuTrigger>
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           router.push(`/superadmin/employees/${emp.id}`);
@@ -385,7 +385,7 @@ export default function EmployeeListPage() {
                         <Eye className="mr-2 h-4 w-4" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(emp);
@@ -395,7 +395,7 @@ export default function EmployeeListPage() {
                         <Edit2 className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
                           confirmDelete(emp);
@@ -414,7 +414,7 @@ export default function EmployeeListPage() {
         />
       </ManagementLayout>
 
-      <EmployeeForm 
+      <EmployeeForm
         mode={editingEmployee ? 'edit' : 'create'}
         isOpen={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
@@ -448,22 +448,22 @@ export default function EmployeeListPage() {
             </div>
             <DialogHeader className="relative z-10">
               <DialogTitle className="text-2xl font-bold tracking-tight text-white text-center">
-                Transmission Sent
+                Email Sent
               </DialogTitle>
               <DialogDescription className="text-emerald-50 font-semibold text-xs mt-1 text-center max-w-sm mx-auto">
-                Team Member <span className="font-bold text-white">{newEmployeeName}</span> has been securely initialized in the network.
+                Team Member <span className="font-bold text-white">{newEmployeeName}</span> has been successfully added.
               </DialogDescription>
             </DialogHeader>
           </div>
           <div className="p-6 bg-background text-center space-y-4">
             <p className="text-slate-600 font-medium text-xs">
-              An automated email containing cryptographic access keys (temporary password) has been dispatched.
+              An email containing their temporary password has been sent to their email address.
             </p>
             <Button
               className="w-full h-10 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-bold text-xs tracking-wider shadow-sm hover:-translate-y-0.5 transition-transform"
               onClick={() => setIsPasswordModalOpen(false)}
             >
-              Acknowledge & Close
+              Close
             </Button>
           </div>
         </DialogContent>

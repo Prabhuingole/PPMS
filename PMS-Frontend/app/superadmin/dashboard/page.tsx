@@ -41,8 +41,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuthStore();
   
-  const renderCount = useRef(0);
-  renderCount.current++;
   
   const [employees, setEmployees] = useState(0);
   const [projects, setProjects] = useState<any[]>([]);
@@ -122,10 +120,6 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <>
-      <div id="dashboard-render-count" className="fixed top-0 right-0 z-[9999] bg-red-600 text-white px-3 py-1 font-mono text-xs font-bold rounded-bl-lg shadow-lg">
-        Dashboard Renders: {renderCount.current}
-      </div>
     <AnalyticsLayout
       title="Dashboard"
       description="Monitor workspace activity, approvals, attendance and operational metrics."
@@ -313,6 +307,5 @@ export default function DashboardPage() {
         </>
       }
     />
-    </>
   );
 }

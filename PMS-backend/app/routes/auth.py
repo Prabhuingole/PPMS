@@ -33,6 +33,12 @@ def login(request: Request, response: Response, payload: LoginSchema, db: Sessio
             detail="Invalid credentials"
         )
         
+    if user.role == "reporting_manager":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reporting manager profiles are for structural use only and cannot log in."
+        )
+        
     # Check lockout
     if user.locked_until and user.locked_until > datetime.utcnow():
         raise HTTPException(
@@ -507,7 +513,7 @@ def forgot_password(payload: ForgotPasswordSchema, request: Request, db: Session
     email = payload.email.strip()
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
     
-    if not user:
+    if not user or user.role == "reporting_manager":
         # Prevent timing attacks by delaying or just returning a generic message
         return {"message": "If an account exists, a password reset link has been sent."}
     
@@ -531,7 +537,7 @@ def reset_password(payload: ResetPasswordSchema, request: Request, db: Session =
         
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
     import hashlib
-    if not user or not user.reset_token or user.reset_token != hashlib.sha256(payload.token.encode()).hexdigest():
+    if not user or not user.reset_token or user.reset_token != hashlib.sha256(payload.token.encode()).hexdigest() or user.role == "reporting_manager":
         raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
         
     user.hashed_password = get_password_hash(payload.new_password)

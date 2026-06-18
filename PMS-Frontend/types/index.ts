@@ -1,5 +1,12 @@
 export type UserRole = 'superadmin' | 'admin' | 'reporting_manager' | 'employee' | 'team_member' | 'intern' | 'consultant';
 
+export interface PointOfContact {
+  name: string;
+  email: string;
+  phone: string;
+  designation: string;
+}
+
 export interface Company {
   id: number;
   name: string;
@@ -15,6 +22,7 @@ export interface Company {
   logo_url?: string;
   company_type?: 'client' | 'in_house' | string;
   company_owner?: string;
+  points_of_contact?: PointOfContact[];
   created_at?: string;
   updated_at?: string;
   metrics?: {

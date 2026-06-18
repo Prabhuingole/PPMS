@@ -96,6 +96,15 @@ export default function AdminListPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [adminToEdit, setAdminToEdit] = useState<Employee | null>(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setShowConfirmClose(true);
+    } else {
+      setIsAddModalOpen(newOpen);
+    }
+  };
 
   const form = useForm<AdminFormValues>({
     resolver: zodResolver(adminSchema),
@@ -358,7 +367,7 @@ export default function AdminListPage() {
         />
       </ManagementLayout>
 
-      <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
+      <Dialog open={isAddModalOpen} onOpenChange={handleOpenChange} disablePointerDismissal={true}>
         <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-border gap-0">
           <EnterpriseModalHeader
             title="Add New Admin"
@@ -378,7 +387,12 @@ export default function AdminListPage() {
                       <FormItem>
                         <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Admin Name" {...field} className="h-10" />
+                          <Input 
+                            placeholder="Admin Name" 
+                            {...field} 
+                            onChange={(e) => field.onChange(e.target.value.replace(/[^a-zA-Z\s]/g, ''))}
+                            className="h-10" 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -466,7 +480,7 @@ export default function AdminListPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => setShowConfirmClose(true)}
                   className="h-10 px-4"
                 >
                   Cancel
@@ -683,6 +697,42 @@ export default function AdminListPage() {
           </EnterpriseModalFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={showConfirmClose} onOpenChange={setShowConfirmClose}>
+        <DialogContent className="sm:max-w-[340px] p-0 overflow-hidden border-none shadow-[0_35px_60px_-15px_rgba(0,0,0,0.3)] rounded-[2rem] bg-card" showCloseButton={false}>
+          <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-6 text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl"></div>
+             <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl"></div>
+             
+             <div className="flex flex-col items-center text-center relative z-10">
+               <div className="h-16 w-16 bg-white/10 rounded-[1.25rem] backdrop-blur-md flex items-center justify-center border border-white/20 shadow-2xl mb-3 relative">
+                  <div className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-rose-500 rounded-full flex items-center justify-center animate-ping opacity-75"></div>
+                  <div className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-rose-500 rounded-full flex items-center justify-center shadow-lg border border-white/20">
+                    <div className="h-1.5 w-1.5 bg-white rounded-full"></div>
+                  </div>
+                 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white drop-shadow-md"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+               </div>
+               <DialogTitle className="text-xl font-black tracking-tight text-white mb-1.5">
+                 Are you sure?
+               </DialogTitle>
+               <DialogDescription className="text-blue-100 font-medium text-xs leading-relaxed px-2">
+                 You are about to quit creating this admin. Unsaved data will be lost.
+               </DialogDescription>
+             </div>
+          </div>
+          <div className="p-5 bg-card flex flex-col gap-2">
+            <Button className="w-full bg-rose-600 hover:bg-rose-700 text-white rounded-xl shadow-sm h-10" onClick={() => {
+              setShowConfirmClose(false);
+              setIsAddModalOpen(false);
+            }}>
+              Yes, Quit
+            </Button>
+            <Button variant="outline" onClick={() => setShowConfirmClose(false)} className="w-full rounded-xl h-10">
+              Continue Editing
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </>
   );
 }
