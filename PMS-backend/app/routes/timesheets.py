@@ -256,13 +256,19 @@ def get_my_timesheets(
     limit: int = 50,
     search: Optional[str] = None,
     status: Optional[str] = None,
-    project_id: Optional[str] = None
+    project_id: Optional[str] = None,
+    manager_name: Optional[str] = None
 ):
     from app.models.project import Project
+    from app.models.user import User as UserModel
     base_query = db.query(Timesheet).options(
         joinedload(Timesheet.user),
         joinedload(Timesheet.project), joinedload(Timesheet.company)
     ).filter(Timesheet.user_id == current_user.id)
+    
+    # Outer join Project if needed by filters
+    if search or manager_name:
+        base_query = base_query.outerjoin(Project, Timesheet.project_id == Project.id)
     
     if project_id:
         if project_id.startswith("category:"):
@@ -273,9 +279,12 @@ def get_my_timesheets(
         else:
             base_query = base_query.filter(Timesheet.project_id == int(project_id))
         
+    if manager_name:
+        base_query = base_query.outerjoin(UserModel, Project.reporting_manager_id == UserModel.id).filter(UserModel.full_name == manager_name)
+
     if search:
         search_pattern = f"%{search}%"
-        base_query = base_query.outerjoin(Project, Timesheet.project_id == Project.id).filter(
+        base_query = base_query.filter(
             or_(
                 Timesheet.task_title.ilike(search_pattern),
                 Timesheet.description.ilike(search_pattern),

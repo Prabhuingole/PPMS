@@ -98,6 +98,8 @@ def get_projects(
     search: Optional[str] = None,
     status: Optional[str] = None,
     manager_id: Optional[int] = None,
+    client_company_id: Optional[int] = Query(None, description="Filter by client company"),
+    owner_company_id: Optional[int] = Query(None, description="Filter by owner company"),
     dropdown: bool = Query(False, description="If true, skip eager loads for lightweight dropdowns"),
     include_unassigned: bool = Query(False, description="Include unassigned active projects"),
     db: Session = Depends(get_db),
@@ -115,11 +117,13 @@ def get_projects(
             noload(Project.members)
         )
 
-    if current_user.role not in ["superadmin", "admin"]:
+    if current_user.role == "admin":
+        query = query.filter(Project.owner_company_id == current_user.company_id)
+    elif current_user.role not in ["superadmin", "admin"]:
         if include_unassigned:
             query = query.filter(
                 (Project.members.any(User.id == current_user.id)) | 
-                (Project.status == "active")
+                ((Project.status == "active") & (Project.owner_company_id == current_user.company_id))
             )
         else:
             query = query.filter(Project.members.any(User.id == current_user.id))
@@ -129,6 +133,10 @@ def get_projects(
         query = query.filter(Project.status == status)
     if manager_id:
         query = query.filter(Project.reporting_manager_id == manager_id)
+    if client_company_id:
+        query = query.filter(Project.client_company_id == client_company_id)
+    if owner_company_id:
+        query = query.filter(Project.owner_company_id == owner_company_id)
     
     # Search (Name, Code)
     if search:

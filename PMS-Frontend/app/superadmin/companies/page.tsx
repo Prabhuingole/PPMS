@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useCompanies } from '@/services/companyService';
 import { CompanyTable } from '@/components/company/CompanyTable';
 import { CompanyFormModal } from '@/components/company/CompanyFormModal';
+import { CompanyOverviewModal } from '@/components/company/CompanyOverviewModal';
 import { Company } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,8 +32,9 @@ export default function CompaniesPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   
-  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
-  const [newCompanyId, setNewCompanyId] = useState<number | null>(null);
+  const [isOverviewOpen, setIsOverviewOpen] = useState(false);
+  const [companyToView, setCompanyToView] = useState<Company | null>(null);
+  
   const router = useRouter();
 
   const handleCreate = () => {
@@ -46,7 +48,8 @@ export default function CompaniesPage() {
   };
 
   const handleView = (company: Company) => {
-    router.push(`/superadmin/companies/${company.id}`);
+    setCompanyToView(company);
+    setIsOverviewOpen(true);
   };
 
   return (
@@ -155,32 +158,18 @@ export default function CompaniesPage() {
         onOpenChange={setIsFormOpen} 
         company={selectedCompany} 
         defaultCompanyType="client"
-        onSuccessCreate={(company) => {
-          setNewCompanyId(company.id);
-          setShowAdminPrompt(true);
-        }}
       />
 
-
-      <Dialog open={showAdminPrompt} onOpenChange={setShowAdminPrompt}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Company Created Successfully</DialogTitle>
-            <DialogDescription>
-              Would you like to create a Company Admin for this new company now?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setShowAdminPrompt(false)}>
-              Not right now
-            </Button>
-            <Button onClick={() => router.push(`/superadmin/employees?create_admin=true&company_id=${newCompanyId}`)}>
-              Create Admin
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      <CompanyOverviewModal
+        isOpen={isOverviewOpen}
+        onClose={() => setIsOverviewOpen(false)}
+        company={companyToView}
+        onViewFullDetails={(c) => router.push(`/superadmin/companies/${c.id}`)}
+        onEdit={(c) => {
+          setIsOverviewOpen(false);
+          handleEdit(c);
+        }}
+      />
     </div>
   );
 }

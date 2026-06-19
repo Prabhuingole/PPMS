@@ -11,7 +11,8 @@ import {
   LogOut, 
   User,
   FileText,
-  Fingerprint
+  Fingerprint,
+  CheckSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { useUIStore } from '@/store/uiStore';
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/employee/dashboard' },
   { icon: Briefcase, label: 'My Projects', href: '/employee/projects' },
+  { icon: CheckSquare, label: 'My Tasks', href: '/employee/tasks' },
   { icon: ClipboardList, label: 'My Timesheets', href: '/employee/timesheets' },
   { icon: Fingerprint, label: 'Attendance', href: '/employee/attendance' },
   { icon: FileText, label: 'To Do List', href: '/employee/notes' },

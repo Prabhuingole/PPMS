@@ -27,6 +27,9 @@ def get_audit_logs(
         
     query = db.query(AuditLog).options(joinedload(AuditLog.company))
     
+    if current_user.role == "admin":
+        query = query.filter(AuditLog.company_id == current_user.company_id)
+    
     if entity_type:
         query = query.filter(AuditLog.entity_type == entity_type)
     if user_id:
@@ -48,6 +51,9 @@ def get_audit_logs_paginated(
         raise HTTPException(status_code=403, detail="Not authorized to view audit logs")
         
     query = db.query(AuditLog).options(joinedload(AuditLog.company))
+    
+    if current_user.role == "admin":
+        query = query.filter(AuditLog.company_id == current_user.company_id)
     
     if entity_type and entity_type != "all":
         query = query.filter(AuditLog.entity_type == entity_type)
@@ -78,9 +84,14 @@ def get_entity_audit_logs(
     if current_user.role not in ["superadmin", "admin"]:
         raise HTTPException(status_code=403, detail="Not authorized to view audit logs")
         
-    logs = db.query(AuditLog).options(joinedload(AuditLog.company)).filter(
+    query = db.query(AuditLog).options(joinedload(AuditLog.company)).filter(
         AuditLog.entity_type == entity_type,
         AuditLog.entity_id == entity_id
-    ).order_by(AuditLog.timestamp.desc()).all()
+    )
+    
+    if current_user.role == "admin":
+        query = query.filter(AuditLog.company_id == current_user.company_id)
+        
+    logs = query.order_by(AuditLog.timestamp.desc()).all()
     
     return logs

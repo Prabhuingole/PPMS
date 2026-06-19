@@ -100,6 +100,14 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
     }
 
     const lettersOnlyRegex = /^[a-zA-Z\s]+$/;
+
+    if (!formData.contact_person || !formData.contact_person.trim()) {
+      newErrors.contact_person = 'Client Name is required';
+      hasError = true;
+    } else if (!lettersOnlyRegex.test(formData.contact_person)) {
+      newErrors.contact_person = 'Only letters and spaces allowed';
+      hasError = true;
+    }
     
     if (formData.points_of_contact) {
       formData.points_of_contact.forEach((poc, index) => {
@@ -225,6 +233,24 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
               {errors.name && <p className="text-xs text-red-500 mt-1">{errors.name}</p>}
             </div>
             <div className="space-y-2">
+              <Label htmlFor="contact_person" className={errors.contact_person ? "text-red-500" : ""}>Client Name <span className="text-red-500">*</span></Label>
+              <Input
+                id="contact_person"
+                value={formData.contact_person || ''}
+                className={errors.contact_person ? "border-red-500 focus-visible:ring-red-500" : ""}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+                  setFormData({ ...formData, contact_person: val });
+                  if (errors.contact_person) setErrors({ ...errors, contact_person: '' });
+                }}
+                placeholder="e.g. John Doe"
+              />
+              {errors.contact_person && <p className="text-xs text-red-500 mt-1">{errors.contact_person}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="code">Client Code</Label>
               <Input
                 id="code"
@@ -234,9 +260,6 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
                 placeholder="e.g. ACME"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select
@@ -252,6 +275,10 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="email" className={errors.email ? "text-red-500" : ""}>Email <span className="text-red-500">*</span></Label>
               <Input
@@ -272,9 +299,6 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
               />
               {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="phone" className={errors.phone ? "text-red-500" : ""}>Phone</Label>
               <PhoneInput
@@ -304,6 +328,9 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
               />
               {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
               <Input
@@ -312,9 +339,6 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="gst_number" className={errors.gst_number ? "text-red-500" : ""}>GST Number</Label>
               <Input

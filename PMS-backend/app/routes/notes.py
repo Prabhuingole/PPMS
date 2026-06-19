@@ -401,11 +401,16 @@ def delete_checklist_item(
 def list_admin_projects(
     search: Optional[str] = None,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(get_current_user)
 ):
+    if admin.role not in ["superadmin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     from app.models.project import Project
     
     query = db.query(Project)
+    if admin.role == "admin":
+        query = query.filter(Project.owner_company_id == admin.company_id)
     if search:
         search_lower = f"%{search.lower()}%"
         query = query.filter((Project.name.ilike(search_lower)) | (Project.code.ilike(search_lower)))
@@ -446,8 +451,19 @@ def list_admin_projects(
 def list_admin_project_users(
     project_id: int,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(get_current_user)
 ):
+    if admin.role not in ["superadmin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    from app.models.user import User as UserModel
+    from app.models.project import Project
+
+    if admin.role == "admin":
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project or project.owner_company_id != admin.company_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+    
     from app.models.user import User as UserModel
     
     pages = db.query(NotePage).filter(
@@ -464,6 +480,9 @@ def list_admin_project_users(
         
         user = db.query(UserModel).filter(UserModel.id == workspace.user_id).first()
         if not user: continue
+        
+        if admin.role == "admin" and user.company_id != admin.company_id:
+            continue
         
         user_pages = [p for p in pages if p.workspace_id == wid]
         total_tasks = 0
@@ -496,8 +515,23 @@ def get_user_project_pages(
     project_id: int,
     user_id: int,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(get_current_user)
 ):
+    if admin.role not in ["superadmin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    from app.models.project import Project
+    from app.models.user import User as UserModel
+    
+    if admin.role == "admin":
+        project = db.query(Project).filter(Project.id == project_id).first()
+        if not project or project.owner_company_id != admin.company_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user or user.company_id != admin.company_id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
     workspace = db.query(NoteWorkspace).filter(NoteWorkspace.user_id == user_id).first()
     if not workspace:
         return []
@@ -515,9 +549,21 @@ def get_user_project_pages(
 def get_page_admin(
     page_id: int,
     db: Session = Depends(get_db),
-    admin: User = Depends(get_superadmin)
+    admin: User = Depends(get_current_user)
 ):
+    if admin.role not in ["superadmin", "admin"]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     page = db.query(NotePage).filter(NotePage.id == page_id).first()
     if not page:
         raise HTTPException(status_code=404, detail="Page not found")
+        
+    if admin.role == "admin":
+        workspace = db.query(NoteWorkspace).filter(NoteWorkspace.id == page.workspace_id).first()
+        if workspace:
+            from app.models.user import User as UserModel
+            user = db.query(UserModel).filter(UserModel.id == workspace.user_id).first()
+            if not user or user.company_id != admin.company_id:
+                raise HTTPException(status_code=403, detail="Not authorized")
+                
     return page

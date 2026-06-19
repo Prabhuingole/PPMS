@@ -49,6 +49,9 @@ def create_admin(
     company = db.query(Company).filter(Company.id == payload.company_id).first()
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
+        
+    if company.company_type != "in_house":
+        raise HTTPException(status_code=400, detail="Admins can only be assigned to in-house companies")
 
     # Generate secure random temporary password
     alphabet = string.ascii_letters + string.digits + "@#*!?"

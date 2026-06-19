@@ -8,6 +8,8 @@ export const projectService = {
     search?: string; 
     status?: string; 
     manager_id?: number;
+    client_company_id?: number;
+    owner_company_id?: number;
   }) => {
     const response = await api.get<ProjectListResponse>('/projects/', { params });
     return response.data;

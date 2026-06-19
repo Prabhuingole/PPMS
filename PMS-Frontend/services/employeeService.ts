@@ -9,6 +9,7 @@ export const employeeService = {
     user_type?: string; 
     status_filter?: boolean; 
     is_reporting_manager?: boolean;
+    company_id?: number;
   }) => {
     const response = await api.get<EmployeeListResponse>('/employees/', { params });
     return response.data;

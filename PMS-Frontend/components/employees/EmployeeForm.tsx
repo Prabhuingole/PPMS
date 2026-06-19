@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Users, AlertCircle, Save, Building2 } from 'lucide-react';
+import { Loader2, Users, AlertCircle, Save, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,6 +34,7 @@ import { FormGrid } from '@/components/ui/form-grid';
 import { useAuthStore } from '@/store/authStore';
 import { companyService } from '@/services/companyService';
 import { Company } from '@/types';
+import api from '@/services/api';
 
 type FormMode = 'create' | 'edit' | 'profile_edit';
 
@@ -72,11 +73,13 @@ export function EmployeeForm({
       designation: '',
       company_id: '',
     },
-    mode: 'onChange', // enable dirty state detection easily
+    mode: 'onChange',
   });
 
   const { user } = useAuthStore();
   const [companies, setCompanies] = useState<Company[]>([]);
+  // Confirmation dialog state for miss-touch prevention
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'superadmin') {
@@ -90,6 +93,7 @@ export function EmployeeForm({
       form.reset(defaultValues);
     } else if (!isOpen) {
       form.reset();
+      setShowCancelConfirm(false);
     }
   }, [defaultValues, isOpen, form]);
 
@@ -97,10 +101,81 @@ export function EmployeeForm({
     await onSubmit(data);
   };
 
+  // Handle close/cancel with dirty check
+  const handleRequestClose = () => {
+    if (form.formState.isDirty) {
+      setShowCancelConfirm(true);
+    } else {
+      doClose();
+    }
+  };
+
+  const doClose = () => {
+    setShowCancelConfirm(false);
+    form.reset();
+    if (onCancel) onCancel();
+    if (onOpenChange) onOpenChange(false);
+  };
+
   const isProfileEdit = mode === 'profile_edit';
   const isCreate = mode === 'create';
   
   const isDirty = form.formState.isDirty;
+
+  // Block numbers and special characters from name input
+  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Allow: backspace, delete, tab, escape, enter, arrow keys, home, end, ctrl+a/c/v/x
+    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '];
+    if (allowedKeys.includes(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    // Block digits and special characters (only allow letters and spaces)
+    if (!/^[a-zA-Z\s]$/.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>, fieldOnChange: (v: string) => void) => {
+    // Strip any numbers or special characters that might be pasted
+    const cleaned = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+    fieldOnChange(cleaned);
+  };
+
+  // Async duplicate check for email
+  const validateEmailUnique = async (email: string) => {
+    if (!email || !email.includes('@')) return true;
+    // Skip duplicate check when editing (same record)
+    if (mode === 'edit' && defaultValues?.email?.toLowerCase() === email.toLowerCase()) return true;
+    try {
+      const res = await api.get(`/employees/?limit=1&search=${encodeURIComponent(email)}`);
+      const items = res.data?.items || [];
+      const match = items.find((emp: any) => emp.email?.toLowerCase() === email.toLowerCase());
+      if (match) {
+        form.setError('email', { type: 'manual', message: 'This email is already registered in the system.' });
+        return false;
+      }
+      return true;
+    } catch {
+      return true; // allow on error
+    }
+  };
+
+  // Async duplicate check for phone
+  const validatePhoneUnique = async (phone: string) => {
+    if (!phone || phone.length < 10) return true;
+    if (mode === 'edit' && defaultValues?.mobile_number === phone) return true;
+    try {
+      const res = await api.get(`/employees/?limit=1&search=${encodeURIComponent(phone)}`);
+      const items = res.data?.items || [];
+      const match = items.find((emp: any) => emp.mobile_number === phone);
+      if (match) {
+        form.setError('mobile_number', { type: 'manual', message: 'This phone number is already registered in the system.' });
+        return false;
+      }
+      return true;
+    } catch {
+      return true;
+    }
+  };
 
   const content = (
     <>
@@ -108,7 +183,7 @@ export function EmployeeForm({
         title={isCreate ? 'Add Team Member' : isProfileEdit ? 'Edit Profile Details' : 'Edit Team Member Details'}
         subtitle={isProfileEdit 
           ? 'Update your personal and professional information.' 
-          : `Configure parameters for the ${isCreate ? 'new' : 'existing'} human resource inside the network.`}
+          : `Fill in the details for the ${isCreate ? 'new' : 'existing'} team member.`}
         icon={Users}
         intent="normal"
       />
@@ -120,6 +195,8 @@ export function EmployeeForm({
             
             <FormSection title="Personal Information">
               <FormGrid>
+                {/* Identifier (employee_id) hidden in create mode, shown disabled in edit */}
+                {!isCreate && (
                   <FormField
                     control={form.control}
                     name="employee_id"
@@ -130,8 +207,7 @@ export function EmployeeForm({
                           <Input
                             placeholder="SAM001"
                             {...field}
-                            readOnly={isCreate}
-                            disabled={mode === 'edit' || mode === 'profile_edit'} // usually ID cannot be edited once created
+                            disabled={true}
                             className="h-10 bg-muted cursor-not-allowed text-muted-foreground"
                           />
                         </FormControl>
@@ -139,19 +215,26 @@ export function EmployeeForm({
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="full_name"
-                    render={({ field }) => (
-                      <FormItem>
-                      <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} className="h-10" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                )}
+                <FormField
+                  control={form.control}
+                  name="full_name"
+                  render={({ field }) => (
+                    <FormItem className={isCreate ? "md:col-span-2" : ""}>
+                    <FormLabel required className="text-sm font-semibold text-foreground">Full Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="John Doe"
+                        {...field}
+                        onKeyDown={handleNameKeyDown}
+                        onChange={(e) => handleNameChange(e, field.onChange)}
+                        className="h-10"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               </FormGrid>
             </FormSection>
 
@@ -166,7 +249,15 @@ export function EmployeeForm({
                       <FormControl>
                         <Input 
                           placeholder="name@gmail.com" 
-                          {...field} 
+                          {...field}
+                          onChange={(e) => {
+                            // strip spaces
+                            field.onChange(e.target.value.replace(/\s/g, ''));
+                          }}
+                          onBlur={async (e) => {
+                            field.onBlur();
+                            await validateEmailUnique(e.target.value.trim());
+                          }}
                           disabled={isProfileEdit} 
                           className={isProfileEdit ? "h-10 bg-muted cursor-not-allowed text-muted-foreground" : "h-10"} 
                         />
@@ -189,6 +280,10 @@ export function EmployeeForm({
                           onChange={(e) => {
                             const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                             field.onChange(value);
+                          }}
+                          onBlur={async (e) => {
+                            field.onBlur();
+                            await validatePhoneUnique(e.target.value);
                           }}
                           className="h-10"
                         />
@@ -277,9 +372,9 @@ export function EmployeeForm({
                   <AlertCircle className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <h5 className="text-sm font-semibold text-primary">Security Protocol</h5>
+                  <h5 className="text-sm font-semibold text-primary">Welcome Email</h5>
                   <p className="text-sm text-primary/80 mt-1">
-                    A secure temporary password will be auto-generated and dispatched to the resource's email inbox immediately upon creation.
+                    A temporary password will be auto-generated and sent to the team member's email address immediately upon creation.
                   </p>
                 </div>
               </div>
@@ -290,10 +385,7 @@ export function EmployeeForm({
             <Button
               type="button"
               variant="outline"
-              onClick={() => {
-                if (onCancel) onCancel();
-                if (onOpenChange) onOpenChange(false);
-              }}
+              onClick={handleRequestClose}
               className="h-10 px-4"
             >
               Cancel
@@ -306,7 +398,7 @@ export function EmployeeForm({
               {isSubmitting ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>{isCreate ? 'Deploying...' : 'Saving...'}</span>
+                  <span>{isCreate ? 'Adding...' : 'Saving...'}</span>
                 </div>
               ) : isCreate ? (
                 'Add Team Member'
@@ -320,14 +412,50 @@ export function EmployeeForm({
           </EnterpriseModalFooter>
         </form>
       </Form>
+
+      {/* Miss-touch prevention: Discard confirmation dialog */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-amber-100 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Discard Changes?</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">You have unsaved changes that will be lost.</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mb-6">
+                Are you sure you want to close this form? All unsaved information will be discarded.
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-10 text-sm font-semibold"
+                  onClick={() => setShowCancelConfirm(false)}
+                >
+                  Keep Editing
+                </Button>
+                <Button
+                  className="flex-1 h-10 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white"
+                  onClick={doClose}
+                >
+                  Discard
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 
   // If onOpenChange is provided, wrap in Dialog, otherwise just return content
-  // This allows the component to be used inside a page or as a modal
   if (onOpenChange) {
     return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleRequestClose(); }}>
         <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-border gap-0">
           {content}
         </DialogContent>

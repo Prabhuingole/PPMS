@@ -11,15 +11,15 @@ class TaskVisibilityService:
     def get_visible_query(user: User, db: Session, base_query):
         if user.role == "superadmin":
             return base_query
-            
-        tenant_id = current_tenant_ctx.get()
-        if not tenant_id:
-            # Failsafe: if tenant context is missing for non-superadmin, return empty
-            return base_query.filter(Task.id == -1)
 
-        if user.role == "admin":
-            # Admin sees all tasks within their tenant projects
-            return base_query.join(Task.project).filter(Project.owner_company_id == tenant_id)
+        if user.role in ["consultant", "employee", "intern"]:
+            # Consultant/Employee/Intern: only see tasks on projects they are a member of, OR tasks assigned to them
+            return base_query.join(Task.project).filter(
+                or_(
+                    Project.members.any(User.id == user.id),
+                    Task.assignee_id == user.id
+                )
+            )
 
         if user.role == "reporting_manager":
             # RM sees tasks where they manage the project OR they are a member of the project
@@ -30,40 +30,49 @@ class TaskVisibilityService:
                 )
             )
 
-        # Consultant/Employee/Intern: only see tasks on projects they are a member of
-        return base_query.join(Task.project).filter(Project.members.any(User.id == user.id))
+        tenant_id = current_tenant_ctx.get()
+        if not tenant_id:
+            # Failsafe: if tenant context is missing for admin, return empty
+            return base_query.filter(Task.id == -1)
 
+        if user.role == "admin":
+            # Admin sees all tasks within their tenant projects
+            return base_query.join(Task.project).filter(Project.owner_company_id == tenant_id)
+
+        return base_query.filter(Task.id == -1)
     @staticmethod
     def can_view(user: User, task: Task, db: Session) -> bool:
         if user.role == "superadmin":
             return True
-            
-        tenant_id = current_tenant_ctx.get()
-        if not tenant_id:
-            return False
 
-        if user.role == "admin":
-            return task.project.owner_company_id == tenant_id
+        # Consultant / Employee / Intern
+        if user.role in ["consultant", "employee", "intern"]:
+            if task.assignee_id == user.id:
+                return True
+            return user.id in [m.id for m in task.project.members]
 
         if user.role == "reporting_manager":
             if task.project.reporting_manager_id == user.id:
                 return True
             return user.id in [m.id for m in task.project.members]
 
-        # Consultant / Employee / Intern
-        return user.id in [m.id for m in task.project.members]
-
-    @staticmethod
-    def can_edit(user: User, task: Task, db: Session) -> bool:
-        if user.role == "superadmin":
-            return True
-            
         tenant_id = current_tenant_ctx.get()
         if not tenant_id:
             return False
 
         if user.role == "admin":
             return task.project.owner_company_id == tenant_id
+
+        return False
+
+    @staticmethod
+    def can_edit(user: User, task: Task, db: Session) -> bool:
+        if user.role == "superadmin":
+            return True
+
+        if user.role in ["consultant", "employee", "intern"]:
+            # Consultant / Employee / Intern: edit only if assigned to them
+            return task.assignee_id == user.id
 
         if user.role == "reporting_manager":
             # RMs can edit tasks on projects they manage
@@ -72,13 +81,27 @@ class TaskVisibilityService:
             # If they are just a member, they can only edit if assigned to them
             return task.assignee_id == user.id
 
-        # Consultant / Employee / Intern: edit only if assigned to them
-        return task.assignee_id == user.id
+        tenant_id = current_tenant_ctx.get()
+        if not tenant_id:
+            return False
+
+        if user.role == "admin":
+            return task.project.owner_company_id == tenant_id
+
+        return False
 
     @staticmethod
     def can_delete(user: User, task: Task, db: Session) -> bool:
         if user.role == "superadmin":
             return True
+
+        if user.role in ["consultant", "employee", "intern"]:
+            # Consultant / Employee / Intern: cannot delete unless it is assigned to them
+            return task.assignee_id == user.id
+
+        if user.role == "reporting_manager":
+            # RMs can delete tasks on projects they manage
+            return task.project.reporting_manager_id == user.id
 
         tenant_id = current_tenant_ctx.get()
         if not tenant_id:
@@ -87,9 +110,14 @@ class TaskVisibilityService:
         if user.role == "admin":
             return task.project.owner_company_id == tenant_id
 
-        if user.role == "reporting_manager":
-            # RMs can delete tasks on projects they manage
-            return task.project.reporting_manager_id == user.id
+        return False
 
-        # Consultant / Employee / Intern: cannot delete unless it is assigned to them (foreign task constraint)
-        return task.assignee_id == user.id
+    @staticmethod
+    def get_task(db: Session, task_id: int, user: User):
+        """Fetch a task if it is visible to the current user, else return None."""
+        task = db.query(Task).filter(Task.id == task_id).first()
+        if not task:
+            return None
+        if not TaskVisibilityService.can_view(user, task, db):
+            return None
+        return task

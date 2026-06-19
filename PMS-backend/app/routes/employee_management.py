@@ -107,14 +107,23 @@ def get_employees(
     user_type: Optional[str] = None,
     status_filter: Optional[bool] = None,
     is_reporting_manager: Optional[bool] = None,
+    company_id: Optional[int] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
     from sqlalchemy.orm import joinedload
-    query = db.query(User).options(joinedload(User.company)).filter(User.role.notin_([UserRole.SUPERADMIN, UserRole.ADMIN]))
+    query = (
+        db.query(User)
+        .join(Company, User.company_id == Company.id)
+        .options(joinedload(User.company))
+        .filter(User.role.notin_([UserRole.SUPERADMIN, UserRole.ADMIN]))
+        .filter(Company.company_type == "in_house")
+    )
     
     if admin.role == UserRole.ADMIN:
         query = query.filter(User.company_id == admin.company_id)
+    elif company_id:
+        query = query.filter(User.company_id == company_id)
 
     # Filters
     if user_type:
@@ -154,7 +163,14 @@ def get_employee_details(
     admin: User = Depends(check_roles([UserRole.SUPERADMIN, UserRole.ADMIN]))
 ):
     from sqlalchemy.orm import joinedload
-    user = db.query(User).options(joinedload(User.company)).filter(User.id == employee_id_pk).first()
+    user = (
+        db.query(User)
+        .join(Company, User.company_id == Company.id)
+        .options(joinedload(User.company))
+        .filter(User.id == employee_id_pk)
+        .filter(Company.company_type == "in_house")
+        .first()
+    )
     if not user:
         raise HTTPException(status_code=404, detail="Employee not found")
     if admin.role == UserRole.ADMIN and user.company_id != admin.company_id:

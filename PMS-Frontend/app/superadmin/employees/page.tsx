@@ -309,7 +309,15 @@ export default function EmployeeListPage() {
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">{emp.full_name}</span>
-                    <span className="text-[9px] font-bold text-indigo-400 tracking-wider">{emp.role}</span>
+                    <span className="text-[9px] font-bold text-indigo-400 tracking-wider uppercase">
+                      {emp.role === 'employee' || emp.role === 'team_member' ? 'Team Member'
+                        : emp.role === 'intern' ? 'Intern'
+                        : emp.role === 'consultant' ? 'Consultant'
+                        : emp.role === 'reporting_manager' ? 'Reporting Manager'
+                        : emp.role === 'admin' ? 'Admin'
+                        : emp.role === 'superadmin' ? 'Super Admin'
+                        : emp.role}
+                    </span>
                   </div>
                 </div>
               )

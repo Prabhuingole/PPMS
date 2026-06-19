@@ -237,7 +237,15 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                   <div className="w-px h-3.5 bg-slate-200 self-center"></div>
                   <div className="flex items-center gap-1.5 px-2.5">
                     <Shield className="h-3.5 w-3.5 text-pink-500" />
-                    <span className="text-xs font-bold tracking-wider">{employee.role}</span>
+                    <span className="text-xs font-bold tracking-wider uppercase">
+                      {employee.role === 'employee' || employee.role === 'team_member' ? 'Team Member'
+                        : employee.role === 'intern' ? 'Intern'
+                        : employee.role === 'consultant' ? 'Consultant'
+                        : employee.role === 'reporting_manager' ? 'Reporting Manager'
+                        : employee.role === 'admin' ? 'Admin'
+                        : employee.role === 'superadmin' ? 'Super Admin'
+                        : employee.role}
+                    </span>
                   </div>
                   <div className="w-px h-3.5 bg-slate-200 self-center"></div>
                   <div className="flex items-center gap-1.5 px-2.5">

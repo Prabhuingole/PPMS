@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, 
   Building2, 
@@ -25,11 +25,79 @@ import { Company } from '@/types';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { CompanyFormModal } from '@/components/company/CompanyFormModal';
+import { useQuery } from '@tanstack/react-query';
+import { projectService } from '@/services/projectService';
+
+function ClientProjects({ companyId }: { companyId: number }) {
+  const router = useRouter();
+  const { data: projectsData, isLoading } = useQuery({
+    queryKey: ['company_projects', companyId],
+    queryFn: () => projectService.getProjects({ client_company_id: companyId, limit: 100 }),
+    enabled: !!companyId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex py-12 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!projectsData?.items || projectsData.items.length === 0) {
+    return (
+      <Card className="border-dashed shadow-none bg-slate-50/50">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <Briefcase className="h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900">No Projects Found</h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-sm">
+            This client company doesn't have any associated projects yet.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {projectsData.items.map((project) => (
+        <Card 
+          key={project.id} 
+          className="cursor-pointer hover:shadow-md transition-shadow border-border hover:border-orange-200"
+          onClick={() => router.push(`/superadmin/projects/${project.id}?from_client=${companyId}`)}
+        >
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="bg-orange-50 p-2.5 rounded-xl border border-orange-100">
+                <Briefcase className="h-5 w-5 text-orange-600" />
+              </div>
+              <Badge variant={project.status === 'active' ? 'success' : 'secondary'} className="uppercase text-[10px]">
+                {project.status.replace('-', ' ')}
+              </Badge>
+            </div>
+            <h3 className="font-bold text-lg text-slate-900 line-clamp-1">{project.name}</h3>
+            <p className="text-sm text-slate-500 font-medium mt-1">Code: {project.code}</p>
+            
+            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {project.start_date ? format(new Date(project.start_date), 'MMM dd, yyyy') : 'N/A'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 export default function CompanyDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const companyId = parseInt(params.id as string);
+  
+  const defaultTab = searchParams.get('tab') || 'overview';
   
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,14 +151,12 @@ export default function CompanyDetailsPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
-              {company.name}
+              {company.company_name || company.name}
               <Badge variant={company.status === 'active' ? 'success' : 'secondary'} className="uppercase text-[10px] tracking-wider px-3 py-1">
                 {company.status}
               </Badge>
             </h1>
-            {company.company_name && (
-              <p className="text-lg text-slate-700 font-semibold mt-1">{company.company_name}</p>
-            )}
+            <p className="text-lg text-slate-700 font-semibold mt-1">Client Contact: {company.contact_person || 'Not provided'}</p>
             <p className="text-sm text-slate-500 font-medium mt-1">Company Code: {company.code}</p>
           </div>
         </div>
@@ -100,24 +166,12 @@ export default function CompanyDetailsPage() {
         </Button>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 rounded-xl overflow-x-auto flex-nowrap border border-border">
           <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             Overview
           </TabsTrigger>
-          <TabsTrigger value="team-members" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/employees?company_id=${company.id}`)}>
-            <Users className="h-4 w-4 mr-2" />
-            Team Members
-          </TabsTrigger>
-          <TabsTrigger value="consultants" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/employees?company_id=${company.id}&role=consultant`)}>
-            <UserCheck className="h-4 w-4 mr-2" />
-            Consultants
-          </TabsTrigger>
-          <TabsTrigger value="reporting-managers" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/reporting-managers?company_id=${company.id}`)}>
-            <Briefcase className="h-4 w-4 mr-2" />
-            Reporting Managers
-          </TabsTrigger>
-          <TabsTrigger value="projects" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/projects?company_id=${company.id}`)}>
+          <TabsTrigger value="projects" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             <FileText className="h-4 w-4 mr-2" />
             Projects
           </TabsTrigger>
@@ -196,6 +250,10 @@ export default function CompanyDetailsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="projects" className="mt-6">
+          <ClientProjects companyId={company.id} />
         </TabsContent>
       </Tabs>
       

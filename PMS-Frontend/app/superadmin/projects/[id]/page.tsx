@@ -46,9 +46,7 @@ import { toast } from 'sonner';
 import { ProjectFormModal } from '../ProjectFormModal';
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
-import { useDeliverables } from '@/services/deliverableService';
 import { useTasks } from '@/services/taskService';
-import { DeliverablesTab } from '@/components/projects/DeliverablesTab';
 import { TasksTab } from '@/components/projects/TasksTab';
 
 const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, userId: string, token: string | null }) => {
@@ -144,7 +142,6 @@ export default function ProjectDetailsPage() {
     search: ''
   });
 
-  const { data: deliverables = [] } = useDeliverables(Number(projectId));
   const { data: tasks = [] } = useTasks({ 
     project_id: Number(projectId),
     ...(taskFilters.status !== 'all' && { status: taskFilters.status }),
@@ -339,7 +336,7 @@ export default function ProjectDetailsPage() {
 
       {/* Custom Tabs Navigation */}
       <div className="flex flex-wrap border-b border-border mb-8 gap-1">
-        {['overview', 'deliverables', 'tasks', 'timesheets'].map(tab => (
+        {['overview', 'tasks', 'timesheets'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -643,20 +640,11 @@ export default function ProjectDetailsPage() {
         </>
         )}
 
-        {activeTab === 'deliverables' && (
-          <DeliverablesTab 
-            projectId={Number(projectId)} 
-            deliverables={deliverables} 
-            tasks={tasks}
-            canEdit={canEdit}
-          />
-        )}
-
         {activeTab === 'tasks' && (
           <TasksTab 
             projectId={Number(projectId)}
             tasks={tasks}
-            deliverables={deliverables}
+            deliverables={[]}
             teamMembers={project.members}
             canEdit={canEdit}
             filters={taskFilters}

@@ -125,13 +125,17 @@ export default function MyTimesheetsPage() {
       if (activeFilter !== 'all') params.append('status', activeFilter);
       if (projectId) params.append('project_id', projectId);
 
+      if (activeManagerFilter !== 'All Manager') {
+        params.append('manager_name', activeManagerFilter);
+      }
+
       api.get(`/timesheets/me?${params.toString()}`).then(res => {
         setTimesheets(res.data.items || []);
         setTotalItems(res.data.total || 0);
         if (res.data.counts) setCounts(res.data.counts);
       }).catch(console.error);
     }
-  }, [token, refreshTrigger, currentPage, searchTerm, activeFilter, activeProjectFilter, dbProjects]);
+  }, [token, refreshTrigger, currentPage, searchTerm, activeFilter, activeProjectFilter, activeManagerFilter, dbProjects]);
 
   useEffect(() => {
     // Load active projects for timesheet dropdown

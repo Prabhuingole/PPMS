@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { 
   ArrowLeft, 
   Building2, 
@@ -25,11 +25,138 @@ import { Company } from '@/types';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { InHouseCompanyFormModal } from '@/components/company/InHouseCompanyFormModal';
+import { useQuery } from '@tanstack/react-query';
+import { employeeService } from '@/services/employeeService';
+import { projectService } from '@/services/projectService';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
+function CompanyUsersList({ companyId, role, emptyText, icon: Icon }: any) {
+  const router = useRouter();
+  const { data: usersData, isLoading } = useQuery({
+    queryKey: ['company_users', companyId, role],
+    queryFn: () => employeeService.getEmployees({ company_id: companyId, user_type: role === 'reporting_manager' ? undefined : role, is_reporting_manager: role === 'reporting_manager' ? true : undefined, limit: 100 }),
+    enabled: !!companyId,
+  });
+
+  if (isLoading) return <div className="flex py-12 justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+
+  const users = usersData?.items || [];
+
+  if (users.length === 0) {
+    return (
+      <Card className="border-dashed shadow-none bg-slate-50/50">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <Icon className="h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900">No Records Found</h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-sm">{emptyText}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {users.map((user: any) => (
+        <Card 
+          key={user.id} 
+          className="cursor-pointer hover:shadow-md transition-shadow border-border hover:border-indigo-200"
+          onClick={() => router.push(`/superadmin/${role === 'reporting_manager' ? 'reporting-managers' : 'employees'}/${user.id}`)}
+        >
+          <CardContent className="p-6 flex items-start gap-4">
+            <Avatar className="h-12 w-12 border border-border shrink-0">
+               <AvatarFallback className="bg-indigo-50 text-indigo-700 font-bold">
+                 {user.full_name.charAt(0)}
+               </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-bold text-slate-900 truncate">{user.full_name}</h3>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {user.designation && (
+                  <Badge variant="outline" className="text-[10px] uppercase text-muted-foreground bg-slate-50">{user.designation}</Badge>
+                )}
+                <Badge variant={user.is_active ? 'success' : 'secondary'} className="text-[10px] uppercase">{user.is_active ? 'Active' : 'Suspended'}</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+function CompanyProjectsList({ companyId }: { companyId: number }) {
+  const router = useRouter();
+  const { data: projectsData, isLoading } = useQuery({
+    queryKey: ['company_projects', companyId],
+    queryFn: () => projectService.getProjects({ owner_company_id: companyId, limit: 100 }),
+    enabled: !!companyId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex py-12 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const projects = projectsData?.items || [];
+
+  if (projects.length === 0) {
+    return (
+      <Card className="border-dashed shadow-none bg-slate-50/50">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+          <Briefcase className="h-12 w-12 text-slate-300 mb-4" />
+          <h3 className="text-lg font-semibold text-slate-900">No Projects Found</h3>
+          <p className="text-sm text-slate-500 mt-1 max-w-sm">
+            This in-house company doesn't have any associated projects yet.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {projects.map((project: any) => (
+        <Card 
+          key={project.id} 
+          className="cursor-pointer hover:shadow-md transition-shadow border-border hover:border-indigo-200"
+          onClick={() => router.push(`/superadmin/projects/${project.id}`)}
+        >
+          <CardContent className="p-6">
+            <div className="flex justify-between items-start mb-4">
+              <div className="bg-indigo-50 p-2.5 rounded-xl border border-indigo-100">
+                <Briefcase className="h-5 w-5 text-indigo-600" />
+              </div>
+              <Badge variant={project.status === 'active' ? 'success' : 'secondary'} className="uppercase text-[10px]">
+                {project.status.replace('-', ' ')}
+              </Badge>
+            </div>
+            <h3 className="font-bold text-lg text-slate-900 line-clamp-1">{project.name}</h3>
+            <p className="text-sm text-slate-500 font-medium mt-1">Code: {project.code}</p>
+            
+            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                {project.start_date ? format(new Date(project.start_date), 'MMM dd, yyyy') : 'N/A'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 export default function CompanyDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const companyId = parseInt(params.id as string);
+  
+  const defaultTab = searchParams.get('tab') || 'overview';
   
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -97,24 +224,24 @@ export default function CompanyDetailsPage() {
         </Button>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="w-full justify-start h-auto p-1 bg-muted/50 rounded-xl overflow-x-auto flex-nowrap border border-border">
           <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             Overview
           </TabsTrigger>
-          <TabsTrigger value="team-members" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/employees?company_id=${company.id}`)}>
+          <TabsTrigger value="team-members" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             <Users className="h-4 w-4 mr-2" />
             Team Members
           </TabsTrigger>
-          <TabsTrigger value="consultants" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/employees?company_id=${company.id}&role=consultant`)}>
+          <TabsTrigger value="consultants" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             <UserCheck className="h-4 w-4 mr-2" />
             Consultants
           </TabsTrigger>
-          <TabsTrigger value="reporting-managers" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/reporting-managers?company_id=${company.id}`)}>
+          <TabsTrigger value="reporting-managers" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             <Briefcase className="h-4 w-4 mr-2" />
             Reporting Managers
           </TabsTrigger>
-          <TabsTrigger value="projects" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5" onClick={() => router.push(`/superadmin/projects?company_id=${company.id}`)}>
+          <TabsTrigger value="projects" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm px-6 py-2.5">
             <FileText className="h-4 w-4 mr-2" />
             Projects
           </TabsTrigger>
@@ -204,6 +331,22 @@ export default function CompanyDetailsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="team-members" className="mt-6">
+          <CompanyUsersList companyId={company.id} role="employee" emptyText="No team members assigned to this company." icon={Users} />
+        </TabsContent>
+
+        <TabsContent value="consultants" className="mt-6">
+          <CompanyUsersList companyId={company.id} role="consultant" emptyText="No consultants assigned to this company." icon={UserCheck} />
+        </TabsContent>
+
+        <TabsContent value="reporting-managers" className="mt-6">
+          <CompanyUsersList companyId={company.id} role="reporting_manager" emptyText="No reporting managers assigned to this company." icon={Briefcase} />
+        </TabsContent>
+
+        <TabsContent value="projects" className="mt-6">
+          <CompanyProjectsList companyId={company.id} />
         </TabsContent>
       </Tabs>
       

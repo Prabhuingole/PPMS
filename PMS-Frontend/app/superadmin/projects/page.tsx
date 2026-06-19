@@ -237,12 +237,12 @@ export default function ProjectListPage() {
                   <SelectValue placeholder="Reporting Manager" className="truncate">
                     {managerFilter === 'all' 
                       ? 'Reporting Manager' 
-                      : employees?.find((m: any) => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
+                      : reportingManagers?.find((m: any) => m.id.toString() === managerFilter)?.full_name || 'Reporting Manager'}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-md border-border shadow-lg max-h-[300px] w-[90vw] sm:w-[250px]">
                   <SelectItem value="all" className="text-sm font-medium">Reporting Manager</SelectItem>
-                  {employees?.map((m: any) => (
+                  {reportingManagers?.map((m: any) => (
                     <SelectItem key={m.id} value={m.id.toString()} className="text-sm font-medium">
                       {m.full_name}
                     </SelectItem>

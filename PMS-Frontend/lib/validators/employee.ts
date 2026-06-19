@@ -3,7 +3,7 @@ import * as z from 'zod';
 export const baseEmployeeSchema = z.object({
   full_name: z.string({ required_error: 'This field is required' })
     .min(1, 'This field is required')
-    .regex(/^[^0-9]+$/, 'Full Name cannot contain numbers'),
+    .regex(/^[a-zA-Z\s]+$/, 'Full Name can only contain letters and spaces'),
   email: z.string({ required_error: 'This field is required' })
     .trim()
     .toLowerCase()

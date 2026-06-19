@@ -149,14 +149,14 @@ export default function SuperadminNotesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => setSelectedProject(proj)}
-              className="bg-background p-6 rounded-xl border border-border hover:border-indigo-300 shadow-sm hover:shadow-xl hover:shadow-indigo-100/50 transition-all cursor-pointer group"
+              className="bg-background p-6 rounded-xl border border-border hover:border-primary/30 shadow-sm hover:shadow-xl hover:shadow-primary/10 transition-all cursor-pointer group"
             >
               <div className="flex items-center space-x-4 mb-6">
-                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 text-primary flex items-center justify-center border border-indigo-100 group-hover:scale-105 transition-transform">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary flex items-center justify-center border border-primary/20 group-hover:scale-105 transition-transform">
                   <Briefcase className="h-5 w-5" />
                 </div>
                 <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-sm font-black text-slate-800 uppercase tracking-tight truncate group-hover:text-primary transition-colors">
+                  <span className="text-sm font-black text-foreground uppercase tracking-tight truncate group-hover:text-primary transition-colors">
                     {proj.project_name}
                   </span>
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate mt-0.5">
@@ -166,17 +166,17 @@ export default function SuperadminNotesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-muted/30 p-3 rounded-xl border border-border flex flex-col items-center justify-center text-center group-hover:bg-indigo-50/50 transition-colors">
-                  <span className="text-lg font-black text-slate-800">{proj.page_count}</span>
+                <div className="bg-muted/30 p-3 rounded-xl border border-border flex flex-col items-center justify-center text-center group-hover:bg-primary/5 transition-colors">
+                  <span className="text-lg font-black text-foreground">{proj.page_count}</span>
                   <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Lists</span>
                 </div>
-                <div className="bg-muted/30 p-3 rounded-xl border border-border flex flex-col items-center justify-center text-center group-hover:bg-emerald-50/50 transition-colors">
-                  <span className="text-lg font-black text-slate-800">{proj.completed_tasks}/{proj.total_tasks}</span>
+                <div className="bg-muted/30 p-3 rounded-xl border border-border flex flex-col items-center justify-center text-center group-hover:bg-emerald-500/5 transition-colors">
+                  <span className="text-lg font-black text-foreground">{proj.completed_tasks}/{proj.total_tasks}</span>
                   <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Tasks Done</span>
                 </div>
               </div>
 
-              <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t border-slate-50 pt-4">
+              <div className="flex items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t border-border/50 pt-4">
                 <Clock className="h-3 w-3 mr-1.5" />
                 {proj.last_activity ? `Updated ${formatDistanceToNow(new Date(proj.last_activity))} ago` : 'No activity yet'}
               </div>
@@ -186,9 +186,9 @@ export default function SuperadminNotesPage() {
           {projects.length === 0 && (
             <div className="col-span-full flex flex-col items-center justify-center py-20 bg-background rounded-xl border-2 border-dashed border-border">
               <div className="p-4 bg-muted/30 rounded-xl mb-4">
-                <Search className="h-8 w-8 text-slate-300" />
+                <Search className="h-8 w-8 text-muted-foreground/30" />
               </div>
-              <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight mb-1">No Projects Found</h3>
+              <h3 className="text-lg font-black text-foreground uppercase tracking-tight mb-1">No Projects Found</h3>
               <p className="text-sm font-medium text-muted-foreground">Try adjusting your search criteria</p>
             </div>
           )}
@@ -202,7 +202,7 @@ export default function SuperadminNotesPage() {
   const unpinnedPages = pages.filter(p => !p.is_pinned);
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col bg-muted/30 min-w-0">
+    <div className="h-[calc(100vh-8rem)] flex flex-col bg-background min-w-0">
       
       {/* Header bar */}
       <div className="h-16 shrink-0 bg-background border-b border-border flex items-center justify-between px-6 shadow-sm z-10">
@@ -219,13 +219,13 @@ export default function SuperadminNotesPage() {
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Projects
           </Button>
-          <div className="h-6 w-px bg-slate-200" />
+          <div className="h-6 w-px bg-border" />
           <div className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-indigo-50 text-primary flex items-center justify-center font-black">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-black">
               <Briefcase className="h-4 w-4" />
             </div>
             <div>
-              <span className="text-xs font-black text-slate-800 uppercase tracking-tight block leading-none">
+              <span className="text-xs font-black text-foreground uppercase tracking-tight block leading-none">
                 {selectedProject.project_name}
               </span>
               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -239,7 +239,7 @@ export default function SuperadminNotesPage() {
       <div className="flex-1 flex overflow-hidden">
         
         {/* LEFT SIDEBAR: USERS IN PROJECT */}
-        <div className="w-full max-w-[240px] bg-slate-50/50 border-r border-border flex flex-col shrink-0">
+        <div className="w-full max-w-[240px] bg-muted/10 border-r border-border flex flex-col shrink-0">
           <div className="p-4 border-b border-border">
             <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Team Members with Lists</h2>
           </div>
@@ -254,13 +254,13 @@ export default function SuperadminNotesPage() {
                   className={cn(
                     "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group",
                     selectedUserId === user.user_id 
-                      ? "bg-primary text-white shadow-md shadow-indigo-200" 
-                      : "hover:bg-slate-200/50 text-muted-foreground"
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" 
+                      : "hover:bg-muted/60 text-muted-foreground"
                   )}
                 >
                   <User className={cn(
                     "h-4 w-4 mr-3 shrink-0",
-                    selectedUserId === user.user_id ? "text-indigo-200" : "text-muted-foreground group-hover:text-indigo-500"
+                    selectedUserId === user.user_id ? "text-primary-foreground/70" : "text-muted-foreground group-hover:text-primary"
                   )} />
                   <div className="flex flex-col min-w-0">
                     <span className="text-[13px] font-bold truncate">
@@ -268,7 +268,7 @@ export default function SuperadminNotesPage() {
                     </span>
                     <span className={cn(
                       "text-[9px] font-bold uppercase tracking-widest truncate",
-                      selectedUserId === user.user_id ? "text-indigo-200" : "text-muted-foreground"
+                      selectedUserId === user.user_id ? "text-primary-foreground/70" : "text-muted-foreground"
                     )}>
                       {user.page_count} Lists
                     </span>
@@ -334,7 +334,7 @@ export default function SuperadminNotesPage() {
             <div className="px-8 md:px-16 py-12 pb-32 max-w-3xl mx-auto">
               
               <div className="flex items-center space-x-3 mb-8 pb-8 border-b border-border">
-                <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
+                <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-primary/10 text-primary">
                   To Do List
                 </div>
                 <div className="flex items-center text-[10px] font-bold text-muted-foreground">
@@ -359,7 +359,7 @@ export default function SuperadminNotesPage() {
 
               {activePage.checklist_items.length > 0 && (
                 <div className="pt-8 border-t border-border">
-                  <h3 className="text-sm font-black uppercase tracking-tight text-slate-800 flex items-center mb-6">
+                  <h3 className="text-sm font-black uppercase tracking-tight text-foreground flex items-center mb-6">
                     <CheckSquare className="h-4 w-4 mr-2 text-primary" /> Task List
                   </h3>
                   
@@ -368,14 +368,14 @@ export default function SuperadminNotesPage() {
                       <div key={item.id} className="flex items-start opacity-90 cursor-default">
                         <div className="mt-0.5 mr-3 shrink-0 text-muted-foreground">
                           {item.is_completed ? (
-                            <CheckSquare2 className="h-5 w-5 text-indigo-500" />
+                            <CheckSquare2 className="h-5 w-5 text-primary" />
                           ) : (
                             <Square className="h-5 w-5" />
                           )}
                         </div>
                         <span className={cn(
                           "flex-1 text-sm font-medium pt-0.5",
-                          item.is_completed ? "text-muted-foreground line-through decoration-slate-300" : "text-muted-foreground"
+                          item.is_completed ? "text-muted-foreground line-through decoration-muted-foreground/30" : "text-muted-foreground"
                         )}>
                           {item.text}
                         </span>
@@ -389,7 +389,7 @@ export default function SuperadminNotesPage() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 bg-muted/30 rounded-xl border border-border flex items-center justify-center mb-4">
-                <File className="h-8 w-8 text-slate-300" />
+                <File className="h-8 w-8 text-muted-foreground/30" />
               </div>
               <p className="text-sm font-black text-muted-foreground uppercase tracking-widest">Select a list to view</p>
             </div>
@@ -412,7 +412,7 @@ function PageListItem({ page, isActive, onClick }: { page: any, isActive: boolea
       <div className="flex flex-col min-w-0 pr-2">
         <span className={cn(
           "text-[13px] truncate transition-colors",
-          isActive ? "font-bold text-indigo-700" : "font-medium text-foreground"
+          isActive ? "font-bold text-primary" : "font-medium text-foreground"
         )}>
           {page.title || 'Untitled To Do List'}
         </span>

@@ -26,22 +26,22 @@ export default function MyTasksPage() {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'CRITICAL': return 'bg-red-100 text-red-700 border-red-200';
-      case 'HIGH': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'MEDIUM': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'LOW': return 'bg-slate-100 text-slate-700 border-slate-200';
-      default: return 'bg-muted text-muted-foreground';
+      case 'CRITICAL': return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50';
+      case 'HIGH': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/50';
+      case 'MEDIUM': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50';
+      case 'LOW': return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800';
+      default: return 'bg-muted text-muted-foreground border-transparent';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'DONE': return 'bg-emerald-100 text-emerald-700 border-0';
-      case 'IN_PROGRESS': return 'bg-blue-100 text-blue-700 border-0';
-      case 'REVIEW': return 'bg-purple-100 text-purple-700 border-0';
-      case 'BLOCKED': return 'bg-red-100 text-red-700 border-0';
-      case 'TODO': return 'bg-amber-100 text-amber-700 border-0';
-      default: return 'bg-slate-100 text-slate-700 border-0';
+      case 'DONE': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-0';
+      case 'IN_PROGRESS': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-0';
+      case 'REVIEW': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-0';
+      case 'BLOCKED': return 'bg-red-500/10 text-red-600 dark:text-red-400 border-0';
+      case 'TODO': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-0';
+      default: return 'bg-muted/50 text-muted-foreground border-0';
     }
   };
 
@@ -108,52 +108,72 @@ export default function MyTasksPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredTasks.map(task => (
-              <Card key={task.id} className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer" onClick={() => handleEdit(task)}>
-                <CardContent className="p-5 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={`text-[10px] uppercase ${getStatusColor(task.status)}`}>
-                        {task.status.replace('_', ' ')}
-                      </Badge>
-                      <Badge variant="outline" className={`text-[10px] uppercase ${getPriorityColor(task.priority)}`}>
-                        {task.priority}
-                      </Badge>
-                      {task.project_id && (
-                        <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-muted rounded">
-                          Project #{task.project_id}
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground truncate mb-1">
-                      {task.title}
-                    </h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1">
-                      {task.description || <span className="italic opacity-50">No description</span>}
-                    </p>
-                  </div>
+            {filteredTasks.map(task => {
+              // Extract base color from status to drive accents
+              const getAccentClasses = () => {
+                if (task.status === 'DONE') return 'bg-emerald-500 shadow-emerald-500/20';
+                if (task.status === 'IN_PROGRESS') return 'bg-blue-500 shadow-blue-500/20';
+                if (task.status === 'REVIEW') return 'bg-purple-500 shadow-purple-500/20';
+                if (task.status === 'BLOCKED') return 'bg-red-500 shadow-red-500/20';
+                return 'bg-amber-500 shadow-amber-500/20'; // TODO
+              };
+
+              return (
+                <Card 
+                  key={task.id} 
+                  className="group overflow-hidden border border-border shadow-sm hover:shadow-md hover:border-primary/30 transition-all duration-300 cursor-pointer relative bg-background"
+                  onClick={() => handleEdit(task)}
+                >
+                  <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${getAccentClasses()}`} />
                   
-                  <div className="flex items-center gap-4 shrink-0 mt-4 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 pt-4 sm:pt-0">
-                    <div className="flex flex-col items-start sm:items-end">
-                      <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Est. Hours</span>
-                      <span className="font-medium text-sm flex items-center">
-                        <Clock className="w-3 h-3 mr-1 text-slate-400" />
-                        {task.estimated_hours}
-                      </span>
+                  <CardContent className="p-0 flex flex-col sm:flex-row">
+                    <div className="flex-1 p-5 pl-6 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <Badge className={`text-[9px] font-bold tracking-wider uppercase border-none shadow-sm ${getStatusColor(task.status)}`}>
+                          {task.status.replace('_', ' ')}
+                        </Badge>
+                        <Badge variant="outline" className={`text-[9px] font-bold tracking-wider uppercase border-none bg-muted/50 ${getPriorityColor(task.priority)}`}>
+                          {task.priority}
+                        </Badge>
+                        {task.project_id && (
+                          <span className="text-[9px] text-muted-foreground font-bold tracking-wider uppercase px-2 py-0.5 bg-muted/30 border border-border rounded-md shadow-sm">
+                            Project #{task.project_id}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-base font-bold text-foreground truncate mb-1.5 group-hover:text-primary transition-colors">
+                        {task.title}
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                        {task.description || <span className="italic opacity-50">No description provided for this task.</span>}
+                      </p>
                     </div>
-                    <div className="flex flex-col items-start sm:items-end">
-                      <span className="text-xs text-muted-foreground uppercase font-semibold tracking-wider">Due Date</span>
-                      <span className="font-medium text-sm">
-                        {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : '-'}
-                      </span>
+                    
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-4 sm:gap-3 p-5 bg-muted/20 sm:border-l border-t sm:border-t-0 border-border min-w-[160px] shrink-0">
+                      <div className="flex flex-col items-start sm:items-end w-full">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-indigo-400" /> Est. Time
+                        </span>
+                        <span className="font-bold text-sm text-foreground font-mono">
+                          {task.estimated_hours.toFixed(1)}h
+                        </span>
+                      </div>
+                      
+                      <div className="w-px h-8 bg-border sm:hidden" />
+
+                      <div className="flex flex-col items-start sm:items-end w-full">
+                        <span className="text-[9px] text-muted-foreground uppercase font-bold tracking-wider mb-1">
+                          Due Date
+                        </span>
+                        <span className="font-bold text-sm text-foreground">
+                          {task.due_date ? format(new Date(task.due_date), 'MMM d, yyyy') : 'No Date'}
+                        </span>
+                      </div>
                     </div>
-                    <Button variant="outline" size="sm" className="hidden sm:flex">
-                      Update
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 

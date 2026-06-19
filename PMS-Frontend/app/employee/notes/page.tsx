@@ -148,7 +148,17 @@ export default function EmployeeNotesPage() {
       width="md"
       background="muted"
       header={
-        <h2 className="text-xs font-semibold text-muted-foreground">My Projects</h2>
+        <div className="space-y-1">
+          {/* Colored top accent bar */}
+          <div className="-mx-4 -mt-4 mb-3 h-1 bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-t-none" />
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100">
+              <Briefcase className="h-3.5 w-3.5 text-indigo-600" />
+            </div>
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-700">My Projects</h2>
+          </div>
+          <p className="text-[10px] text-slate-400 font-medium pl-8">Select a project to view its lists</p>
+        </div>
       }
     >
       <div className="space-y-1">
@@ -163,15 +173,15 @@ export default function EmployeeNotesPage() {
                 setActivePageId(null);
               }}
               className={cn(
-                "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group",
-                selectedProjectId === project.id 
-                  ? "bg-primary text-white shadow-md shadow-indigo-200" 
-                  : "hover:bg-muted text-muted-foreground"
+                "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group border",
+                selectedProjectId === project.id
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 border-indigo-500"
+                  : "hover:bg-indigo-50 text-slate-600 border-transparent hover:border-indigo-100"
               )}
             >
               <Briefcase className={cn(
                 "h-4 w-4 mr-3 shrink-0",
-                selectedProjectId === project.id ? "text-indigo-200" : "text-muted-foreground group-hover:text-indigo-500"
+                selectedProjectId === project.id ? "text-indigo-200" : "text-slate-400 group-hover:text-indigo-500"
               )} />
               <span className="text-[13px] font-bold truncate">
                 {project.name}
@@ -189,10 +199,18 @@ export default function EmployeeNotesPage() {
       background="subtle"
       header={
         <div className="space-y-3">
+          {/* Colored top accent bar */}
+          <div className="-mx-4 -mt-4 mb-3 h-1 bg-gradient-to-r from-orange-400 to-amber-400 rounded-t-none" />
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-100">
+              <CheckSquare className="h-3.5 w-3.5 text-orange-600" />
+            </div>
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-700">To Do Lists</h2>
+          </div>
           <Button 
             onClick={() => handleCreatePage()}
             disabled={!selectedProjectId}
-            className="w-full bg-primary hover:bg-indigo-700 text-white shadow-sm rounded-xl h-10 font-bold tracking-wide text-xs"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white shadow-sm rounded-xl h-10 font-bold tracking-wide text-xs"
           >
             <Plus className="h-4 w-4 mr-2" /> New To Do List
           </Button>
@@ -202,21 +220,21 @@ export default function EmployeeNotesPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search lists..." 
-              className="pl-9 h-9 text-xs rounded-lg bg-background border-border focus:border-indigo-400 focus:ring-0"
+              className="pl-9 h-9 text-xs rounded-lg bg-white border-slate-200 focus:border-orange-400 focus:ring-0"
             />
           </div>
         </div>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         {!selectedProjectId ? (
           <p className="text-xs text-muted-foreground italic text-center py-8">Select a project first</p>
         ) : (
           <>
             {pinnedPages.length > 0 && (
               <div>
-                <h3 className="text-xs font-semibold text-muted-foreground mb-2 px-2 flex items-center">
-                  <Pin className="h-3 w-3 mr-1" /> Pinned
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 px-2 flex items-center gap-1">
+                  <Pin className="h-3 w-3" /> Pinned
                 </h3>
                 <div className="space-y-0.5">
                   {pinnedPages.map(page => (
@@ -234,11 +252,11 @@ export default function EmployeeNotesPage() {
             )}
 
             <div>
-              <h3 className="text-xs font-semibold text-muted-foreground mb-2 px-2 flex items-center">
-                Lists
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 px-2 flex items-center gap-1">
+                <FileText className="h-3 w-3" /> Lists
               </h3>
               {unpinnedPages.length === 0 ? (
-                <p className="px-2 text-[10px] text-muted-foreground font-medium italic mb-2">No lists created yet.</p>
+                <p className="px-2 text-[10px] text-slate-400 font-medium italic mb-2">No lists created yet.</p>
               ) : (
                 <div className="space-y-0.5">
                   {unpinnedPages.map(page => (
@@ -357,12 +375,20 @@ export default function EmployeeNotesPage() {
           onPageUpdated={() => setRefreshTrigger(prev => prev + 1)} 
         />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/30">
-          <div className="w-16 h-16 bg-background rounded-xl shadow-sm border border-border flex items-center justify-center mb-4">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-100/50 relative">
+          {/* Subtle top accent for 3rd section */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400" />
+          <div className="flex items-center gap-2 absolute top-4 left-5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100">
+              <CheckSquare className="h-3.5 w-3.5 text-emerald-600" />
+            </div>
+            <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Task Workspace</span>
+          </div>
+          <div className="w-16 h-16 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center mb-4">
             <CheckSquare className="h-8 w-8 text-slate-300" />
           </div>
           <h3 className="text-xl font-bold text-slate-800 tracking-tight mb-2">Select a To Do List</h3>
-          <p className="text-muted-foreground text-sm font-medium max-w-sm">
+          <p className="text-slate-500 text-sm font-medium max-w-sm">
             Choose a list from the sidebar or create a new one for the selected project.
           </p>
           <Button 
@@ -375,7 +401,7 @@ export default function EmployeeNotesPage() {
           {selectedProjectId && (
             <Button 
               onClick={() => handleCreatePage()}
-              className="mt-6 bg-primary hover:bg-indigo-700 text-white rounded-xl shadow-sm"
+              className="mt-6 bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-sm"
             >
               <Plus className="h-4 w-4 mr-2" /> Create New List
             </Button>
@@ -396,20 +422,22 @@ function PageSidebarItem({ page, isActive, onClick, onPin, onDelete }: {
   return (
     <div 
       className={cn(
-        "group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all border border-transparent",
-        isActive ? "bg-background border-border shadow-sm" : "hover:bg-slate-200/50"
+        "group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all border",
+        isActive
+          ? "bg-white border-orange-200 shadow-sm"
+          : "border-transparent hover:bg-white/70 hover:border-slate-200"
       )}
       onClick={onClick}
     >
       <div className="flex flex-col min-w-0 pr-2">
         <span className={cn(
           "text-[13px] truncate transition-colors",
-          isActive ? "font-bold text-indigo-700" : "font-medium text-foreground group-hover:text-foreground"
+          isActive ? "font-bold text-orange-600" : "font-medium text-slate-600 group-hover:text-slate-800"
         )}>
           {page.title || 'Untitled To Do List'}
         </span>
         {page.checklist_total > 0 && (
-          <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 flex items-center">
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5 flex items-center">
             <CheckSquare className="h-2.5 w-2.5 mr-1" />
             {page.checklist_completed}/{page.checklist_total} Done
           </span>
@@ -573,8 +601,8 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
       <WorkspaceHeader
         left={
           <>
-            <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-indigo-50 text-indigo-700">
-              To Do List
+            <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+              ✓ Task Workspace
             </div>
             <div className="flex items-center text-[10px] font-bold text-muted-foreground">
               <Clock className="h-3 w-3 mr-1.5" />
@@ -605,7 +633,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
         }
       />
 
-      <WorkspaceContent className="px-8 md:px-16 py-12 pb-32">
+      <WorkspaceContent className="px-8 md:px-16 py-12 pb-32 bg-slate-100/50">
         <div className="max-w-3xl mx-auto space-y-6">
           <LocalInput 
             initialValue={activePage.title}

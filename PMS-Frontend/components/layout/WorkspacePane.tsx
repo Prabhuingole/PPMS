@@ -8,8 +8,9 @@ const widthMap = {
 } as const;
 
 const backgroundMap = {
-  muted: 'bg-background',
-  subtle: 'bg-muted/30',
+  muted: 'bg-white',           // Section 1: Pure white — "My Projects"
+  subtle: 'bg-slate-50',       // Section 2: Off-white — "To Do Lists"
+  light: 'bg-slate-100/70',    // Section 3: Light gray-white — content panel
 } as const;
 
 interface WorkspacePaneProps {

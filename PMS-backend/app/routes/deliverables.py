@@ -8,7 +8,7 @@ from app.models.deliverable import Deliverable
 from app.models.project import Project
 from app.models.user import User
 from app.schemas.deliverable import DeliverableCreate, DeliverableUpdate, DeliverableResponse, DeliverableListResponse
-from app.core.deps import get_current_user
+from app.core.deps import get_superadmin
 from app.core.tenant import verify_tenant_access, current_tenant_ctx
 from app.services.visibility import ProjectVisibilityService
 from app.core.audit import create_audit_log
@@ -20,7 +20,7 @@ def create_deliverable(
     payload: DeliverableCreate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     project = db.query(Project).filter(Project.id == payload.project_id).first()
@@ -60,7 +60,7 @@ def list_deliverables(
     page: int = 1,
     limit: int = 50,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     # Find all visible project IDs for the current user (enforces tenant isolation)
@@ -89,7 +89,7 @@ def list_deliverables(
 def get_deliverable(
     id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     deliv = db.query(Deliverable).filter(Deliverable.id == id).first()
@@ -107,7 +107,7 @@ def update_deliverable(
     payload: DeliverableUpdate,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     deliv = db.query(Deliverable).filter(Deliverable.id == id).first()
@@ -147,7 +147,7 @@ def delete_deliverable(
     id: int,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     deliv = db.query(Deliverable).filter(Deliverable.id == id).first()

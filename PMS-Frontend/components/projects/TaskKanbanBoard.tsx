@@ -9,7 +9,8 @@ import {
   useSensors, 
   DragStartEvent, 
   DragOverEvent, 
-  DragEndEvent 
+  DragEndEvent,
+  useDroppable
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -19,12 +20,12 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, MessageSquare, Clock } from 'lucide-react';
 
 const COLUMNS = [
-  { id: 'BACKLOG', title: 'Backlog', color: 'border-slate-200 bg-slate-50' },
-  { id: 'TODO', title: 'To Do', color: 'border-amber-200 bg-amber-50/50' },
-  { id: 'IN_PROGRESS', title: 'In Progress', color: 'border-blue-200 bg-blue-50/50' },
-  { id: 'REVIEW', title: 'Review', color: 'border-purple-200 bg-purple-50/50' },
-  { id: 'BLOCKED', title: 'Blocked', color: 'border-red-200 bg-red-50/50' },
-  { id: 'DONE', title: 'Done', color: 'border-emerald-200 bg-emerald-50/50' }
+  { id: 'BACKLOG', title: 'Backlog', color: 'bg-muted/30 border-border', dotColor: 'bg-slate-400' },
+  { id: 'TODO', title: 'To Do', color: 'bg-muted/30 border-border', dotColor: 'bg-amber-400' },
+  { id: 'IN_PROGRESS', title: 'In Progress', color: 'bg-muted/30 border-border', dotColor: 'bg-blue-400' },
+  { id: 'REVIEW', title: 'Review', color: 'bg-muted/30 border-border', dotColor: 'bg-purple-400' },
+  { id: 'BLOCKED', title: 'Blocked', color: 'bg-muted/30 border-border', dotColor: 'bg-red-400' },
+  { id: 'DONE', title: 'Done', color: 'bg-muted/30 border-border', dotColor: 'bg-emerald-400' }
 ];
 
 interface SortableTaskItemProps {
@@ -47,11 +48,11 @@ const SortableTaskItem = ({ task, onEdit, assigneeName, deliverableName }: Sorta
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'CRITICAL': return 'bg-red-100 text-red-700 border-red-200';
-      case 'HIGH': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'MEDIUM': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'LOW': return 'bg-slate-100 text-slate-700 border-slate-200';
-      default: return 'bg-muted text-muted-foreground';
+      case 'CRITICAL': return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50';
+      case 'HIGH': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-900/50';
+      case 'MEDIUM': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50';
+      case 'LOW': return 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800';
+      default: return 'bg-muted text-muted-foreground border-transparent';
     }
   };
 
@@ -60,7 +61,7 @@ const SortableTaskItem = ({ task, onEdit, assigneeName, deliverableName }: Sorta
       <div 
         ref={setNodeRef} 
         style={style} 
-        className="opacity-30 border-2 border-dashed border-blue-400 bg-blue-50 rounded-lg p-3 h-[120px]" 
+        className="opacity-30 border-2 border-dashed border-blue-400 dark:border-blue-500/50 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 h-[120px]" 
       />
     );
   }
@@ -97,8 +98,8 @@ const SortableTaskItem = ({ task, onEdit, assigneeName, deliverableName }: Sorta
       <div className="flex justify-between items-end mt-auto pt-2 border-t border-border/50">
         <div className="flex items-center gap-2">
           {assigneeName ? (
-            <Avatar className="h-6 w-6 border">
-              <AvatarFallback className="text-[10px] bg-indigo-50 text-indigo-700" title={assigneeName}>
+            <Avatar className="h-6 w-6 border border-border">
+              <AvatarFallback className="text-[10px] bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300" title={assigneeName}>
                 {assigneeName.charAt(0)}
               </AvatarFallback>
             </Avatar>
@@ -117,6 +118,25 @@ const SortableTaskItem = ({ task, onEdit, assigneeName, deliverableName }: Sorta
   );
 };
 
+
+const KanbanColumn = ({ col, children }: any) => {
+  const { setNodeRef } = useDroppable({
+    id: col.id,
+    data: {
+      type: 'Column',
+      column: col
+    }
+  });
+
+  return (
+    <div 
+      ref={setNodeRef}
+      className={`flex flex-col w-[300px] shrink-0 rounded-xl border ${col.color} p-3 overflow-hidden`}
+    >
+      {children}
+    </div>
+  );
+};
 
 interface TaskKanbanBoardProps {
   tasks: Task[];
@@ -195,17 +215,18 @@ export const TaskKanbanBoard = ({ tasks, deliverables, teamMembers, onEdit, onSt
           {COLUMNS.map(col => {
             const columnTasks = tasks.filter(t => t.status === col.id);
             return (
-              <SortableContext key={col.id} items={columnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
-                <div 
-                  className={`flex flex-col w-[300px] shrink-0 rounded-xl border ${col.color} p-3 overflow-hidden`}
-                >
-                  <div className="flex justify-between items-center mb-4 px-1">
+              <KanbanColumn key={col.id} col={col}>
+                <div className="flex justify-between items-center mb-4 px-1">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${col.dotColor}`} />
                     <h3 className="font-bold text-sm text-foreground">{col.title}</h3>
-                    <Badge variant="secondary" className="bg-background text-xs font-mono">
-                      {columnTasks.length}
-                    </Badge>
                   </div>
-                  
+                  <Badge variant="secondary" className="bg-background text-xs font-mono">
+                    {columnTasks.length}
+                  </Badge>
+                </div>
+                
+                <SortableContext items={columnTasks.map(t => t.id.toString())} strategy={verticalListSortingStrategy}>
                   <div className="flex-1 overflow-y-auto pr-1 kanban-scroll">
                     {columnTasks.map(task => (
                       <SortableTaskItem 
@@ -222,8 +243,8 @@ export const TaskKanbanBoard = ({ tasks, deliverables, teamMembers, onEdit, onSt
                       </div>
                     )}
                   </div>
-                </div>
-              </SortableContext>
+                </SortableContext>
+              </KanbanColumn>
             );
           })}
         </div>

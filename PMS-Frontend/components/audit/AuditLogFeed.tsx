@@ -50,63 +50,63 @@ const getActionDetails = (log: AuditLog) => {
   const actionLower = log.action.toLowerCase();
   
   if (actionLower === 'note_page_created') {
-    return { color: 'text-emerald-600 bg-emerald-50 ring-emerald-200', icon: StickyNote, label: 'Note Created' };
+    return { color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', icon: StickyNote, label: 'Note Created' };
   }
   if (actionLower === 'note_page_updated') {
-    return { color: 'text-blue-600 bg-blue-50 ring-blue-200', icon: StickyNote, label: 'Note Updated' };
+    return { color: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 ring-blue-500/20', icon: StickyNote, label: 'Note Updated' };
   }
   if (actionLower === 'note_page_deleted') {
-    return { color: 'text-red-600 bg-red-50 ring-red-200', icon: Trash2, label: 'Note Deleted' };
+    return { color: 'text-red-600 dark:text-red-400 bg-red-500/10 ring-red-500/20', icon: Trash2, label: 'Note Deleted' };
   }
   if (actionLower === 'note_task_completed') {
-    return { color: 'text-primary bg-indigo-50 ring-indigo-200', icon: CheckSquare, label: 'Task Done' };
+    return { color: 'text-primary bg-primary/10 ring-primary/20', icon: CheckSquare, label: 'Task Done' };
   }
 
   if (actionLower === 'employee_status_changed') {
     const isActive = log.new_values?.is_active;
     if (isActive === true) {
-      return { color: 'text-emerald-600 bg-emerald-50 ring-emerald-200', icon: UserCheck, label: 'Activated' };
+      return { color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', icon: UserCheck, label: 'Activated' };
     } else if (isActive === false) {
-      return { color: 'text-rose-600 bg-rose-50 ring-rose-200', icon: UserCircle, label: 'Deactivated' };
+      return { color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 ring-rose-500/20', icon: UserCircle, label: 'Deactivated' };
     }
   }
 
   if (actionLower === 'mfa_enabled') {
-    return { color: 'text-emerald-600 bg-emerald-50 ring-emerald-200', icon: Shield, label: 'MFA Enabled' };
+    return { color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', icon: Shield, label: 'MFA Enabled' };
   }
   if (actionLower === 'mfa_disabled') {
-    return { color: 'text-rose-600 bg-rose-50 ring-rose-200', icon: ShieldOff, label: 'MFA Disabled' };
+    return { color: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 ring-rose-500/20', icon: ShieldOff, label: 'MFA Disabled' };
   }
 
   if (actionLower.includes('create')) {
-    return { color: 'text-emerald-600 bg-emerald-50 ring-emerald-200', icon: FolderPlus, label: 'Created' };
+    return { color: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 ring-emerald-500/20', icon: FolderPlus, label: 'Created' };
   }
   if (actionLower.includes('update') || actionLower.includes('change')) {
-    return { color: 'text-blue-600 bg-blue-50 ring-blue-200', icon: FileEdit, label: 'Updated' };
+    return { color: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 ring-blue-500/20', icon: FileEdit, label: 'Updated' };
   }
   if (actionLower.includes('delete')) {
-    return { color: 'text-red-600 bg-red-50 ring-red-200', icon: Trash2, label: 'Deleted' };
+    return { color: 'text-red-600 dark:text-red-400 bg-red-500/10 ring-red-500/20', icon: Trash2, label: 'Deleted' };
   }
   if (actionLower.includes('approve')) {
-    return { color: 'text-green-600 bg-green-50 ring-green-200', icon: UserCheck, label: 'Approved' };
+    return { color: 'text-green-600 dark:text-green-400 bg-green-500/10 ring-green-500/20', icon: UserCheck, label: 'Approved' };
   }
   if (actionLower.includes('upload')) {
-    return { color: 'text-purple-600 bg-purple-50 ring-purple-200', icon: UploadCloud, label: 'Uploaded' };
+    return { color: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 ring-purple-500/20', icon: UploadCloud, label: 'Uploaded' };
   }
   if (actionLower.includes('download')) {
-    return { color: 'text-cyan-600 bg-cyan-50 ring-cyan-200', icon: Download, label: 'Downloaded' };
+    return { color: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 ring-cyan-500/20', icon: Download, label: 'Downloaded' };
   }
   if (actionLower.includes('view')) {
-    return { color: 'text-sky-600 bg-sky-50 ring-sky-200', icon: Activity, label: 'Viewed' };
+    return { color: 'text-sky-600 dark:text-sky-400 bg-sky-500/10 ring-sky-500/20', icon: Activity, label: 'Viewed' };
   }
   if (actionLower.includes('submit')) {
-    return { color: 'text-primary bg-indigo-50 ring-indigo-200', icon: Send, label: 'Submitted' };
+    return { color: 'text-primary bg-primary/10 ring-primary/20', icon: Send, label: 'Submitted' };
   }
   if (actionLower.includes('password')) {
-    return { color: 'text-orange-600 bg-orange-50 ring-orange-200', icon: KeyRound, label: 'Secured' };
+    return { color: 'text-orange-600 dark:text-orange-400 bg-orange-500/10 ring-orange-500/20', icon: KeyRound, label: 'Secured' };
   }
   if (actionLower.includes('profile')) {
-    return { color: 'text-fuchsia-600 bg-fuchsia-50 ring-fuchsia-200', icon: UserCircle, label: 'Updated' };
+    return { color: 'text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/10 ring-fuchsia-500/20', icon: UserCircle, label: 'Updated' };
   }
   
   return { color: 'text-muted-foreground bg-muted ring-border', icon: Activity, label: 'Action' };
@@ -119,7 +119,7 @@ const DiffViewer = ({ oldValues, newValues }: { oldValues: any, newValues: any }
   if (allKeys.length === 0) return <div className="text-sm text-muted-foreground italic p-4">No specific fields modified.</div>;
 
   return (
-    <div className="bg-muted rounded-xl border border-border overflow-hidden divide-y divide-slate-100">
+    <div className="bg-muted rounded-xl border border-border overflow-hidden divide-y divide-border/50">
       {allKeys.map(key => {
         const oldVal = oldValues?.[key];
         const newVal = newValues?.[key];
@@ -140,12 +140,12 @@ const DiffViewer = ({ oldValues, newValues }: { oldValues: any, newValues: any }
               {key.replace(/_/g, ' ')}
             </div>
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="bg-red-50/50 text-red-700 p-3 rounded-lg border border-red-100/50 break-words whitespace-pre-wrap text-xs relative max-h-48 overflow-y-auto flex flex-col gap-1.5">
-                <span className="bg-red-100 text-red-600 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit">Old</span>
+              <div className="bg-red-500/5 text-red-600 dark:text-red-400 p-3 rounded-lg border border-red-500/20 break-words whitespace-pre-wrap text-xs relative max-h-48 overflow-y-auto flex flex-col gap-1.5">
+                <span className="bg-red-500/10 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit">Old</span>
                 <div>{renderValue(oldVal)}</div>
               </div>
-              <div className="bg-emerald-50/50 text-emerald-700 p-3 rounded-lg border border-emerald-100/50 break-words whitespace-pre-wrap text-xs relative max-h-48 overflow-y-auto flex flex-col gap-1.5">
-                <span className="bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit">New</span>
+              <div className="bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 p-3 rounded-lg border border-emerald-500/20 break-words whitespace-pre-wrap text-xs relative max-h-48 overflow-y-auto flex flex-col gap-1.5">
+                <span className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider w-fit">New</span>
                 <div>{renderValue(newVal)}</div>
               </div>
             </div>

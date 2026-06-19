@@ -123,7 +123,7 @@ export default function EmployeeProjectsPage() {
                      <div className="flex justify-between items-start mb-2 gap-4">
                         <div className="flex flex-col min-w-0">
                            <span className="text-xs font-semibold text-primary mb-1">{project.code}</span>
-                           <h3 className="text-lg font-bold text-foreground leading-tight truncate group-hover:text-indigo-700 transition-colors">{project.name}</h3>
+                           <h3 className="text-lg font-bold text-foreground leading-tight line-clamp-2 group-hover:text-indigo-700 transition-colors pr-2">{project.name}</h3>
                            <p className="text-sm text-muted-foreground mt-0.5 truncate">{project.client_name || 'Internal Project'}</p>
                         </div>
                      </div>
@@ -147,7 +147,7 @@ export default function EmployeeProjectsPage() {
                      </div>
 
                      <div className="flex items-center space-x-3 bg-muted/50 p-3 rounded-xl border border-border">
-                        <div className="w-9 h-9 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-sm text-indigo-700 dark:text-indigo-300 shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center font-bold text-sm text-white shrink-0 shadow-md border border-indigo-400/20">
                            {project.reporting_manager?.full_name.charAt(0) || 'R'}
                         </div>
                         <div className="flex flex-col min-w-0">

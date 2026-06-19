@@ -201,7 +201,7 @@ export default function EmployeeProfilePage() {
          {/* Profile Card */}
          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="md:col-span-4">
             <Card className="rounded-xl border-border shadow-sm overflow-hidden bg-background h-full flex flex-col">
-               <div className="h-24 bg-slate-900 relative">
+               <div className="h-24 bg-muted/50 border-b border-border relative">
                   <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 p-2 bg-background rounded-xl shadow-xl">
                      <div className="w-20 h-20 bg-primary rounded-xl flex items-center justify-center font-bold text-2xl text-white shadow-inner">
                         {user?.full_name?.charAt(0) || 'E'}
@@ -213,7 +213,7 @@ export default function EmployeeProfilePage() {
                   <p className="text-xs font-bold tracking-wider text-muted-foreground mt-1 mb-6">Resource Node</p>
                   
                   <div className="space-y-3">
-                     <Badge className="w-full justify-center bg-indigo-50 text-primary border-none py-2 text-xs font-bold tracking-wider rounded-xl hover:bg-indigo-100 cursor-default">
+                     <Badge className="w-full justify-center bg-primary/10 text-primary border-none py-2 text-xs font-bold tracking-wider rounded-xl hover:bg-primary/20 cursor-default">
                         {user?.designation || 'Software Engineer'}
                      </Badge>
                      <Badge className="w-full justify-center bg-muted/30 text-muted-foreground border-none py-2 text-xs font-bold tracking-wider rounded-xl hover:bg-muted cursor-default">
@@ -231,7 +231,7 @@ export default function EmployeeProfilePage() {
          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="md:col-span-8 space-y-6">
             <Card className="rounded-xl border-border shadow-sm p-4 sm:p-8 bg-background">
                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
-                  <h4 className="text-sm font-bold tracking-tight text-slate-800">Account Parameters</h4>
+                  <h4 className="text-sm font-bold tracking-tight text-foreground">Account Parameters</h4>
                   <Button 
                     variant="outline" 
                     size="sm" 
@@ -295,23 +295,23 @@ export default function EmployeeProfilePage() {
                </div>
             </Card>
 
-            <Card className="rounded-xl border-border shadow-sm p-4 sm:p-8 bg-background border-l-4 border-l-indigo-600">
+            <Card className="rounded-xl border-border shadow-sm p-4 sm:p-8 bg-background border-l-4 border-l-primary">
                <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
                   <div className="space-y-1">
-                     <h4 className="text-sm font-bold tracking-tight text-slate-800">Security Credentials</h4>
+                     <h4 className="text-sm font-bold tracking-tight text-foreground">Security Credentials</h4>
                      <p className="text-xs font-medium text-muted-foreground italic">
                        {user?.password_updated_at 
                          ? `Last password reset: ${formatDistanceToNow(new Date(user.password_updated_at + (user.password_updated_at.endsWith('Z') ? '' : 'Z')), { addSuffix: true })}` 
                          : 'Ensure your password is secure and updated regularly.'}
                      </p>
                   </div>
-                  <Button onClick={() => setIsPasswordModalOpen(true)} className="rounded-xl h-10 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider group">
+                  <Button onClick={() => setIsPasswordModalOpen(true)} className="rounded-xl h-10 px-6 bg-foreground hover:bg-foreground/90 text-background font-bold text-xs tracking-wider group">
                      <Lock className="mr-2 h-3 w-3 group-hover:scale-110 transition-transform" /> Change Password
                   </Button>
                </div>
                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
                   <div className="space-y-1">
-                     <h4 className="text-sm font-bold text-slate-800">Two-Factor Authentication (Email)</h4>
+                     <h4 className="text-sm font-bold text-foreground">Two-Factor Authentication (Email)</h4>
                      <p className="text-xs font-medium text-muted-foreground">Require a 6-digit OTP sent to your email when logging in.</p>
                   </div>
                   <Switch 

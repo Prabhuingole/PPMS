@@ -279,7 +279,7 @@ export default function AdminListPage() {
                   </Avatar>
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-foreground">{emp.full_name}</span>
-                    <span className="text-[9px] font-bold text-muted-foreground tracking-wider">{emp.role}</span>
+                    <span className="text-[9px] font-bold text-muted-foreground tracking-wider uppercase">Admin</span>
                   </div>
                 </div>
               )
