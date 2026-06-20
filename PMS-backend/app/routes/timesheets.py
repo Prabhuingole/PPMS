@@ -11,6 +11,7 @@ import uuid
 from app.database.session import get_db
 from app.models.timesheet import Timesheet
 from app.models.user import User
+from app.models.project import Project
 from app.models.notification import Notification
 from app.schemas.timesheet import TimesheetCreate, TimesheetResponse
 from app.core.deps import get_current_user, get_superadmin
@@ -125,7 +126,6 @@ def create_timesheets(
             )
             
     from sqlalchemy.orm import selectinload
-    from app.models.project import Project
 
     project_ids = {ts.project_id for ts in timesheets if ts.project_id}
     unassigned_project_ids = set()
@@ -140,8 +140,8 @@ def create_timesheets(
         company_id = None
         if ts.project_id:
             project = db.query(Project).filter(Project.id == ts.project_id).first()
-            if not project or not ProjectVisibilityService.can_view(current_user, project):
-                raise HTTPException(status_code=403, detail="Not authorized to submit timesheets for this project")
+            if not project:
+                raise HTTPException(status_code=403, detail="Project not found")
             company_id = project.owner_company_id
             
         is_unassigned = ts.project_id in unassigned_project_ids if ts.project_id else False
@@ -259,7 +259,6 @@ def get_my_timesheets(
     project_id: Optional[str] = None,
     manager_name: Optional[str] = None
 ):
-    from app.models.project import Project
     from app.models.user import User as UserModel
     base_query = db.query(Timesheet).options(
         joinedload(Timesheet.user),
@@ -799,6 +798,16 @@ def update_timesheets_for_day(
     if len(new_dates) > 1:
         raise HTTPException(status_code=400, detail="All entries must belong to the same date.")
 
+    # Find unassigned projects
+    from sqlalchemy.orm import selectinload
+    project_ids = {ts.project_id for ts in timesheets if ts.project_id}
+    unassigned_project_ids = set()
+    if project_ids:
+        projects = db.query(Project).options(selectinload(Project.members)).filter(Project.id.in_(project_ids)).all()
+        for p in projects:
+            if not any(m.id == current_user.id for m in p.members):
+                unassigned_project_ids.add(p.id)
+
     # Delete all existing pending entries for that day
     for ts in existing:
         db.delete(ts)
@@ -810,9 +819,11 @@ def update_timesheets_for_day(
         company_id = None
         if ts_data.project_id:
             project = db.query(Project).filter(Project.id == ts_data.project_id).first()
-            if not project or not ProjectVisibilityService.can_view(current_user, project):
-                raise HTTPException(status_code=403, detail="Not authorized to submit timesheets for this project")
+            if not project:
+                raise HTTPException(status_code=403, detail="Project not found")
             company_id = project.owner_company_id
+            
+        is_unassigned = ts_data.project_id in unassigned_project_ids if ts_data.project_id else False
 
         new_ts = Timesheet(
             user_id=current_user.id,
@@ -832,6 +843,7 @@ def update_timesheets_for_day(
             arrival_time=ts_data.arrival_time,
             half_day_period=ts_data.half_day_period,
             status="pending",
+            is_unassigned_project=is_unassigned,
             billed_rate=current_user.hourly_rate,
             billed_currency=current_user.currency
         )

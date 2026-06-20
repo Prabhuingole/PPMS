@@ -661,7 +661,7 @@ export function ProjectFormModal({
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-semibold text-foreground">
-                            End Date
+                            Expected End Date
                           </FormLabel>
                           <FormControl>
                             <Input type="date" {...field} value={field.value || ''} className="h-10" />
@@ -763,8 +763,8 @@ export function ProjectFormModal({
                                   </AvatarFallback>
                                 </Avatar>
                                 <div className="flex flex-col flex-1 min-w-0">
-                                  <span className="text-sm font-medium text-foreground leading-none mb-1 truncate" title={employee.full_name}>{employee.full_name}</span>
-                                  <span className="text-xs text-muted-foreground truncate" title={employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}>{employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}</span>
+                                  <span className="text-sm font-medium text-foreground leading-none mb-1" title={employee.full_name}>{employee.full_name}</span>
+                                  <span className="text-xs text-muted-foreground line-clamp-2" title={employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}>{employee.company_name ? `${employee.designation || 'Specialist'} [${employee.company_name}]` : (employee.designation || 'Specialist')}</span>
                                 </div>
                               </div>
                             </FormItem>

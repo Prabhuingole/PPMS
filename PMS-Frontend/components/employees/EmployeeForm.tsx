@@ -195,27 +195,7 @@ export function EmployeeForm({
             
             <FormSection title="Personal Information">
               <FormGrid>
-                {/* Identifier (employee_id) hidden in create mode, shown disabled in edit */}
-                {!isCreate && (
-                  <FormField
-                    control={form.control}
-                    name="employee_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel required className="text-sm font-semibold text-foreground">Identifier</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="SAM001"
-                            {...field}
-                            disabled={true}
-                            className="h-10 bg-muted cursor-not-allowed text-muted-foreground"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+
                 <FormField
                   control={form.control}
                   name="full_name"

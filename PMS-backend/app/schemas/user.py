@@ -89,6 +89,7 @@ class EmployeeUpdate(BaseModel):
     role: Optional[str] = None
     designation: Optional[str] = None
     is_active: Optional[bool] = None
+    company_id: Optional[int] = None
 
 from app.schemas.project import ProjectResponse
 from app.schemas.timesheet import TimesheetResponse
