@@ -21,6 +21,7 @@ from app.core.audit import create_audit_log
 from fastapi import BackgroundTasks
 from app.core.websockets import manager
 from app.core.s3 import storage
+from app.core.files import validate_file_type
 
 router = APIRouter(prefix="/timesheets", tags=["timesheets"])
 
@@ -48,15 +49,9 @@ async def upload_timesheet_attachment(
     if file.content_type not in ALLOWED_MIMES:
         raise HTTPException(status_code=400, detail="Unsupported MIME type")
         
-    file_head = await file.read(2048)
-    file.file.seek(0)
-    # In a serverless environment (Vercel), python-magic is unavailable without libmagic.
-    # We rely on the provided file.content_type and file extension which were checked above.
-    actual_mime = file.content_type
-    
-    # Sometimes csv/text are returned as text/plain
-    if actual_mime not in ALLOWED_MIMES and actual_mime != "text/plain":
-        raise HTTPException(status_code=400, detail=f"Spoofed file detected. Actual MIME: {actual_mime}")
+    # Validate actual file content using python-magic
+    allowed_magic_mimes = list(ALLOWED_MIMES) + ["text/plain"]
+    await validate_file_type(file, allowed_mime_types=allowed_magic_mimes)
         
     file.file.seek(0, 2)
     file_size = file.file.tell()

@@ -15,6 +15,7 @@ from app.core.deps import get_current_user
 from app.core.audit import create_audit_log
 from app.core.s3 import storage
 from app.core.tenant import current_tenant_ctx
+from app.core.files import validate_file_type
 from fastapi import Form
 
 router = APIRouter(prefix="/attendance", tags=["attendance"])
@@ -50,6 +51,9 @@ async def clock_in(
     
     if existing:
         raise HTTPException(status_code=400, detail="Already clocked in for today.")
+    
+    # Validate photo type
+    await validate_file_type(photo, allowed_mime_types=["image/jpeg", "image/png", "image/webp"])
     
     # Upload photo
     file_extension = os.path.splitext(photo.filename)[1]
@@ -109,6 +113,9 @@ async def clock_out(
     
     if att.clock_out_time:
         raise HTTPException(status_code=400, detail="Already clocked out today.")
+        
+    # Validate photo type
+    await validate_file_type(photo, allowed_mime_types=["image/jpeg", "image/png", "image/webp"])
         
     # Upload photo
     file_extension = os.path.splitext(photo.filename)[1]

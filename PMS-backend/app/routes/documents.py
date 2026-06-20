@@ -18,6 +18,7 @@ from app.core.s3 import storage
 from fastapi import BackgroundTasks, Request
 from app.core.websockets import manager
 from app.core.audit import create_audit_log
+from app.core.files import validate_file_type
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -61,6 +62,9 @@ async def upload_document(
         
     if file.content_type not in ALLOWED_MIMES:
         raise HTTPException(status_code=400, detail="Unsupported MIME type")
+        
+    # Validate actual file content using python-magic
+    await validate_file_type(file, allowed_mime_types=list(ALLOWED_MIMES))
         
     file.file.seek(0, 2)
     file_size = file.file.tell()

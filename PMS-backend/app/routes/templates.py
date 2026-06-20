@@ -13,6 +13,7 @@ from app.core.audit import create_audit_log
 from app.core.s3 import storage
 from fastapi import BackgroundTasks
 from app.core.websockets import manager
+from app.core.files import validate_file_type
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 
@@ -51,6 +52,18 @@ async def update_template(
         template.filename = None
         template.file_path = None
     elif file:
+        ALLOWED_MIMES = [
+            "application/pdf", 
+            "image/jpeg", 
+            "image/png", 
+            "text/csv", 
+            "text/plain",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
+            "application/zip",
+            "application/x-zip-compressed"
+        ]
+        await validate_file_type(file, allowed_mime_types=ALLOWED_MIMES)
         unique_key = f"templates/{doc_type}_{file.filename}"
         storage.upload_file(file.file, unique_key, content_type=file.content_type)
         template.filename = file.filename
