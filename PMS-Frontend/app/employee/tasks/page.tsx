@@ -13,15 +13,23 @@ import { format } from 'date-fns';
 
 export default function MyTasksPage() {
   const { user } = useAuthStore();
-  const { data: tasks = [], isLoading } = useMyTasks();
-  
   const [filter, setFilter] = useState('active'); // 'all', 'active', 'completed'
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useMyTasks(filter, page);
+  const tasks = data?.items || [];
+  const totalPages = data?.pages || 1;
+  
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const handleEdit = (task: Task) => {
     setEditingTask(task);
     setIsDrawerOpen(true);
+  };
+
+  const handleFilterChange = (newFilter: string) => {
+    setFilter(newFilter);
+    setPage(1); // Reset page when filter changes
   };
 
   const getPriorityColor = (priority: string) => {
@@ -45,11 +53,7 @@ export default function MyTasksPage() {
     }
   };
 
-  const filteredTasks = tasks.filter(task => {
-    if (filter === 'active') return task.status !== 'DONE';
-    if (filter === 'completed') return task.status === 'DONE';
-    return true;
-  });
+  // Backend filtering is now used, so we don't need client-side filtering
 
   if (isLoading) {
     return (
@@ -76,7 +80,7 @@ export default function MyTasksPage() {
             <Button 
               variant={filter === 'active' ? 'default' : 'ghost'} 
               size="sm" 
-              onClick={() => setFilter('active')}
+              onClick={() => handleFilterChange('active')}
               className={filter === 'active' ? 'shadow-sm' : ''}
             >
               Active
@@ -84,7 +88,7 @@ export default function MyTasksPage() {
             <Button 
               variant={filter === 'completed' ? 'default' : 'ghost'} 
               size="sm" 
-              onClick={() => setFilter('completed')}
+              onClick={() => handleFilterChange('completed')}
               className={filter === 'completed' ? 'shadow-sm' : ''}
             >
               Completed
@@ -92,7 +96,7 @@ export default function MyTasksPage() {
             <Button 
               variant={filter === 'all' ? 'default' : 'ghost'} 
               size="sm" 
-              onClick={() => setFilter('all')}
+              onClick={() => handleFilterChange('all')}
               className={filter === 'all' ? 'shadow-sm' : ''}
             >
               All
@@ -100,7 +104,7 @@ export default function MyTasksPage() {
           </div>
         </div>
 
-        {filteredTasks.length === 0 ? (
+        {tasks.length === 0 ? (
           <div className="bg-background rounded-xl border border-border border-dashed p-12 text-center flex flex-col items-center justify-center shadow-sm">
             <CheckSquare className="w-12 h-12 text-slate-300 mb-4" />
             <h3 className="text-lg font-bold text-foreground">No tasks found</h3>
@@ -108,7 +112,7 @@ export default function MyTasksPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredTasks.map(task => {
+            {tasks.map(task => {
               // Extract base color from status to drive accents
               const getAccentClasses = () => {
                 if (task.status === 'DONE') return 'bg-emerald-500 shadow-emerald-500/20';
@@ -174,6 +178,28 @@ export default function MyTasksPage() {
                 </Card>
               );
             })}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <Button 
+              variant="outline" 
+              disabled={page === 1} 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-sm font-medium text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <Button 
+              variant="outline" 
+              disabled={page === totalPages} 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
           </div>
         )}
 

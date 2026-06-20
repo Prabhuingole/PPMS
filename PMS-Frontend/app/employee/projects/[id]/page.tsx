@@ -258,9 +258,9 @@ export default function ProjectDetailsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <div className="bg-background p-6 rounded-xl border border-border shadow-2xl shadow-slate-200/50 relative overflow-hidden">
+            <div className="bg-background p-6 rounded-xl border border-border shadow-2xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden">
                {/* Decorative Background Element */}
-               <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50" />
+               <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-50 dark:bg-indigo-900/20 rounded-full blur-3xl opacity-50" />
                
                <div className="relative z-10">
                   <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] mb-3 block">{project.code}</span>
@@ -294,12 +294,12 @@ export default function ProjectDetailsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
           >
-             <div className="bg-background p-6 rounded-xl border border-border shadow-2xl shadow-slate-200/50">
+             <div className="bg-background p-6 rounded-xl border border-border shadow-2xl shadow-slate-200/50 dark:shadow-none">
                <h2 className="text-xl font-black text-foreground uppercase tracking-tight mb-6">Time Tracking</h2>
                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                 <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col items-center justify-center text-center">
+                 <div className="p-4 bg-indigo-50 dark:bg-indigo-500/10 rounded-xl border border-indigo-100 dark:border-indigo-500/20 flex flex-col items-center justify-center text-center">
                     <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1">Total Allotted</span>
-                    <span className="text-2xl font-black text-indigo-700 break-all">
+                    <span className="text-2xl font-black text-indigo-700 dark:text-indigo-400 break-all">
                       {Number((project.total_hours || 0).toFixed(2))}
                       <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
                     </span>
@@ -311,16 +311,16 @@ export default function ProjectDetailsPage() {
                       <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
                     </span>
                  </div>
-                 <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex flex-col items-center justify-center text-center overflow-hidden">
+                 <div className="p-4 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl border border-emerald-100 dark:border-emerald-500/20 flex flex-col items-center justify-center text-center overflow-hidden">
                     <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">My Contribution</span>
-                    <span className="text-2xl font-black text-emerald-700 break-all">
+                    <span className="text-2xl font-black text-emerald-700 dark:text-emerald-400 break-all">
                       {Number((project.my_hours_worked || 0).toFixed(2))}
                       <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
                     </span>
                  </div>
                  <div className={cn(
                     "p-4 rounded-xl border flex flex-col items-center justify-center text-center overflow-hidden",
-                    ((project.total_hours_remaining ?? 0) < 0) ? "bg-red-50 border-red-100" : "bg-blue-50 border-blue-100"
+                    ((project.total_hours_remaining ?? 0) < 0) ? "bg-red-50 dark:bg-red-500/10 border-red-100 dark:border-red-500/20" : "bg-blue-50 dark:bg-blue-500/10 border-blue-100 dark:border-blue-500/20"
                  )}>
                     <span className={cn(
                       "text-[10px] font-black uppercase tracking-widest mb-1",
@@ -330,7 +330,7 @@ export default function ProjectDetailsPage() {
                     </span>
                     <span className={cn(
                       "text-2xl font-black break-all",
-                      ((project.total_hours_remaining ?? 0) < 0) ? "text-red-600" : "text-blue-700"
+                      ((project.total_hours_remaining ?? 0) < 0) ? "text-red-600 dark:text-red-400" : "text-blue-700 dark:text-blue-400"
                     )}>
                       {Number((((project.total_hours_remaining ?? 0) < 0) ? (project.total_hours_remaining || 0) * -1 : project.total_hours_remaining || 0).toFixed(2))}
                       <span className="text-sm font-bold opacity-70 ml-0.5">h</span>
@@ -346,7 +346,7 @@ export default function ProjectDetailsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-             <div className="bg-background p-4 sm:p-6 rounded-xl border border-border shadow-2xl shadow-slate-200/50">
+             <div className="bg-background p-4 sm:p-6 rounded-xl border border-border shadow-2xl shadow-slate-200/50 dark:shadow-none">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-8">
                   <div>
                      <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Project Documents</h2>
@@ -373,7 +373,7 @@ export default function ProjectDetailsPage() {
                                  type="file"
                                  multiple
                                  onChange={handleFileSelect}
-                                 className="h-11 rounded-xl border-border file:bg-indigo-50 file:text-primary file:border-none file:h-full file:mr-4 file:px-4 file:font-black file:text-[10px] file:uppercase cursor-pointer"
+                                 className="h-11 rounded-xl border-border file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-primary file:border-none file:h-full file:mr-4 file:px-4 file:font-black file:text-[10px] file:uppercase cursor-pointer"
                               />
                            </div>
 
@@ -384,7 +384,7 @@ export default function ProjectDetailsPage() {
                                    <Button 
                                      variant="ghost" 
                                      size="icon"
-                                     className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-red-500 rounded-full hover:bg-red-50"
+                                     className="absolute top-2 right-2 h-6 w-6 text-muted-foreground hover:text-red-500 rounded-full hover:bg-red-50 dark:hover:bg-red-500/10"
                                      onClick={() => setUploadFiles(prev => prev.filter((_, i) => i !== index))}
                                    >
                                      <X className="h-4 w-4" />
@@ -486,7 +486,7 @@ export default function ProjectDetailsPage() {
                         <div key={doc.id} className="group relative bg-background border border-border hover:border-indigo-300 p-5 rounded-[2rem] transition-all duration-300 hover:shadow-xl hover:shadow-indigo-100/50 flex flex-col justify-between">
                            <div className="flex items-start justify-between mb-4">
                               <div className="flex items-center gap-4">
-                                 <div className="h-12 w-12 bg-indigo-50 text-primary rounded-xl flex items-center justify-center font-black text-xs uppercase tracking-wider shrink-0">
+                                 <div className="h-12 w-12 bg-indigo-50 dark:bg-indigo-500/10 text-primary rounded-xl flex items-center justify-center font-black text-xs uppercase tracking-wider shrink-0">
                                     {doc.doc_type}
                                  </div>
                                  <div className="flex flex-col overflow-hidden min-w-0">
@@ -504,7 +504,7 @@ export default function ProjectDetailsPage() {
                                  <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-indigo-50 transition-colors"
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
                                     onClick={() => window.open(`/employee/projects/view-doc?id=${doc.id}`, '_blank')}
                                  >
                                     <Eye className="h-4 w-4" />
@@ -512,7 +512,7 @@ export default function ProjectDetailsPage() {
                                  <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-colors"
                                     onClick={() => handleDownload(doc.id, doc.filename)}
                                  >
                                     <Download className="h-4 w-4" />
@@ -520,7 +520,7 @@ export default function ProjectDetailsPage() {
                                  <Button 
                                     variant="ghost" 
                                     size="icon" 
-                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
                                     onClick={() => setDocToDelete(doc.id)}
                                  >
                                     <Trash2 className="h-4 w-4" />
@@ -551,7 +551,7 @@ export default function ProjectDetailsPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <Card className="rounded-xl border-none shadow-2xl shadow-slate-200/50 bg-slate-900 text-white overflow-hidden">
+            <Card className="rounded-xl border-none shadow-2xl shadow-slate-200/50 dark:shadow-none bg-slate-900 text-white overflow-hidden">
                <CardHeader className="p-6 pb-0">
                   <span className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Direct Oversight</span>
                   <h2 className="text-xl font-black uppercase tracking-tight mt-1">Reporting Manager</h2>
@@ -593,7 +593,7 @@ export default function ProjectDetailsPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <Card className="rounded-xl border-border shadow-2xl shadow-slate-200/50 bg-background">
+            <Card className="rounded-xl border-border shadow-2xl shadow-slate-200/50 dark:shadow-none bg-background">
                <CardHeader className="p-6 pb-3">
                   <h2 className="text-base font-black uppercase tracking-tight text-foreground">Assigned Team</h2>
                   <p className="text-muted-foreground text-[10px] font-medium">Core contributors to this stream</p>

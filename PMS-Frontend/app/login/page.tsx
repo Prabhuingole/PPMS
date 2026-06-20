@@ -282,20 +282,20 @@ export default function LoginPage() {
   // Prevent UI flickering while checking hydration or auth status
   if (!isMounted || !_hasHydrated || (isAuthenticated && !requiresPasswordChange)) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6 relative overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-background p-4 sm:p-6 relative overflow-hidden">
       {/* Bento Grid Visual Elements */}
       <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
-        <div className="absolute top-0 left-0 w-64 h-64 border-r border-b border-slate-900"></div>
-        <div className="absolute top-0 right-0 w-64 h-64 border-l border-b border-slate-900"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 border-r border-t border-slate-900"></div>
-        <div className="absolute bottom-0 right-0 w-64 h-64 border-l border-t border-slate-900"></div>
+        <div className="absolute top-0 left-0 w-64 h-64 border-r border-b border-slate-900 dark:border-white/10"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 border-l border-b border-slate-900 dark:border-white/10"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 border-r border-t border-slate-900 dark:border-white/10"></div>
+        <div className="absolute bottom-0 right-0 w-64 h-64 border-l border-t border-slate-900 dark:border-white/10"></div>
       </div>
 
       <motion.div
@@ -308,24 +308,24 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center p-3 bg-blue-600 rounded-2xl shadow-xl shadow-blue-200 mb-4">
             <ShieldCheck className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-foreground">
             SAMBHAV<span className="text-blue-600">PMS</span>
           </h1>
-          <p className="text-slate-400 font-medium text-xs tracking-wider">
+          <p className="text-slate-400 dark:text-muted-foreground font-medium text-xs tracking-wider">
             Project Management System
           </p>
         </div>
 
-        <Card className="border-slate-200 shadow-2xl shadow-slate-200/50 rounded-3xl overflow-hidden bg-white/80 backdrop-blur-sm">
+        <Card className="border-slate-200 dark:border-border shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-3xl overflow-hidden bg-white/80 dark:bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4 sm:pb-8">
-            <CardTitle className="text-xl sm:text-2xl font-bold text-slate-800">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-foreground">
               {viewMode === 'forgot' 
                 ? 'Recover Password' 
                 : requiresPasswordChange 
                   ? 'Set New Password' 
                   : 'Secure Sign In'}
             </CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardDescription className="text-slate-500 dark:text-muted-foreground">
               {viewMode === 'forgot'
                 ? 'Enter your corporate email and we will send you a reset link.'
                 : requiresPasswordChange
@@ -352,20 +352,20 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                           New Password
                         </FormLabel>
                         <FormControl>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
                               type={showPassword ? 'text' : 'password'}
-                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                             <button
                               type="button"
-                              className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-muted-foreground hover:text-slate-600 focus:outline-none transition-colors"
                               onClick={() => setShowPassword(!showPassword)}
                             >
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -381,20 +381,20 @@ export default function LoginPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                           Confirm Password
                         </FormLabel>
                         <FormControl>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
                               type={showConfirmPassword ? 'text' : 'password'}
-                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                             <button
                               type="button"
-                              className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-muted-foreground hover:text-slate-600 focus:outline-none transition-colors"
                               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             >
                               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -407,7 +407,7 @@ export default function LoginPage() {
                   />
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-emerald-200"
+                    className="w-full h-12 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-emerald-200 dark:shadow-none"
                     disabled={isResetting}
                   >
                     {isResetting ? (
@@ -426,18 +426,18 @@ export default function LoginPage() {
             ) : viewMode === 'forgot' ? (
               <form onSubmit={onForgotSubmit} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold tracking-wider text-slate-400">
+                  <label className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                     Corporate Email
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground" />
                     <Input
                       type="email"
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
                       placeholder="Enter your email"
                       required
-                      className="h-12 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                      className="h-12 pl-11 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                     />
                   </div>
                 </div>
@@ -445,7 +445,7 @@ export default function LoginPage() {
                 <div className="flex flex-col space-y-3">
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-blue-200"
+                    className="w-full h-12 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-blue-200 dark:shadow-none"
                     disabled={isForgotLoading}
                   >
                     {isForgotLoading ? (
@@ -470,11 +470,11 @@ export default function LoginPage() {
             ) : mfaRequired ? (
               <form onSubmit={onVerifyMfa} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold tracking-wider text-slate-400">
+                  <label className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                     Verification Code (OTP)
                   </label>
                   <div className="relative">
-                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground" />
                     <Input
                       type="text"
                       maxLength={6}
@@ -482,7 +482,7 @@ export default function LoginPage() {
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="Enter 6-digit code"
                       required
-                      className="h-12 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all tracking-[0.5em] font-mono text-center"
+                      className="h-12 pl-11 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all tracking-[0.5em] font-mono text-center"
                     />
                   </div>
                 </div>
@@ -490,7 +490,7 @@ export default function LoginPage() {
                 <div className="flex flex-col space-y-3">
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-blue-200"
+                    className="w-full h-12 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-blue-200 dark:shadow-none"
                     disabled={isVerifyingMfa}
                   >
                     {isVerifyingMfa ? (
@@ -522,15 +522,15 @@ export default function LoginPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                           Corporate Email
                         </FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground" />
                             <Input
                               placeholder="Enter your email"
-                              className="h-12 pl-11 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                           </div>
@@ -546,15 +546,15 @@ export default function LoginPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400">
+                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                           Access Password
                         </FormLabel>
                         <FormControl>
                           <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
                               type={showPassword ? 'text' : 'password'}
-                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 bg-slate-50/50 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                             <button
@@ -582,11 +582,11 @@ export default function LoginPage() {
                             id="rememberMe"
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            className="rounded-md border-slate-300 data-[state=checked]:bg-blue-600"
+                            className="rounded-md border-slate-300 dark:border-border data-[state=checked]:bg-blue-600"
                           />
                           <label
                             htmlFor="rememberMe"
-                            className="text-xs font-semibold text-slate-600 cursor-pointer"
+                            className="text-xs font-semibold text-slate-600 dark:text-muted-foreground cursor-pointer"
                           >
                             Keep me signed in
                           </label>
@@ -606,7 +606,7 @@ export default function LoginPage() {
                   {/* SUBMIT BUTTON */}
                   <Button
                     type="submit"
-                    className="w-full h-12 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-blue-200 group"
+                    className="w-full h-12 bg-blue-600 text-white hover:bg-blue-700 rounded-xl transition-all duration-300 font-bold text-sm shadow-xl shadow-blue-200 dark:shadow-none group"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -633,7 +633,7 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-8 sm:mt-12 text-center">
-          <p className="text-slate-400 text-xs font-bold tracking-wider">
+          <p className="text-slate-400 dark:text-muted-foreground text-xs font-bold tracking-wider">
             Protected by Sambhav Security &bull;
           </p>
         </div>

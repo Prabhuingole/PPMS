@@ -335,8 +335,7 @@ export function EmployeeForm({
                         <Input 
                           placeholder="Software Engineer" 
                           {...field} 
-                          disabled={isProfileEdit} 
-                          className={isProfileEdit ? "h-10 bg-muted cursor-not-allowed text-muted-foreground" : "h-10"} 
+                          className="h-10" 
                         />
                       </FormControl>
                       <FormMessage />

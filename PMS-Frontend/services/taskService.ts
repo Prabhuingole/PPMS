@@ -15,9 +15,16 @@ export const fetchTasks = async (filters: TaskFilters): Promise<Task[]> => {
   return response.data.items || response.data;
 };
 
-export const fetchMyTasks = async (): Promise<Task[]> => {
-  const response = await api.get('/tasks/my-tasks');
-  return response.data.items || response.data;
+export interface PaginatedTasks {
+  items: Task[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+export const fetchMyTasks = async (filterType?: string, page: number = 1): Promise<PaginatedTasks> => {
+  const response = await api.get('/tasks/my-tasks', { params: { filterType, page } });
+  return response.data;
 };
 
 export const createTask = async (data: Partial<Task>): Promise<Task> => {
@@ -43,10 +50,10 @@ export const useTasks = (filters: TaskFilters) => {
   });
 };
 
-export const useMyTasks = () => {
+export const useMyTasks = (filterType: string = 'active', page: number = 1) => {
   return useQuery({
-    queryKey: ['my-tasks'],
-    queryFn: fetchMyTasks,
+    queryKey: ['my-tasks', filterType, page],
+    queryFn: () => fetchMyTasks(filterType, page),
   });
 };
 

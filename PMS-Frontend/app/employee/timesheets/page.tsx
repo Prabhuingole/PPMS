@@ -386,36 +386,38 @@ export default function MyTimesheetsPage() {
                   />
                 </div>
 
-                <div className="w-full sm:w-[160px] lg:w-[200px] shrink-0">
-                  <Select value={activeManagerFilter} onValueChange={(v: any) => setActiveManagerFilter(v)}>
-                    <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
-                      <SelectValue placeholder="All Manager" className="truncate" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px] w-[90vw] sm:w-[250px]">
-                      <SelectItem value="All Manager" className="text-xs font-medium">All Manager</SelectItem>
-                      {uniqueManagers.map(m => (
-                        <SelectItem key={m} value={m} className="text-xs font-medium">
-                          {m}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:flex-row sm:w-auto">
+                  <div className="w-full sm:w-[160px] lg:w-[200px] shrink-0">
+                    <Select value={activeManagerFilter} onValueChange={(v: any) => setActiveManagerFilter(v)}>
+                      <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
+                        <SelectValue placeholder="All Manager" className="truncate" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px] w-[90vw] sm:w-[250px]">
+                        <SelectItem value="All Manager" className="text-xs font-medium">All Manager</SelectItem>
+                        {uniqueManagers.map(m => (
+                          <SelectItem key={m} value={m} className="text-xs font-medium">
+                            {m}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                <div className="w-full sm:w-[240px] lg:w-[280px] shrink-0">
-                  <Select value={activeProjectFilter} onValueChange={(v: any) => setActiveProjectFilter(v)}>
-                    <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
-                      <SelectValue placeholder="All Projects" className="truncate" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px] w-[90vw] sm:w-[350px]">
-                      <SelectItem value="All Projects" className="text-xs font-medium">All Projects</SelectItem>
-                      {uniqueProjects.map(p => (
-                        <SelectItem key={p.id} value={p.id} className="text-xs font-medium" title={p.label}>
-                          <span className="block whitespace-normal break-words leading-relaxed py-0.5">{p.label}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="w-full sm:w-[240px] lg:w-[280px] shrink-0">
+                    <Select value={activeProjectFilter} onValueChange={(v: any) => setActiveProjectFilter(v)}>
+                      <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
+                        <SelectValue placeholder="All Projects" className="truncate" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px] w-[90vw] sm:w-[350px]">
+                        <SelectItem value="All Projects" className="text-xs font-medium">All Projects</SelectItem>
+                        {uniqueProjects.map(p => (
+                          <SelectItem key={p.id} value={p.id} className="text-xs font-medium" title={p.label}>
+                            <span className="block whitespace-normal break-words leading-relaxed py-0.5">{p.label}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 

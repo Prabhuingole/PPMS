@@ -212,7 +212,7 @@ export default function EmployeeProjectsPage() {
             animate={{ opacity: 1, scale: 1 }}
             className="flex flex-col items-center justify-center py-20 bg-muted/30 rounded-[40px] border-2 border-dashed border-border"
           >
-            <div className="p-6 bg-background rounded-xl shadow-xl shadow-slate-200/50 mb-6">
+            <div className="p-6 bg-background rounded-xl shadow-xl shadow-slate-200/50 dark:shadow-none mb-6">
                <FolderOpen className="h-12 w-12 text-slate-200" />
             </div>
             <h3 className="text-xl font-black text-foreground uppercase tracking-tight">No Projects Found</h3>

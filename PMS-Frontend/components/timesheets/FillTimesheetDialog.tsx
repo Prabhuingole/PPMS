@@ -301,10 +301,8 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
           toast.error('Please fill in the Task name for all entries.');
           return;
         }
-        
-        const taskTitleRegex = /^[a-zA-Z\s\-\.]+$/;
-        if (!taskTitleRegex.test(e.taskTitle.trim())) {
-          toast.error('Task Name must only contain letters and spaces (no numbers or special characters).');
+        if (!e.taskTitle.trim() || e.taskTitle.trim().length < 2) {
+          toast.error('Please enter a valid Task Name (at least 2 characters) for all entries.');
           return;
         }
 
@@ -359,9 +357,11 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             half_day_period: attendance === 'half-day' ? halfDayPeriod : null
           }));
 
+      const formattedDate = new Date(date).toISOString().split('T')[0];
+
       if (isEditMode) {
         await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/day/${date}`,
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/day/${formattedDate}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -404,7 +404,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[90vw] p-0 overflow-hidden border-border gap-0 bg-background h-[90vh]">
+      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-5xl p-0 overflow-hidden border-border gap-0 bg-background max-h-[90vh] flex flex-col">
         <EnterpriseModalHeader
           title={isEditMode ? 'Edit Timesheet' : 'Fill Timesheet'}
           subtitle={isEditMode
@@ -583,12 +583,12 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
         {/* Footer submit bar */}
         {!isLoading && (
           <EnterpriseModalFooter>
-            <div className="flex w-full items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row w-full items-center justify-between gap-4">
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-start">
                 <span className="text-sm font-semibold text-muted-foreground">Total Logged:</span>
                 <span className="text-lg font-bold text-foreground">{formatDuration(totalHours)}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-end gap-3 w-full sm:w-auto">
                 <Button 
                   onClick={onClose}
                   variant="outline"

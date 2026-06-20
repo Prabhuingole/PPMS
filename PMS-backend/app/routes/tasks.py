@@ -121,6 +121,7 @@ def list_tasks(
 @router.get("/my-tasks", response_model=TaskListResponse)
 def list_my_tasks(
     status: Optional[TaskStatus] = None,
+    filterType: Optional[str] = Query(None, description="Filter tasks by 'all', 'active' or 'completed'"),
     page: int = 1,
     limit: int = 50,
     db: Session = Depends(get_db),
@@ -128,9 +129,12 @@ def list_my_tasks(
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     query = db.query(Task).filter(Task.assignee_id == current_user.id)
-    query = TaskVisibilityService.get_visible_query(current_user, db, query)
 
-    if status:
+    if filterType == 'active':
+        query = query.filter(Task.status != TaskStatus.DONE)
+    elif filterType == 'completed':
+        query = query.filter(Task.status == TaskStatus.DONE)
+    elif status:
         query = query.filter(Task.status == status)
 
     total = query.count()

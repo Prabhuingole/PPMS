@@ -193,8 +193,8 @@ export default function EmployeeProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-         <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground leading-none">Identity Core</h2>
-         <p className="text-muted-foreground font-medium text-sm mt-2">Personal parameters within the synchronization network</p>
+         <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground leading-none">My Profile</h2>
+         <p className="text-muted-foreground font-medium text-sm mt-2">Manage your personal information and account settings.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8">

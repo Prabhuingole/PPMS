@@ -152,12 +152,12 @@ export default function EmployeeNotesPage() {
           {/* Colored top accent bar */}
           <div className="-mx-4 -mt-4 mb-3 h-1 bg-gradient-to-r from-indigo-500 to-indigo-400 rounded-t-none" />
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100">
-              <Briefcase className="h-3.5 w-3.5 text-indigo-600" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 dark:bg-indigo-900/30">
+              <Briefcase className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
             </div>
-            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-700">My Projects</h2>
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">My Projects</h2>
           </div>
-          <p className="text-[10px] text-slate-400 font-medium pl-8">Select a project to view its lists</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium pl-8">Select a project to view its lists</p>
         </div>
       }
     >
@@ -175,13 +175,13 @@ export default function EmployeeNotesPage() {
               className={cn(
                 "w-full flex items-center px-3 py-2.5 rounded-xl transition-all text-left group border",
                 selectedProjectId === project.id
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 border-indigo-500"
-                  : "hover:bg-indigo-50 text-slate-600 border-transparent hover:border-indigo-100"
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none border-indigo-500"
+                  : "hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-slate-600 dark:text-slate-300 border-transparent hover:border-indigo-100 dark:hover:border-indigo-800/30"
               )}
             >
               <Briefcase className={cn(
                 "h-4 w-4 mr-3 shrink-0",
-                selectedProjectId === project.id ? "text-indigo-200" : "text-slate-400 group-hover:text-indigo-500"
+                selectedProjectId === project.id ? "text-indigo-200" : "text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400"
               )} />
               <span className="text-[13px] font-bold truncate">
                 {project.name}
@@ -202,10 +202,10 @@ export default function EmployeeNotesPage() {
           {/* Colored top accent bar */}
           <div className="-mx-4 -mt-4 mb-3 h-1 bg-gradient-to-r from-orange-400 to-amber-400 rounded-t-none" />
           <div className="flex items-center gap-2 mb-1">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-100">
-              <CheckSquare className="h-3.5 w-3.5 text-orange-600" />
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-orange-100 dark:bg-orange-900/30">
+              <CheckSquare className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
             </div>
-            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-700">To Do Lists</h2>
+            <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">To Do Lists</h2>
           </div>
           <Button 
             onClick={() => handleCreatePage()}
@@ -220,7 +220,7 @@ export default function EmployeeNotesPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search lists..." 
-              className="pl-9 h-9 text-xs rounded-lg bg-white border-slate-200 focus:border-orange-400 focus:ring-0"
+              className="pl-9 h-9 text-xs rounded-lg bg-white dark:bg-background border-slate-200 dark:border-border focus:border-orange-400 focus:ring-0"
             />
           </div>
         </div>
@@ -375,7 +375,7 @@ export default function EmployeeNotesPage() {
           onPageUpdated={() => setRefreshTrigger(prev => prev + 1)} 
         />
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-100/50 relative">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-muted/10 relative">
           {/* Subtle top accent for 3rd section */}
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-400 to-teal-400" />
           <div className="flex items-center gap-2 absolute top-4 left-5">
@@ -384,11 +384,11 @@ export default function EmployeeNotesPage() {
             </div>
             <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Task Workspace</span>
           </div>
-          <div className="w-16 h-16 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center mb-4">
-            <CheckSquare className="h-8 w-8 text-slate-300" />
+          <div className="w-16 h-16 bg-card rounded-xl shadow-sm border border-border flex items-center justify-center mb-4">
+            <CheckSquare className="h-8 w-8 text-muted-foreground/50" />
           </div>
-          <h3 className="text-xl font-bold text-slate-800 tracking-tight mb-2">Select a To Do List</h3>
-          <p className="text-slate-500 text-sm font-medium max-w-sm">
+          <h3 className="text-xl font-bold text-foreground tracking-tight mb-2">Select a To Do List</h3>
+          <p className="text-muted-foreground text-sm font-medium max-w-sm">
             Choose a list from the sidebar or create a new one for the selected project.
           </p>
           <Button 
@@ -424,15 +424,15 @@ function PageSidebarItem({ page, isActive, onClick, onPin, onDelete }: {
       className={cn(
         "group flex items-center justify-between px-3 py-2 rounded-xl cursor-pointer transition-all border",
         isActive
-          ? "bg-white border-orange-200 shadow-sm"
-          : "border-transparent hover:bg-white/70 hover:border-slate-200"
+          ? "bg-white dark:bg-muted border-orange-200 dark:border-orange-500/30 shadow-sm dark:shadow-none"
+          : "border-transparent hover:bg-white/70 dark:hover:bg-muted/50 hover:border-slate-200 dark:hover:border-border"
       )}
       onClick={onClick}
     >
       <div className="flex flex-col min-w-0 pr-2">
         <span className={cn(
           "text-[13px] truncate transition-colors",
-          isActive ? "font-bold text-orange-600" : "font-medium text-slate-600 group-hover:text-slate-800"
+          isActive ? "font-bold text-orange-600 dark:text-orange-500" : "font-medium text-slate-600 dark:text-slate-300 group-hover:text-slate-800 dark:group-hover:text-slate-100"
         )}>
           {page.title || 'Untitled To Do List'}
         </span>
@@ -445,7 +445,7 @@ function PageSidebarItem({ page, isActive, onClick, onPin, onDelete }: {
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className="h-6 w-6 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-md shrink-0 hover:bg-slate-200/50">
+        <DropdownMenuTrigger className="h-6 w-6 flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-md shrink-0 hover:bg-slate-200/50 dark:hover:bg-slate-700/50">
           <MoreVertical className="h-3 w-3 text-muted-foreground" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40 rounded-xl border-border shadow-xl">
@@ -633,7 +633,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
         }
       />
 
-      <WorkspaceContent className="px-8 md:px-16 py-12 pb-32 bg-slate-100/50">
+      <WorkspaceContent className="px-8 md:px-16 py-12 pb-32 bg-background">
         <div className="max-w-3xl mx-auto space-y-6">
           <LocalInput 
             initialValue={activePage.title}
@@ -650,7 +650,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
           />
 
           <div className="pt-6 border-t border-border mt-6">
-            <h3 className="text-sm font-semibold text-slate-800 flex items-center mb-6">
+            <h3 className="text-sm font-semibold text-foreground flex items-center mb-6">
               <CheckSquare className="h-4 w-4 mr-2 text-primary" /> Task List
             </h3>
             
