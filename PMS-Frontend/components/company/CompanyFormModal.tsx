@@ -367,7 +367,7 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
               </Button>
             </div>
             {formData.points_of_contact?.map((poc, index) => (
-              <div key={index} className="p-4 border rounded-lg bg-slate-50 space-y-4 relative">
+              <div key={index} className="p-4 border rounded-lg bg-slate-50 dark:bg-muted/30 space-y-4 relative">
                 <div className="absolute top-2 right-2">
                   <Button type="button" variant="ghost" size="icon" onClick={() => removePoc(index)} className="text-red-500 hover:text-red-700 hover:bg-red-50">
                     <Trash2 className="w-4 h-4" />
@@ -415,11 +415,11 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
                       inputStyle={{
                         width: '100%', height: '40px', borderRadius: '0.375rem',
                         borderColor: errors[`poc_${index}_phone`] ? 'red' : '#e2e8f0',
-                        backgroundColor: 'white'
+                        backgroundColor: 'transparent'
                       }}
                       buttonStyle={{
                         borderColor: errors[`poc_${index}_phone`] ? 'red' : '#e2e8f0',
-                        backgroundColor: 'white',
+                        backgroundColor: 'transparent',
                         borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem'
                       }}
                       containerStyle={{ width: '100%' }}

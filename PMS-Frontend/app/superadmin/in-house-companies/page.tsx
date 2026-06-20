@@ -54,7 +54,7 @@ export default function CompaniesPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-border shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
               <Building2 className="w-8 h-8 text-blue-600" />
@@ -69,7 +69,7 @@ export default function CompaniesPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl border border-border shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-card p-4 rounded-xl border border-border shadow-sm">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -106,7 +106,7 @@ export default function CompaniesPage() {
 
         {/* Table / Loading State */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-24 bg-white rounded-xl border border-border">
+          <div className="flex items-center justify-center py-24 bg-card rounded-xl border border-border">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
         ) : (
@@ -119,7 +119,7 @@ export default function CompaniesPage() {
             
             {/* Pagination Controls */}
             {data && data.pages > 1 && (
-              <div className="flex items-center justify-between bg-white px-4 py-3 rounded-xl border border-border">
+              <div className="flex items-center justify-between bg-card px-4 py-3 rounded-xl border border-border">
                 <div className="text-sm text-muted-foreground">
                   Showing <span className="font-medium text-foreground">{(page - 1) * 10 + 1}</span> to <span className="font-medium text-foreground">{Math.min(page * 10, data.total)}</span> of <span className="font-medium text-foreground">{data.total}</span> companies
                 </div>

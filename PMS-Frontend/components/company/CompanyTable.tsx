@@ -58,7 +58,7 @@ export function CompanyTable({ companies, onEdit, onView }: CompanyTableProps) {
 
   if (companies.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 bg-white border border-border border-dashed rounded-xl">
+      <div className="flex flex-col items-center justify-center p-12 bg-card border border-border border-dashed rounded-xl">
         <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
           <Building2 className="w-8 h-8 text-muted-foreground" />
         </div>
@@ -72,7 +72,7 @@ export function CompanyTable({ companies, onEdit, onView }: CompanyTableProps) {
 
   return (
     <>
-      <div className="rounded-xl border border-border bg-white overflow-hidden shadow-sm">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
