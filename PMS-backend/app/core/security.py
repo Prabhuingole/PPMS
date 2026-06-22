@@ -14,6 +14,13 @@ def create_refresh_token() -> str:
 def hash_refresh_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
+def hash_session_id(session_id: str) -> str:
+    if not session_id:
+        return None
+    secret = settings.SECRET_KEY.encode('utf-8')
+    message = session_id.encode('utf-8')
+    return hmac.new(secret, message, hashlib.sha256).hexdigest()
+
 def verify_refresh_token_hash(plain_token: str, hashed_token: str) -> bool:
     if not hashed_token:
         return False

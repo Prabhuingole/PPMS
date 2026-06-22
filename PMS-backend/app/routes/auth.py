@@ -9,7 +9,7 @@ from app.database.session import get_db
 from app.models.user import User
 from app.models.session import UserSession
 from app.schemas.user import LoginSchema, TokenResponse, ProfileUpdateSchema, ChangePasswordSchema, ForgotPasswordSchema, ResetPasswordSchema, VerifyMFASchema, SetupAccountSchema
-from app.core.security import verify_password, create_access_token, get_password_hash, create_reset_token, verify_reset_token, create_refresh_token, hash_refresh_token, verify_refresh_token_hash
+from app.core.security import verify_password, create_access_token, get_password_hash, create_reset_token, verify_reset_token, create_refresh_token, hash_refresh_token, verify_refresh_token_hash, hash_session_id
 from app.core.deps import get_current_user, oauth2_scheme
 from app.core.email import send_password_reset_email, send_mfa_otp_email
 import random
@@ -101,7 +101,7 @@ def login(request: Request, response: Response, payload: LoginSchema, db: Sessio
     # Save session to DB
     new_session = UserSession(
         user_id=user.id,
-        session_id=hashlib.sha256(session_id.encode()).hexdigest(),
+        session_id=hash_session_id(session_id),
         device_info=user_agent,
         ip_address=ip_address,
         refresh_token_hash=refresh_token_hash,
@@ -203,7 +203,7 @@ def verify_mfa(request: Request, response: Response, payload: VerifyMFASchema, d
     # Save session to DB
     new_session = UserSession(
         user_id=user.id,
-        session_id=hashlib.sha256(session_id.encode()).hexdigest(),
+        session_id=hash_session_id(session_id),
         device_info=user_agent,
         ip_address=ip_address,
         refresh_token_hash=refresh_token_hash,
@@ -311,7 +311,7 @@ def setup_account(payload: SetupAccountSchema, request: Request, db: Session = D
     
     new_session = UserSession(
         user_id=current_user.id,
-        session_id=hashlib.sha256(session_id.encode()).hexdigest(),
+        session_id=hash_session_id(session_id),
         device_info=user_agent,
         ip_address=ip_address
     )
@@ -345,7 +345,7 @@ def get_active_sessions(db: Session = Depends(get_db), current_user: User = Depe
     from app.core.config import settings
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     current_jti = payload.get("jti")
-    current_jti_hashed = hashlib.sha256(current_jti.encode()).hexdigest() if current_jti else None
+    current_jti_hashed = hash_session_id(current_jti) if current_jti else None
 
     sessions = db.query(UserSession).filter(UserSession.user_id == current_user.id, UserSession.is_active == True).order_by(UserSession.last_active_at.desc()).all()
     
@@ -367,7 +367,7 @@ def revoke_all_other_sessions(db: Session = Depends(get_db), current_user: User 
     from app.core.config import settings
     payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
     current_jti = payload.get("jti")
-    current_jti_hashed = hashlib.sha256(current_jti.encode()).hexdigest() if current_jti else None
+    current_jti_hashed = hash_session_id(current_jti) if current_jti else None
 
     db.query(UserSession).filter(
         UserSession.user_id == current_user.id, 
