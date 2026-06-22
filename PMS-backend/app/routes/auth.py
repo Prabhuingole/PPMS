@@ -518,8 +518,7 @@ def forgot_password(payload: ForgotPasswordSchema, request: Request, db: Session
         return {"message": "If an account exists, a password reset link has been sent."}
     
     token = create_reset_token(email=user.email)
-    import hashlib
-    user.reset_token = hashlib.sha256(token.encode()).hexdigest()
+    user.reset_token = hash_session_id(token)
     db.commit()
     from app.core.config import settings
     frontend_url = settings.FRONTEND_URL
@@ -536,8 +535,7 @@ def reset_password(payload: ResetPasswordSchema, request: Request, db: Session =
         raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
         
     user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
-    import hashlib
-    if not user or not user.reset_token or user.reset_token != hashlib.sha256(payload.token.encode()).hexdigest() or user.role == "reporting_manager":
+    if not user or not user.reset_token or user.reset_token != hash_session_id(payload.token) or user.role == "reporting_manager":
         raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
         
     user.hashed_password = get_password_hash(payload.new_password)

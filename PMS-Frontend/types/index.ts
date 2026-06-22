@@ -23,6 +23,8 @@ export interface Company {
   company_type?: 'client' | 'in_house' | string;
   company_owner?: string;
   points_of_contact?: PointOfContact[];
+  restrict_clockin_to_office_ip?: boolean;
+  office_ip_addresses?: string[];
   created_at?: string;
   updated_at?: string;
   metrics?: {

@@ -330,6 +330,39 @@ export default function CompanyDetailsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="shadow-sm border-border">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-lg font-bold">Security & Access</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${company.restrict_clockin_to_office_ip ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13a10 10 0 0 1 14 0"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 20 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Office Wi-Fi Restriction</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge variant={company.restrict_clockin_to_office_ip ? 'success' : 'secondary'} className="uppercase text-[10px]">
+                        {company.restrict_clockin_to_office_ip ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                {company.restrict_clockin_to_office_ip && company.office_ip_addresses && company.office_ip_addresses.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-2">Allowed IP Addresses</p>
+                    <div className="flex flex-wrap gap-2">
+                      {company.office_ip_addresses.map((ip, idx) => (
+                        <Badge key={idx} variant="outline" className="font-mono text-xs bg-slate-50">
+                          {ip}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

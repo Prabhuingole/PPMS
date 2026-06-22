@@ -43,6 +43,19 @@ async def clock_in(
 ):
     today = datetime.utcnow().date()
     
+    # Office Wi-Fi / IP Restriction Check (Only for In-House Companies)
+    if current_user.role not in ["superadmin", "admin"]:
+        from app.models.company import Company
+        company = db.query(Company).filter(Company.id == current_user.company_id).first()
+        if company and getattr(company, 'company_type', '') == 'in_house' and getattr(company, 'restrict_clockin_to_office_ip', False):
+            client_ip = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")
+            if client_ip and "," in client_ip:
+                client_ip = client_ip.split(",")[0].strip()
+            
+            allowed_ips = getattr(company, 'office_ip_addresses', []) or []
+            if client_ip not in allowed_ips:
+                raise HTTPException(status_code=403, detail=f"Access Denied: You must be connected to the Office Wi-Fi to clock in. (Detected IP: {client_ip})")
+    
     # Check if already clocked in today
     existing = db.query(Attendance).filter(
         Attendance.user_id == current_user.id,
@@ -102,6 +115,19 @@ async def clock_out(
     current_user: User = Depends(get_current_user)
 ):
     today = datetime.utcnow().date()
+    
+    # Office Wi-Fi / IP Restriction Check (Only for In-House Companies)
+    if current_user.role not in ["superadmin", "admin"]:
+        from app.models.company import Company
+        company = db.query(Company).filter(Company.id == current_user.company_id).first()
+        if company and getattr(company, 'company_type', '') == 'in_house' and getattr(company, 'restrict_clockin_to_office_ip', False):
+            client_ip = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")
+            if client_ip and "," in client_ip:
+                client_ip = client_ip.split(",")[0].strip()
+            
+            allowed_ips = getattr(company, 'office_ip_addresses', []) or []
+            if client_ip not in allowed_ips:
+                raise HTTPException(status_code=403, detail=f"Access Denied: You must be connected to the Office Wi-Fi to clock out. (Detected IP: {client_ip})")
     
     att = db.query(Attendance).filter(
         Attendance.user_id == current_user.id,

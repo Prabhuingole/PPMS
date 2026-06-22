@@ -124,9 +124,11 @@ def create_timesheets(
 
     project_ids = {ts.project_id for ts in timesheets if ts.project_id}
     unassigned_project_ids = set()
+    project_company_map = {}
     if project_ids:
         projects = db.query(Project).options(selectinload(Project.members)).filter(Project.id.in_(project_ids)).all()
         for p in projects:
+            project_company_map[p.id] = p.owner_company_id
             if not any(m.id == current_user.id for m in p.members):
                 unassigned_project_ids.add(p.id)
 
@@ -134,10 +136,9 @@ def create_timesheets(
     for ts in timesheets:
         company_id = None
         if ts.project_id:
-            project = db.query(Project).filter(Project.id == ts.project_id).first()
-            if not project:
+            if ts.project_id not in project_company_map:
                 raise HTTPException(status_code=403, detail="Project not found")
-            company_id = project.owner_company_id
+            company_id = project_company_map[ts.project_id]
             
         is_unassigned = ts.project_id in unassigned_project_ids if ts.project_id else False
         new_ts = Timesheet(

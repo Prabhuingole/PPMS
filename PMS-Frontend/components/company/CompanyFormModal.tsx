@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Company } from '@/types';
 import { useCreateCompany, useUpdateCompany } from '@/services/companyService';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Plus, Trash2, Wifi } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -35,7 +36,9 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
     gst_number: '',
     status: 'active',
     company_type: defaultCompanyType || 'client',
-    points_of_contact: []
+    points_of_contact: [],
+    restrict_clockin_to_office_ip: false,
+    office_ip_addresses: []
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -53,7 +56,9 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
           gst_number: company.gst_number || '',
           status: company.status || 'active',
           company_type: company.company_type || defaultCompanyType || 'client',
-          points_of_contact: company.points_of_contact || []
+          points_of_contact: company.points_of_contact || [],
+          restrict_clockin_to_office_ip: company.restrict_clockin_to_office_ip || false,
+          office_ip_addresses: company.office_ip_addresses || []
         });
       } else {
         setFormData({
@@ -67,7 +72,9 @@ export function CompanyFormModal({ open, onOpenChange, company, defaultCompanyTy
           gst_number: '',
           status: 'active',
           company_type: defaultCompanyType || 'client',
-          points_of_contact: []
+          points_of_contact: [],
+          restrict_clockin_to_office_ip: false,
+          office_ip_addresses: []
         });
       }
       setErrors({});

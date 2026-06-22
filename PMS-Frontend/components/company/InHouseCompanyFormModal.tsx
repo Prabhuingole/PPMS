@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Company } from '@/types';
 import { useCreateCompany, useUpdateCompany } from '@/services/companyService';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Wifi, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -74,6 +75,31 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
     }
   }, [open, company]);
 
+  const addIpAddress = () => {
+    setFormData({
+      ...formData,
+      office_ip_addresses: [...(formData.office_ip_addresses || []), '']
+    });
+  };
+
+  const removeIpAddress = (index: number) => {
+    const newIps = [...(formData.office_ip_addresses || [])];
+    newIps.splice(index, 1);
+    setFormData({
+      ...formData,
+      office_ip_addresses: newIps
+    });
+  };
+
+  const updateIpAddress = (index: number, value: string) => {
+    const newIps = [...(formData.office_ip_addresses || [])];
+    newIps[index] = value;
+    setFormData({
+      ...formData,
+      office_ip_addresses: newIps
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -114,6 +140,31 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
       if (!gstRegex.test(formData.gst_number)) {
         newErrors.gst_number = 'Please enter a valid GST Number format (e.g., 22AAAAA0000A1Z5)';
         hasError = true;
+      }
+    }
+
+    if (formData.restrict_clockin_to_office_ip) {
+      if (!formData.office_ip_addresses || formData.office_ip_addresses.length === 0) {
+        newErrors.office_ip_addresses = 'Please add at least one allowed IP address, or disable the restriction.';
+        hasError = true;
+      } else {
+        const ipRegex = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/;
+        formData.office_ip_addresses.forEach((ip, idx) => {
+          if (!ip.trim()) {
+            newErrors[`office_ip_${idx}`] = 'IP address cannot be empty';
+            hasError = true;
+          } else if (!ipRegex.test(ip)) {
+            newErrors[`office_ip_${idx}`] = 'Invalid IP format (e.g., 192.168.1.1)';
+            hasError = true;
+          } else {
+            const parts = ip.split('.');
+            const isValid = parts.every(p => parseInt(p, 10) >= 0 && parseInt(p, 10) <= 255);
+            if (!isValid) {
+              newErrors[`office_ip_${idx}`] = 'Invalid IP range (0-255)';
+              hasError = true;
+            }
+          }
+        });
       }
     }
 
@@ -316,6 +367,66 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
               />
               {errors.gst_number && <p className="text-xs text-red-500 mt-1">{errors.gst_number}</p>}
             </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <Wifi className="w-4 h-4 text-blue-600" />
+                  Office Wi-Fi Restriction
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">Restrict employee clock-ins to specific office IP addresses.</p>
+              </div>
+              <Switch
+                checked={formData.restrict_clockin_to_office_ip || false}
+                onCheckedChange={(checked) => {
+                  setFormData({ 
+                    ...formData, 
+                    restrict_clockin_to_office_ip: checked,
+                    office_ip_addresses: checked && (!formData.office_ip_addresses || formData.office_ip_addresses.length === 0) ? [''] : formData.office_ip_addresses
+                  });
+                }}
+              />
+            </div>
+
+            {formData.restrict_clockin_to_office_ip && (
+              <div className="p-4 border rounded-lg bg-slate-50 dark:bg-muted/30 space-y-4">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label className={errors.office_ip_addresses ? "text-red-500" : ""}>Allowed Public IP Addresses</Label>
+                    <Button type="button" variant="outline" size="sm" onClick={addIpAddress}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add IP
+                    </Button>
+                  </div>
+                  {errors.office_ip_addresses && <p className="text-xs text-red-500">{errors.office_ip_addresses}</p>}
+                  
+                  {formData.office_ip_addresses?.map((ip, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <div className="flex-1 space-y-1">
+                        <Input
+                          placeholder="e.g. 203.0.113.45"
+                          value={ip}
+                          onChange={(e) => updateIpAddress(index, e.target.value.replace(/[^0-9.]/g, ''))}
+                          className={errors[`office_ip_${index}`] ? "border-red-500 focus-visible:ring-red-500" : ""}
+                        />
+                        {errors[`office_ip_${index}`] && <p className="text-xs text-red-500">{errors[`office_ip_${index}`]}</p>}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeIpAddress(index)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

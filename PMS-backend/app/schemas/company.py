@@ -23,6 +23,8 @@ class CompanyBase(BaseModel):
     company_owner: Optional[str] = None
     logo_url: Optional[str] = None
     points_of_contact: Optional[List[PointOfContact]] = []
+    restrict_clockin_to_office_ip: bool = False
+    office_ip_addresses: Optional[List[str]] = []
 
 class CompanyCreate(CompanyBase):
     pass
@@ -42,6 +44,8 @@ class CompanyUpdate(BaseModel):
     company_owner: Optional[str] = None
     logo_url: Optional[str] = None
     points_of_contact: Optional[List[PointOfContact]] = None
+    restrict_clockin_to_office_ip: Optional[bool] = None
+    office_ip_addresses: Optional[List[str]] = None
 
 class CompanyMetrics(BaseModel):
     team_member_count: int = 0

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, DateTime, JSON
+from sqlalchemy import Column, String, Integer, Text, DateTime, JSON, Boolean
 from sqlalchemy.orm import relationship
 from app.database.session import Base
 from datetime import datetime
@@ -21,6 +21,9 @@ class Company(Base):
     company_owner = Column(String, nullable=True)
     logo_url = Column(String, nullable=True)
     points_of_contact = Column(JSON, default=list)
+    
+    restrict_clockin_to_office_ip = Column(Boolean, default=False)
+    office_ip_addresses = Column(JSON, default=list)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

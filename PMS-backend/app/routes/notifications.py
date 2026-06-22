@@ -15,7 +15,7 @@ def get_my_notifications(db: Session = Depends(get_db), current_user = Depends(g
     notifications = db.query(Notification).filter(
         Notification.user_id == current_user.id,
         Notification.is_read == False
-    ).order_by(Notification.created_at.desc()).all()
+    ).order_by(Notification.created_at.desc()).limit(50).all()
     return notifications
 
 @router.put("/{notification_id}/read")

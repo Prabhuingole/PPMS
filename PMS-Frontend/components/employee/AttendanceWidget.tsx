@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Fingerprint, LogIn, LogOut, Clock, Loader2 } from 'lucide-react';
+import { Fingerprint, LogIn, LogOut, Clock, Loader2, WifiOff, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { ClockInOutModal } from './ClockInOutModal';
@@ -17,6 +18,8 @@ export function AttendanceWidget() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'in' | 'out'>('in');
   const [submitting, setSubmitting] = useState(false);
+  const [errorModalOpen, setErrorModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   const fetchToday = async () => {
@@ -56,7 +59,9 @@ export function AttendanceWidget() {
       setModalOpen(false);
       fetchToday();
     } catch (err: any) {
-      alert(err?.response?.data?.detail || 'Failed to submit');
+      setModalOpen(false); // Close the capture modal before showing error
+      setErrorMessage(err?.response?.data?.detail || 'Failed to submit attendance');
+      setErrorModalOpen(true);
     } finally {
       setSubmitting(false);
     }
@@ -153,6 +158,40 @@ export function AttendanceWidget() {
         onCapture={handleCapture}
         loading={submitting}
       />
+
+      <Dialog open={errorModalOpen} onOpenChange={setErrorModalOpen}>
+        <DialogContent className="sm:max-w-md border-none shadow-2xl p-0 overflow-hidden rounded-[24px] z-[9999]">
+          <div className={cn(
+            "p-8 flex flex-col items-center justify-center text-white text-center",
+            errorMessage.toLowerCase().includes('wi-fi') ? "bg-rose-600" : "bg-slate-800"
+          )}>
+            <div className="bg-white/20 p-4 rounded-full mb-5 backdrop-blur-sm">
+              {errorMessage.toLowerCase().includes('wi-fi') ? (
+                <WifiOff className="h-10 w-10 text-white" />
+              ) : (
+                <AlertTriangle className="h-10 w-10 text-white" />
+              )}
+            </div>
+            <h2 className="text-2xl font-black uppercase tracking-widest">
+              {errorMessage.toLowerCase().includes('wi-fi') ? 'Access Denied' : 'Action Failed'}
+            </h2>
+            <p className="text-white/80 mt-2 text-sm font-semibold tracking-wide">
+              {errorMessage.toLowerCase().includes('wi-fi') ? 'Network Restriction Active' : 'Unable to complete request'}
+            </p>
+          </div>
+          <div className="p-8 bg-white text-center">
+            <p className="text-slate-600 font-medium mb-8 text-base">
+              {errorMessage}
+            </p>
+            <Button 
+              onClick={() => setErrorModalOpen(false)}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl h-14 font-bold uppercase tracking-widest shadow-xl shadow-slate-900/20"
+            >
+              Understood
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

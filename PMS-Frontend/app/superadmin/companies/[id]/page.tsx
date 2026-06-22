@@ -249,6 +249,44 @@ export default function CompanyDetailsPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {company.points_of_contact && company.points_of_contact.length > 0 && (
+              <Card className="shadow-sm border-border">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold">Points of Contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {company.points_of_contact.map((poc, idx) => (
+                    <div key={idx} className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex flex-col gap-2">
+                      <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+                        <div className="h-8 w-8 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+                          <Users className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm">{poc.name}</p>
+                          {poc.designation && <p className="text-xs text-muted-foreground font-medium">{poc.designation}</p>}
+                        </div>
+                      </div>
+                      
+                      <div className="flex flex-col gap-2 pt-1">
+                        {poc.email && (
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <Mail className="h-3.5 w-3.5 text-slate-400" />
+                            {poc.email}
+                          </div>
+                        )}
+                        {poc.phone && (
+                          <div className="flex items-center gap-2 text-xs text-slate-600">
+                            <Phone className="h-3.5 w-3.5 text-slate-400" />
+                            {poc.phone}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 

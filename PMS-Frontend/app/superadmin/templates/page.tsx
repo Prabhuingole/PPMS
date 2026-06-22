@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  FileText, 
-  Upload, 
-  Download, 
-  Loader2, 
-  CheckCircle2, 
+import {
+  FileText,
+  Upload,
+  Download,
+  Loader2,
+  CheckCircle2,
   FileCode,
   Plus,
   X,
@@ -24,7 +24,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ContentGridLayout } from '@/components/layout/ContentGridLayout';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogTrigger,
@@ -47,9 +47,9 @@ export default function TemplateManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Modal State
-  const [activeType, setActiveType] = useState<{key: string, name: string} | null>(null);
+  const [activeType, setActiveType] = useState<{ key: string, name: string } | null>(null);
   const [editTemplateName, setEditTemplateName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -70,10 +70,10 @@ export default function TemplateManagementPage() {
   dynamicDocTypes.sort((a, b) => {
     const tA = templates.find(t => t.doc_type === a.key);
     const tB = templates.find(t => t.doc_type === b.key);
-    
+
     const hasFileA = !!tA?.filename;
     const hasFileB = !!tB?.filename;
-    
+
     if (hasFileA && !hasFileB) return -1;
     if (!hasFileA && hasFileB) return 1;
 
@@ -82,8 +82,8 @@ export default function TemplateManagementPage() {
     return dateB - dateA;
   });
 
-  const filteredDocTypes = dynamicDocTypes.filter(type => 
-    type.key.toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredDocTypes = dynamicDocTypes.filter(type =>
+    type.key.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (templates.find(t => t.doc_type === type.key)?.html_content || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -125,12 +125,12 @@ export default function TemplateManagementPage() {
   const handleViewDocument = async (docType: string, action: 'view' | 'download' = 'view') => {
     let newWindow: Window | null = null;
     if (action === 'view') {
-       newWindow = window.open('about:blank', '_blank');
-       if (newWindow) {
-          newWindow.document.write('<div style="font-family:sans-serif;padding:20px;text-align:center;">Loading document viewer...</div>');
-       }
+      newWindow = window.open('about:blank', '_blank');
+      if (newWindow) {
+        newWindow.document.write('<div style="font-family:sans-serif;padding:20px;text-align:center;">Loading document viewer...</div>');
+      }
     }
-    
+
     try {
       const isInline = action === 'view';
       const response = await api.get(`/templates/download/${encodeURIComponent(docType)}?inline=${isInline}`);
@@ -138,11 +138,11 @@ export default function TemplateManagementPage() {
         if (action === 'download') {
           window.open(response.data.url, '_blank');
         } else {
-           if (newWindow) {
-              newWindow.location.href = response.data.url;
-           } else {
-              window.open(response.data.url, '_blank');
-           }
+          if (newWindow) {
+            newWindow.location.href = response.data.url;
+          } else {
+            window.open(response.data.url, '_blank');
+          }
         }
       } else {
         if (newWindow) newWindow.close();
@@ -180,7 +180,7 @@ export default function TemplateManagementPage() {
 
     try {
       await api.post(`/templates/update`, formData, {
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
@@ -202,7 +202,7 @@ export default function TemplateManagementPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
         <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Synchronizing Template Matrix...</p>
+        <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Loading Templates...</p>
       </div>
     );
   }
@@ -216,8 +216,8 @@ export default function TemplateManagementPage() {
         search={
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search templates..." 
+            <Input
+              placeholder="Search templates..."
               className="pl-9 h-9 rounded-md border-border bg-background focus-visible:ring-1 focus-visible:ring-ring text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -249,7 +249,7 @@ export default function TemplateManagementPage() {
               <div className="grid gap-5 p-6 bg-background">
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-foreground uppercase">Template Name</Label>
-                  <Input 
+                  <Input
                     placeholder="e.g. Weekly Report"
                     className="h-10 rounded-md border-border"
                     value={newTemplateName}
@@ -258,7 +258,7 @@ export default function TemplateManagementPage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-semibold text-foreground uppercase">Template Description</Label>
-                  <Textarea 
+                  <Textarea
                     placeholder="Enter a brief description of what this template is used for..."
                     className="min-h-[100px] rounded-md border-border text-sm focus:ring-1 focus:ring-indigo-500"
                     value={description}
@@ -275,8 +275,8 @@ export default function TemplateManagementPage() {
                         <FileCode className="h-4 w-4 text-primary mr-2" />
                         <span className="text-sm font-medium text-indigo-900">{selectedFile.name}</span>
                       </div>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-indigo-400 hover:text-red-600 hover:bg-red-50 rounded-full"
                         onClick={() => setSelectedFile(null)}
@@ -286,8 +286,8 @@ export default function TemplateManagementPage() {
                     </div>
                   ) : (
                     <>
-                      <Input 
-                        type="file" 
+                      <Input
+                        type="file"
                         className="h-10 rounded-md border-border file:bg-indigo-50 file:text-primary file:border-0 file:h-full file:mr-4 file:px-4 file:font-semibold file:text-xs cursor-pointer"
                         onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                       />
@@ -299,15 +299,15 @@ export default function TemplateManagementPage() {
                 </div>
               </div>
               <EnterpriseModalFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => setIsCreatingNew(false)}
                   className="h-10 px-4"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={async () => {
                     if (!newTemplateName) {
                       toast.error('Template Name is required');
@@ -334,7 +334,7 @@ export default function TemplateManagementPage() {
                     } finally {
                       setIsUploading(false);
                     }
-                  }} 
+                  }}
                   disabled={isUploading}
                   className="h-10 px-6"
                 >
@@ -376,7 +376,7 @@ export default function TemplateManagementPage() {
                     {template?.html_content || 'No detailed description provided.'}
                   </p>
                 </div>
-                
+
                 <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mt-4">
                   <Clock className="h-3.5 w-3.5" />
                   {template?.updated_at ? format(new Date(template.updated_at), 'MMM d, yyyy') : 'No updates'}
@@ -385,9 +385,9 @@ export default function TemplateManagementPage() {
 
               <div className="px-4 py-3 border-t border-border bg-slate-50/50 flex items-center justify-end gap-1">
                 {template?.filename && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-indigo-50 rounded-md"
                     onClick={() => handleViewDocument(template.doc_type, 'view')}
                     title="View Document"
@@ -420,7 +420,7 @@ export default function TemplateManagementPage() {
                     <div className="grid gap-5 p-6 bg-background">
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold text-foreground uppercase">Template Name</Label>
-                        <Input 
+                        <Input
                           placeholder="e.g. Weekly Report"
                           className="h-10 rounded-md border-border"
                           value={editTemplateName}
@@ -429,7 +429,7 @@ export default function TemplateManagementPage() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-xs font-semibold text-foreground uppercase">Template Description</Label>
-                        <Textarea 
+                        <Textarea
                           placeholder="Enter a brief description of what this template is used for..."
                           className="min-h-[100px] rounded-md border-border text-sm focus:ring-1 focus:ring-indigo-500"
                           value={description}
@@ -447,27 +447,27 @@ export default function TemplateManagementPage() {
                               <span className="text-sm font-medium text-muted-foreground">{template.filename}</span>
                             </div>
                             <div className="flex items-center gap-1">
-                              <Button 
+                              <Button
                                 type="button"
-                                variant="ghost" 
+                                variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-primary hover:bg-indigo-100 rounded-full"
                                 onClick={() => handleViewDocument(template.doc_type, 'view')}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button 
+                              <Button
                                 type="button"
-                                variant="ghost" 
+                                variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-slate-600 hover:bg-slate-200 rounded-full"
                                 onClick={() => handleViewDocument(template.doc_type, 'download')}
                               >
                                 <Download className="h-4 w-4" />
                               </Button>
-                              <Button 
+                              <Button
                                 type="button"
-                                variant="ghost" 
+                                variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-full"
                                 onClick={() => setRemoveFile(true)}
@@ -482,8 +482,8 @@ export default function TemplateManagementPage() {
                               <FileCode className="h-4 w-4 text-primary mr-2" />
                               <span className="text-sm font-medium text-indigo-900">{selectedFile.name}</span>
                             </div>
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-indigo-400 hover:text-red-600 hover:bg-red-50 rounded-full"
                               onClick={() => setSelectedFile(null)}
@@ -492,8 +492,8 @@ export default function TemplateManagementPage() {
                             </Button>
                           </div>
                         ) : (
-                          <Input 
-                            type="file" 
+                          <Input
+                            type="file"
                             className="h-10 rounded-md border-border file:bg-indigo-50 file:text-primary file:border-0 file:h-full file:mr-4 file:px-4 file:font-semibold file:text-xs cursor-pointer"
                             onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                           />
@@ -501,16 +501,16 @@ export default function TemplateManagementPage() {
                       </div>
                     </div>
                     <EnterpriseModalFooter>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={() => setActiveType(null)}
                         className="h-10 px-4"
                       >
                         Cancel
                       </Button>
-                      <Button 
-                        onClick={handleUpdate} 
+                      <Button
+                        onClick={handleUpdate}
                         disabled={isUploading}
                         className="h-10 px-6"
                       >
@@ -519,9 +519,9 @@ export default function TemplateManagementPage() {
                     </EnterpriseModalFooter>
                   </DialogContent>
                 </Dialog>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
                   onClick={() => confirmDelete(type.key)}
                   disabled={isUploading || isDeleting}
