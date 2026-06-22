@@ -12,7 +12,11 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(64)
 
 def hash_refresh_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+    if not token:
+        return None
+    secret = settings.SECRET_KEY.encode('utf-8')
+    message = token.encode('utf-8')
+    return hmac.new(secret, message, hashlib.sha256).hexdigest()
 
 def hash_session_id(session_id: str) -> str:
     if not session_id:
