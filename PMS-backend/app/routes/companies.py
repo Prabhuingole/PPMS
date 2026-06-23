@@ -96,7 +96,7 @@ def get_companies(
     for company in items:
         # We need to create a dictionary or BaseModel to append metrics
         # Since CompanyResponse reads from ORM, we can attach a non-orm attribute
-        company_data = CompanyResponse.from_orm(company)
+        company_data = CompanyResponse.model_validate(company)
         company_data.metrics = CompanyMetrics(**metrics_map[company.id])
         response_items.append(company_data)
 

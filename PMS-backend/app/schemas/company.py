@@ -23,7 +23,7 @@ class CompanyBase(BaseModel):
     company_owner: Optional[str] = None
     logo_url: Optional[str] = None
     points_of_contact: Optional[List[PointOfContact]] = []
-    restrict_clockin_to_office_ip: bool = False
+    restrict_clockin_to_office_ip: Optional[bool] = False
     office_ip_addresses: Optional[List[str]] = []
 
 class CompanyCreate(CompanyBase):

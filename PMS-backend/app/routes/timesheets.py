@@ -311,7 +311,7 @@ def get_my_timesheets(
     items = []
     for ts in timesheets:
         ts.user_name = ts.user.full_name if ts.user else None
-        items.append(TimesheetResponse.from_orm(ts))
+        items.append(TimesheetResponse.model_validate(ts))
         
     return {
         "items": items,
@@ -430,7 +430,7 @@ def get_timesheets_by_project(
     items = []
     for ts in timesheets:
         ts.user_name = ts.user.full_name if ts.user else None
-        items.append(TimesheetResponse.from_orm(ts))
+        items.append(TimesheetResponse.model_validate(ts))
         
     return {
         "items": items,
