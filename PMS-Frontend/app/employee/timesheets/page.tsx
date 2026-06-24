@@ -229,14 +229,16 @@ export default function MyTimesheetsPage() {
   const filterTabs: { key: FilterStatus; label: string; count: number; color: string; activeColor: string }[] = [
     { key: 'all', label: 'All', count: counts.all, color: 'text-muted-foreground', activeColor: 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' },
     { key: 'approved', label: 'Approved', count: approvedCount, color: 'text-emerald-600', activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' },
-    { key: 'pending', label: 'Pending', count: pendingCount, color: 'text-amber-600', activeColor: 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' },
-    { key: 'rejected', label: 'Rejected', count: rejectedCount, color: 'text-red-600', activeColor: 'bg-red-500 text-white shadow-lg shadow-red-500/20' },
+    { key: 'pending', label: 'Yet to be reviewed', count: pendingCount, color: 'text-amber-600', activeColor: 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' },
+    { key: 'rejected', label: 'Timesheets rejected', count: rejectedCount, color: 'text-red-600', activeColor: 'bg-red-500 text-white shadow-lg shadow-red-500/20' },
   ];
 
   const attendanceBadgeStyle = (att: string) => {
     switch (att) {
-      case 'full-day': return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50';
-      case 'half-day': return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50';
+      case 'full-day':
+      case 'wfh-full-day': return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50';
+      case 'half-day':
+      case 'wfh-half-day': return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50';
       case 'late-arrival': return 'bg-purple-50 text-purple-700 ring-1 ring-purple-200/50';
       case 'early-arrival': return 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200/50';
       case 'leave': return 'bg-red-50 text-red-700 ring-1 ring-red-200/50';
@@ -294,8 +296,8 @@ export default function MyTimesheetsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         {[
           { label: 'Approved', value: approvedCount, icon: CheckCircle2, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', iconColor: 'text-emerald-600', ring: 'ring-emerald-100' },
-          { label: 'Pending', value: pendingCount, icon: Clock, gradient: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', iconColor: 'text-amber-600', ring: 'ring-amber-100' },
-          { label: 'Rejected', value: rejectedCount, icon: XCircle, gradient: 'from-red-500 to-rose-600', bg: 'bg-red-50', iconColor: 'text-red-600', ring: 'ring-red-100' },
+          { label: 'Yet to be reviewed', value: pendingCount, icon: Clock, gradient: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', iconColor: 'text-amber-600', ring: 'ring-amber-100' },
+          { label: 'Timesheets rejected', value: rejectedCount, icon: XCircle, gradient: 'from-red-500 to-rose-600', bg: 'bg-red-50', iconColor: 'text-red-600', ring: 'ring-red-100' },
           { label: 'Total Hours', value: formatDuration(totalHours), icon: Timer, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50', iconColor: 'text-primary', ring: 'ring-indigo-100' },
         ].map((stat, i) => (
           <motion.div
@@ -458,7 +460,7 @@ export default function MyTimesheetsPage() {
                   <TableHead>Attendance</TableHead>
                   <TableHead>Tasks</TableHead>
                   <TableHead>Duration</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Timesheets status</TableHead>
                   <TableHead className="w-[50px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -554,7 +556,7 @@ export default function MyTimesheetsPage() {
                               "border-none font-black text-[9px] uppercase tracking-widest px-2.5 py-1 rounded-lg",
                               attendanceBadgeStyle(attendance)
                             )}>
-                              {attendance ? attendance.replace(/-/g, ' ') : 'Full Day'}
+                              {attendance ? attendance.replace('wfh-', 'WFH ').replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 'Full Day'}
                             </Badge>
                           </TableCell>
 
@@ -605,7 +607,7 @@ export default function MyTimesheetsPage() {
                               "text-[9px] uppercase font-black px-3 py-1 rounded-lg border-none",
                               statusBadgeStyle(status)
                             )}>
-                              {status}
+                              {status === 'pending' ? 'yet to be reviewed' : status}
                             </Badge>
                           </TableCell>
 

@@ -53,7 +53,18 @@ async def clock_in(
                 client_ip = client_ip.split(",")[0].strip()
             
             allowed_ips = getattr(company, 'office_ip_addresses', []) or []
-            if client_ip not in allowed_ips:
+            
+            import socket
+            resolved_ips = []
+            for entry in allowed_ips:
+                entry = entry.strip()
+                if not entry: continue
+                try:
+                    resolved_ips.append(socket.gethostbyname(entry))
+                except Exception:
+                    resolved_ips.append(entry)
+                    
+            if client_ip not in resolved_ips:
                 raise HTTPException(status_code=403, detail=f"Access Denied: You must be connected to the Office Wi-Fi to clock in. (Detected IP: {client_ip})")
     
     # Check if already clocked in today
@@ -126,7 +137,18 @@ async def clock_out(
                 client_ip = client_ip.split(",")[0].strip()
             
             allowed_ips = getattr(company, 'office_ip_addresses', []) or []
-            if client_ip not in allowed_ips:
+            
+            import socket
+            resolved_ips = []
+            for entry in allowed_ips:
+                entry = entry.strip()
+                if not entry: continue
+                try:
+                    resolved_ips.append(socket.gethostbyname(entry))
+                except Exception:
+                    resolved_ips.append(entry)
+                    
+            if client_ip not in resolved_ips:
                 raise HTTPException(status_code=403, detail=f"Access Denied: You must be connected to the Office Wi-Fi to clock out. (Detected IP: {client_ip})")
     
     att = db.query(Attendance).filter(

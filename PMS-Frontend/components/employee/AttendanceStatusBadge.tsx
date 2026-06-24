@@ -15,5 +15,8 @@ export function AttendanceStatusBadge({ status, timesheetStatus }: AttendanceSta
   if (status === 'Working') {
     return <Badge className="bg-orange-50 text-orange-600 border-none text-[8px] font-black uppercase rounded-lg">Working</Badge>;
   }
+  if (status === 'WFH') {
+    return <Badge className="bg-purple-50 text-purple-600 border-none text-[8px] font-black uppercase rounded-lg">WFH</Badge>;
+  }
   return <Badge className="bg-muted text-muted-foreground border-none text-[8px] font-black uppercase rounded-lg">{status}</Badge>;
 }

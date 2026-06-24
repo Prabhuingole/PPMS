@@ -98,7 +98,13 @@ export function EmployeeForm({
   }, [defaultValues, isOpen, form]);
 
   const handleSubmit = async (data: any) => {
-    await onSubmit(data);
+    const payload = { ...data };
+    if (payload.company_id === '') {
+      payload.company_id = null;
+    } else if (typeof payload.company_id === 'string' && payload.company_id) {
+      payload.company_id = parseInt(payload.company_id, 10);
+    }
+    await onSubmit(payload);
   };
 
   // Handle close/cancel with dirty check
@@ -308,7 +314,7 @@ export function EmployeeForm({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-sm font-semibold text-foreground">Company</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || defaultValues?.company_id?.toString()}>
+                        <Select onValueChange={field.onChange} value={field.value ? field.value.toString() : undefined}>
                           <FormControl>
                             <SelectTrigger className="h-10">
                               <SelectValue placeholder="Select company (Optional)" />
@@ -391,60 +397,65 @@ export function EmployeeForm({
           </EnterpriseModalFooter>
         </form>
       </Form>
+    </>
+  );
 
-      {/* Miss-touch prevention: Discard confirmation dialog */}
-      {showCancelConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-background rounded-xl shadow-2xl w-full max-w-sm border border-border overflow-hidden">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-foreground">Discard Changes?</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">You have unsaved changes that will be lost.</p>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mb-6">
-                Are you sure you want to close this form? All unsaved information will be discarded.
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-10 text-sm font-semibold"
-                  onClick={() => setShowCancelConfirm(false)}
-                >
-                  Keep Editing
-                </Button>
-                <Button
-                  className="flex-1 h-10 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white"
-                  onClick={doClose}
-                >
-                  Discard
-                </Button>
-              </div>
+  const cancelConfirmDialog = (
+    <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
+      <DialogContent showCloseButton={false} className="sm:max-w-sm p-0 overflow-hidden border-border bg-background">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Discard Changes?</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">You have unsaved changes that will be lost.</p>
             </div>
           </div>
+          <p className="text-sm text-muted-foreground mb-6">
+            Are you sure you want to close this form? All unsaved information will be discarded.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1 h-10 text-sm font-semibold"
+              onClick={() => setShowCancelConfirm(false)}
+            >
+              Keep Editing
+            </Button>
+            <Button
+              className="flex-1 h-10 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white"
+              onClick={doClose}
+            >
+              Discard
+            </Button>
+          </div>
         </div>
-      )}
-    </>
+      </DialogContent>
+    </Dialog>
   );
 
   // If onOpenChange is provided, wrap in Dialog, otherwise just return content
   if (onOpenChange) {
     return (
-      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleRequestClose(); }}>
-        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-border gap-0">
-          {content}
-        </DialogContent>
-      </Dialog>
+      <>
+        <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleRequestClose(); }}>
+          <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-border gap-0">
+            {content}
+          </DialogContent>
+        </Dialog>
+        {cancelConfirmDialog}
+      </>
     );
   }
 
   return (
-    <div className="bg-background rounded-xl overflow-hidden shadow-sm border border-border flex flex-col h-full">
-      {content}
-    </div>
+    <>
+      <div className="bg-background rounded-xl overflow-hidden shadow-sm border border-border flex flex-col h-full">
+        {content}
+      </div>
+      {cancelConfirmDialog}
+    </>
   );
 }

@@ -166,7 +166,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
       <div className="flex h-[80vh] w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-blue-600" />
-          <p className="text-sm font-bold text-muted-foreground tracking-wider animate-pulse">Syncing Node Data...</p>
+          <p className="text-sm font-bold text-muted-foreground tracking-wider animate-pulse">Loading...</p>
         </div>
       </div>
     );
@@ -191,10 +191,10 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
             {employee.is_active ? 'Deactivate' : 'Activate'}
           </Button>
           <Button onClick={handleEdit} className="bg-blue-600 text-white hover:bg-blue-700 rounded-xl shadow-lg shadow-blue-200 px-6 font-bold text-xs tracking-wider">
-            <Edit2 className="mr-2 h-3.5 w-3.5" /> Edit Profile
+            <Edit2 className="mr-2 h-3.5 w-3.5" /> Edit Team Member
           </Button>
           <Button onClick={() => setIsDeleteModalOpen(true)} className="bg-rose-600 text-white hover:bg-rose-700 rounded-xl shadow-lg shadow-rose-200 px-6 font-bold text-xs tracking-wider">
-            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete Profile
+            <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete Team Member
           </Button>
         </div>
       </div>
@@ -240,11 +240,11 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                     <span className="text-xs font-bold tracking-wider uppercase">
                       {employee.role === 'employee' || employee.role === 'team_member' ? 'Team Member'
                         : employee.role === 'intern' ? 'Intern'
-                        : employee.role === 'consultant' ? 'Consultant'
-                        : employee.role === 'reporting_manager' ? 'Reporting Manager'
-                        : employee.role === 'admin' ? 'Admin'
-                        : employee.role === 'superadmin' ? 'Super Admin'
-                        : employee.role}
+                          : employee.role === 'consultant' ? 'Consultant'
+                            : employee.role === 'reporting_manager' ? 'Reporting Manager'
+                              : employee.role === 'admin' ? 'Admin'
+                                : employee.role === 'superadmin' ? 'Super Admin'
+                                  : employee.role}
                     </span>
                   </div>
                   <div className="w-px h-3.5 bg-slate-200 self-center"></div>
@@ -514,7 +514,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
       </div>
 
       <EmployeeForm
-        mode="profile_edit"
+        mode="edit"
         isOpen={isEditModalOpen}
         onOpenChange={setIsEditModalOpen}
         defaultValues={{
@@ -524,6 +524,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
           mobile_number: employee.mobile_number || '',
           role: employee.role,
           designation: employee.designation || '',
+          company_id: employee.company_id || '',
         }}
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}

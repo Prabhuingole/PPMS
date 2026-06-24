@@ -126,7 +126,9 @@ export default function EmployeeListPage() {
       }
       fetchEmployees();
     } catch (error: any) {
-      toast.error(error.response?.data?.detail || 'Operation failed');
+      const detail = error.response?.data?.detail;
+      const errorMessage = Array.isArray(detail) ? detail[0]?.msg : (detail || 'Operation failed');
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -433,6 +435,7 @@ export default function EmployeeListPage() {
           mobile_number: editingEmployee.mobile_number || '',
           role: editingEmployee.role,
           designation: editingEmployee.designation || '',
+          company_id: editingEmployee.company_id || '',
         } : {
           employee_id: generateNextEmployeeId(),
           full_name: '',
@@ -440,6 +443,7 @@ export default function EmployeeListPage() {
           mobile_number: '',
           role: 'employee',
           designation: '',
+          company_id: '',
         }}
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}

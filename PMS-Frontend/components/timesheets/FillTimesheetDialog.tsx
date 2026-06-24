@@ -61,6 +61,7 @@ type Entry = {
   attachmentPath?: string | null;
   attachmentName?: string | null;
   isUploading?: boolean;
+  meetingConducted?: boolean;
 };
 
 interface FillTimesheetDialogProps {
@@ -87,6 +88,7 @@ const blankEntry = (): Entry => ({
   attachmentPath: null,
   attachmentName: null,
   isUploading: false,
+  meetingConducted: false,
 });
 
 export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: FillTimesheetDialogProps) {
@@ -96,6 +98,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   const [date, setDate] = useState('');
   const [day, setDay] = useState('Monday');
   const [attendance, setAttendance] = useState('full-day');
+  const [isWfh, setIsWfh] = useState(false);
   const [arrivalTime, setArrivalTime] = useState('');
   const [halfDayPeriod, setHalfDayPeriod] = useState('');
   const [entries, setEntries] = useState<Entry[]>([{ ...blankEntry(), id: 'initial-row-0' }]);
@@ -142,6 +145,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
               attachmentPath: ts.attachment_path || null,
               attachmentName: ts.attachment_name || null,
               isUploading: false,
+              meetingConducted: !!ts.attachment_path,
             };
           });
 
@@ -149,8 +153,16 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
 
           // Attendance: use the first entry's attendance if present
           if (raw[0]?.attendance) {
-            setAttendance(raw[0].attendance);
+            const att = raw[0].attendance;
+            if (att.startsWith('wfh-')) {
+               setIsWfh(true);
+               setAttendance(att.replace('wfh-', ''));
+            } else {
+               setIsWfh(false);
+               setAttendance(att);
+            }
           } else {
+            setIsWfh(false);
             setAttendance('full-day');
           }
 
@@ -179,7 +191,14 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
         try {
           const parsed = JSON.parse(draft);
           setDate(parsed.date || new Date().toISOString().split('T')[0]);
-          setAttendance(parsed.attendance || 'full-day');
+          const att = parsed.attendance || 'full-day';
+          if (att.startsWith('wfh-')) {
+             setIsWfh(true);
+             setAttendance(att.replace('wfh-', ''));
+          } else {
+             setIsWfh(false);
+             setAttendance(att);
+          }
           setArrivalTime(parsed.arrivalTime || '');
           setHalfDayPeriod(parsed.halfDayPeriod || '');
           setEntries(parsed.entries?.length ? parsed.entries : [{ ...blankEntry(), id: 'initial-row-0' }]);
@@ -196,6 +215,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
       // Fresh form fallback
       setDate(new Date().toISOString().split('T')[0]);
       setEntries([{ ...blankEntry(), id: 'initial-row-0' }]);
+      setIsWfh(false);
       setAttendance('full-day');
       setArrivalTime('');
       setHalfDayPeriod('');
@@ -314,6 +334,11 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
           toast.error('Please set a duration for all entries.');
           return;
         }
+        const isAssignedProject = projects.some((p: any) => p.id.toString() === e.projectId && p.assigned);
+        if (isAssignedProject && e.meetingConducted && !e.attachmentPath) {
+          toast.error('Please upload JDR document for the conducted meeting.');
+          return;
+        }
       }
     }
 
@@ -333,7 +358,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
               day: day,
               attachment_path: null,
               attachment_name: null,
-              attendance: attendance,
+              attendance: isWfh ? `wfh-${attendance}` : attendance,
               arrival_time: null,
               half_day_period: null
             }
@@ -352,7 +377,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             billed_rate: e.billedRate || 0,
             attachment_path: e.attachmentPath || null,
             attachment_name: e.attachmentName || null,
-            attendance: attendance,
+            attendance: isWfh ? `wfh-${attendance}` : attendance,
             arrival_time: (attendance === 'late-arrival' || attendance === 'early-arrival') ? arrivalTime : null,
             half_day_period: attendance === 'half-day' ? halfDayPeriod : null
           }));
@@ -403,8 +428,10 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[95vw] max-w-[95vw] sm:max-w-5xl p-0 overflow-hidden border-border gap-0 bg-background max-h-[90vh] flex flex-col">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} disablePointerDismissal={true}>
+      <DialogContent 
+        className="w-[95vw] max-w-[95vw] sm:max-w-5xl p-0 overflow-hidden border-border gap-0 bg-background max-h-[90vh] flex flex-col"
+      >
         <EnterpriseModalHeader
           title={isEditMode ? 'Edit Timesheet' : 'Fill Timesheet'}
           subtitle={isEditMode
@@ -459,7 +486,19 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
 
                 {/* Attendance */}
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Attendance</Label>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Attendance</Label>
+                    <div className="flex items-center gap-1.5">
+                      <input type="checkbox" id="wfh-toggle" checked={isWfh} onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsWfh(checked);
+                        if (checked && attendance !== 'full-day' && attendance !== 'half-day') {
+                          setAttendance('full-day');
+                        }
+                      }} className="h-3 w-3 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" />
+                      <Label htmlFor="wfh-toggle" className="text-[9px] font-bold text-muted-foreground cursor-pointer select-none">WFH</Label>
+                    </div>
+                  </div>
                   <Select value={attendance} onValueChange={(v) => v && setAttendance(v)}>
                     <SelectTrigger className="h-10 rounded-xl border-border text-xs font-bold">
                       <SelectValue placeholder="Select" />
@@ -467,10 +506,12 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
                     <SelectContent className="rounded-xl border-border">
                       <SelectItem value="full-day" className="py-2 text-xs font-bold">Full Day</SelectItem>
                       <SelectItem value="half-day" className="py-2 text-xs font-bold">Half Day</SelectItem>
-                      <SelectItem value="late-arrival" className="py-2 text-xs font-bold">Late Arrival</SelectItem>
-                      <SelectItem value="early-arrival" className="py-2 text-xs font-bold">Early Arrival</SelectItem>
-                      <SelectItem value="leave" className="py-2 text-xs font-bold">Leave</SelectItem>
-                      <SelectItem value="public-holiday" className="py-2 text-xs font-bold">Public Holiday</SelectItem>
+                      {!isWfh && (
+                        <>
+                          <SelectItem value="late-arrival" className="py-2 text-xs font-bold">Late Arrival</SelectItem>
+                          <SelectItem value="early-arrival" className="py-2 text-xs font-bold">Early Arrival</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
 
@@ -672,10 +713,10 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                       ))}
                     </SelectGroup>
                   )}
-                  {projects.filter((p: any) => p.assigned === false).length > 0 && (
+                  {projects.filter((p: any) => !p.assigned).length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground mt-2">Other Active Projects</SelectLabel>
-                      {projects.filter((p: any) => p.assigned === false).map((p: any) => (
+                      {projects.filter((p: any) => !p.assigned).map((p: any) => (
                         <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
                           {p.code ? `[${p.code}] — ${p.name}` : p.name}
                         </SelectItem>
@@ -683,15 +724,30 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                     </SelectGroup>
                   )}
                   <SelectGroup>
-                    <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground mt-2">Other</SelectLabel>
                     <SelectItem value="other" className="text-xs font-bold py-2.5">Other Work</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              {projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned === false) && (
+              {projects.find((p: any) => p.id.toString() === entry.projectId && !p.assigned) && (
                 <Badge variant="outline" className="text-[9px] font-bold text-amber-600 bg-amber-50 border-amber-200 mt-1 uppercase tracking-widest">
                   Unassigned Project
                 </Badge>
+              )}
+
+              {projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned) && (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id={`meeting-${entry.id}`}
+                    checked={entry.meetingConducted || false}
+                    onChange={(e) => updateEntry(entry.id, 'meetingConducted', e.target.checked)}
+                    className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                    disabled={isLocked}
+                  />
+                  <Label htmlFor={`meeting-${entry.id}`} className="text-[10px] font-bold text-muted-foreground cursor-pointer select-none">
+                    Meeting Conducted?
+                  </Label>
+                </div>
               )}
 
               {entry.projectId === 'other' && (
@@ -729,8 +785,11 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                   <Input 
                     disabled={isLocked}
                     type="number" min="0" max="23"
-                    value={entry.entryHours === 0 ? '' : entry.entryHours}
-                    onChange={(e) => updateEntry(entry.id, 'entryHours', Math.min(23, Math.max(0, parseInt(e.target.value) || 0)))}
+                    value={entry.entryHours?.toString()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateEntry(entry.id, 'entryHours', val === '' ? 0 : Math.min(23, Math.max(0, parseInt(val) || 0)));
+                    }}
                     className="h-10 rounded-lg border-border text-center font-black pr-6 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                     placeholder="0"
                   />
@@ -741,8 +800,11 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                   <Input 
                     disabled={isLocked}
                     type="number" min="0" max="59"
-                    value={entry.entryMinutes === 0 ? '' : entry.entryMinutes}
-                    onChange={(e) => updateEntry(entry.id, 'entryMinutes', Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+                    value={entry.entryMinutes?.toString()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      updateEntry(entry.id, 'entryMinutes', val === '' ? 0 : Math.min(59, Math.max(0, parseInt(val) || 0)));
+                    }}
                     className="h-10 rounded-lg border-border text-center font-black pr-7 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
                     placeholder="0"
                   />
@@ -809,7 +871,9 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
             </div>
             
             <div className="sm:col-span-4 space-y-1.5">
-               <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Attachment (Optional)</Label>
+               <Label required={projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned) && entry.meetingConducted} className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                 {projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned) && entry.meetingConducted ? 'Upload JDR (Mandatory)' : 'Attachment (Optional)'}
+               </Label>
                <div className="mt-1 h-[90px]">
                  {!entry.attachmentPath ? (
                   <div className="relative border border-dashed border-border hover:border-indigo-400 rounded-xl px-4 py-2 h-full flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-muted hover:bg-indigo-50/30 group">

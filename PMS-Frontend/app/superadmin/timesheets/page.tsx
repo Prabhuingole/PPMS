@@ -183,8 +183,10 @@ export default function TimesheetApprovalPage() {
 
   const attendanceBadgeStyle = (att: string) => {
     switch (att) {
-      case 'full-day': return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50';
-      case 'half-day': return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50';
+      case 'full-day':
+      case 'wfh-full-day': return 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200/50';
+      case 'half-day':
+      case 'wfh-half-day': return 'bg-amber-50 text-amber-700 ring-1 ring-amber-200/50';
       case 'late-arrival': return 'bg-purple-50 text-purple-700 ring-1 ring-purple-200/50';
       case 'early-arrival': return 'bg-cyan-50 text-cyan-700 ring-1 ring-cyan-200/50';
       case 'leave': return 'bg-red-50 text-red-700 ring-1 ring-red-200/50';
@@ -317,7 +319,7 @@ export default function TimesheetApprovalPage() {
                       "font-medium text-xs px-2 py-0.5 rounded-md capitalize",
                       attendanceBadgeStyle(group.attendance)
                     )}>
-                      {group.attendance ? group.attendance.replace(/-/g, ' ') : 'Full Day'}
+                      {group.attendance ? group.attendance.replace('wfh-', 'WFH ').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Full Day'}
                     </Badge>
                   )
                 },

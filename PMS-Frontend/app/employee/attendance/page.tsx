@@ -54,9 +54,9 @@ export default function EmployeeAttendancePage() {
 
   const stats = (() => {
     const totalWorking = records.length;
-    const present = records.filter(r => r.status === 'Completed').length;
+    const present = records.filter(r => r.status === 'Completed' || r.status === 'WFH').length;
     const working = records.filter(r => r.status === 'Working').length;
-    const pending = records.filter(r => r.status === 'Completed' && r.timesheet_status === 'pending').length;
+    const pending = records.filter(r => (r.status === 'Completed' || r.status === 'WFH') && r.timesheet_status === 'pending').length;
     
     let absent = 0;
     const daysInMonth = new Date(year, month, 0).getDate();
@@ -65,7 +65,7 @@ export default function EmployeeAttendancePage() {
     for (let d = 1; d <= daysInMonth; d++) {
       const dayDate = new Date(year, month - 1, d);
       const isPast = dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+      const isWeekend = dayDate.getDay() === 0;
       
       if (isPast && !isWeekend) {
         const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;

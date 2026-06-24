@@ -69,9 +69,9 @@ export default function EmployeeCalendarViewPage() {
 
   const stats = useMemo(() => {
     const totalWorking = records.length;
-    const present = records.filter(r => r.status === 'Completed').length;
+    const present = records.filter(r => r.status === 'Completed' || r.status === 'WFH').length;
     const working = records.filter(r => r.status === 'Working').length;
-    const pending = records.filter(r => r.status === 'Completed' && r.timesheet_status === 'pending').length;
+    const pending = records.filter(r => (r.status === 'Completed' || r.status === 'WFH') && r.timesheet_status === 'pending').length;
     
     // Calculate absent days (weekdays passed without record)
     let absent = 0;
@@ -81,7 +81,7 @@ export default function EmployeeCalendarViewPage() {
     for (let d = 1; d <= daysInMonth; d++) {
       const dayDate = new Date(year, month - 1, d);
       const isPast = dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+      const isWeekend = dayDate.getDay() === 0;
       
       if (isPast && !isWeekend) {
         const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;

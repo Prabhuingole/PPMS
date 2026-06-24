@@ -170,6 +170,34 @@ def create_timesheets(
         db.refresh(c)
         c.user_name = current_user.full_name
         
+    # Auto-create WFH attendance if applicable
+    if created:
+        first_ts = created[0]
+        if first_ts.attendance and first_ts.attendance.startswith('wfh'):
+            from app.models.attendance import Attendance
+            from sqlalchemy import cast, Date
+            
+            target_date = first_ts.date.date() if hasattr(first_ts.date, 'date') else dt.fromisoformat(str(first_ts.date)).date()
+            
+            existing_att = db.query(Attendance).filter(
+                Attendance.user_id == current_user.id,
+                cast(Attendance.date, Date) == target_date
+            ).first()
+            
+            if not existing_att:
+                wfh_att = Attendance(
+                    user_id=current_user.id,
+                    date=target_date,
+                    clock_in_time=dt.combine(target_date, dt.min.time()),
+                    clock_in_photo="wfh-auto-generated",
+                    clock_out_time=dt.combine(target_date, dt.max.time()),
+                    clock_out_photo="wfh-auto-generated",
+                    status="WFH",
+                    working_hours=sum(ts.hours for ts in created)
+                )
+                db.add(wfh_att)
+                db.commit()
+        
     # Notify superadmins
     if created:
         superadmins = db.query(User).filter(User.role == "superadmin").all()

@@ -17,7 +17,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const isViewDoc = pathname.includes('/view-doc');
 
   useEffect(() => {
-    if (_hasHydrated && !isViewDoc) {
+    if (_hasHydrated) {
       if (!isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
         if (['employee', 'intern', 'reporting_manager', 'team_member', 'consultant'].includes(user?.role || '')) {
            router.replace('/employee/dashboard');
@@ -28,7 +28,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
     }
   }, [_hasHydrated, isAuthenticated, user, router, isViewDoc]);
 
-  if (!_hasHydrated || (!isViewDoc && (!isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')))) {
+  if (!_hasHydrated || !isAuthenticated || !['superadmin', 'admin'].includes(user?.role || '')) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-muted/30" suppressHydrationWarning>
         <Loader2 className="h-8 w-8 animate-spin text-foreground" />

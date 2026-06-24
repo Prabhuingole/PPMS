@@ -87,7 +87,11 @@ export function CompanyTable({ companies, onEdit, onView }: CompanyTableProps) {
           </TableHeader>
           <TableBody>
             {companies.map((company) => (
-              <TableRow key={company.id} className="hover:bg-muted/20">
+              <TableRow 
+                key={company.id} 
+                className="hover:bg-muted/20 cursor-pointer"
+                onClick={() => onView(company)}
+              >
                 <TableCell>
                   <div className="font-semibold text-foreground">{company.company_name || company.name}</div>
                   <div className="text-xs font-mono text-muted-foreground mt-0.5">{company.code}</div>
@@ -101,7 +105,7 @@ export function CompanyTable({ companies, onEdit, onView }: CompanyTableProps) {
                 <TableCell className="text-muted-foreground">
                   {formatDate((company as any).created_at)}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger render={
                       <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted">

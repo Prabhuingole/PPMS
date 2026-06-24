@@ -5,6 +5,7 @@ export function AttendanceLegend() {
     <div className="grid grid-cols-2 gap-2">
       {[
         { color: 'bg-emerald-500', label: 'Complete' },
+        { color: 'bg-purple-500', label: 'WFH' },
         { color: 'bg-amber-400', label: 'Timesheet Pending' },
         { color: 'bg-orange-500', label: 'Working' },
         { color: 'bg-red-200', label: 'Absent' },

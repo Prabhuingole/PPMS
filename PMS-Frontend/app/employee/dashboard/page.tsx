@@ -108,9 +108,8 @@ export default function EmployeeDashboard() {
 
   const statCards = [
     { label: 'Assigned Projects', value: isProjectsLoading ? 0 : projects.length.toString(), icon: Briefcase, color: 'text-primary', bg: 'bg-indigo-50' },
-    { label: "Today's Hours", value: isTimesheetsLoading ? 0 : formatDuration(todayHours), icon: Clock, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Approved', value: isTimesheetsLoading ? 0 : approvedCount.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Pending', value: isTimesheetsLoading ? 0 : pendingCount.toString(), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Timesheets Approved', value: isTimesheetsLoading ? 0 : approvedCount.toString(), icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Timesheets Review Pending', value: isTimesheetsLoading ? 0 : pendingCount.toString(), icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
   ];
 
   const recentLogs = timesheets.slice(0, 5);
@@ -136,7 +135,7 @@ export default function EmployeeDashboard() {
       </motion.div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {statCards.map((stat, i) => (
           <motion.div
             key={stat.label}

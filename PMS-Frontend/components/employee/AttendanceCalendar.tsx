@@ -43,6 +43,8 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
         map[d] = 'green';
       } else if (r.status === 'Completed' && r.timesheet_status === 'pending') {
         map[d] = 'yellow';
+      } else if (r.status === 'WFH') {
+        map[d] = 'purple';
       } else if (r.status === 'Working') {
         map[d] = 'orange';
       }
@@ -67,6 +69,7 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
       case 'green': return 'bg-emerald-500 text-white ring-emerald-400/30';
       case 'yellow': return 'bg-amber-400 text-white ring-amber-400/30';
       case 'orange': return 'bg-orange-500 text-white ring-orange-400/30';
+      case 'purple': return 'bg-purple-500 text-white ring-purple-400/30';
       default: return '';
     }
   };
@@ -105,7 +108,7 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
           const isToday = dateStr === todayStr;
           const dayDate = new Date(year, month - 1, day);
           const isPast = dayDate < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-          const isWeekend = dayDate.getDay() === 0 || dayDate.getDay() === 6;
+          const isWeekend = dayDate.getDay() === 0;
           
           // If past weekday with no record -> red (absent)
           const showRed = isPast && !color && !isWeekend;
