@@ -56,6 +56,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
 
 
 const docTypeMap: Record<string, string> = {
@@ -91,6 +92,8 @@ export default function ProjectDetailsPage() {
   };
   const [uploadFiles, setUploadFiles] = useState<FileDetail[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState<number | null>(null);
 
   useWebSocketEvent(['PROJECTS_UPDATED', 'DOCUMENTS_UPDATED'], () => setRefreshTrigger(prev => prev + 1));
 
@@ -505,7 +508,7 @@ export default function ProjectDetailsPage() {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors"
-                                    onClick={() => window.open(`/employee/projects/view-doc?id=${doc.id}`, '_blank')}
+                                    onClick={() => { setViewerDocId(doc.id); setViewerOpen(true); }}
                                  >
                                     <Eye className="h-4 w-4" />
                                  </Button>
@@ -537,9 +540,10 @@ export default function ProjectDetailsPage() {
                  onOpenChange={(open) => !open && setDocToDelete(null)}
                  onConfirm={handleDeleteDocument}
                  title="Delete Document?"
-                 itemName="this document"
+                 description="Are you sure you want to delete this document? This action cannot be undone."
                  isDeleting={isDeleting}
                />
+               <DocumentViewerModal isOpen={viewerOpen} onClose={() => setViewerOpen(false)} docId={viewerDocId} docType="project" />
             </div>
           </motion.div>
         </div>

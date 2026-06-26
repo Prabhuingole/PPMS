@@ -114,6 +114,8 @@ export interface Project {
   client_company_id?: number;
   client_company?: Company;
   participating_companies?: Company[];
+  owner_company_id?: number;
+  owner_company_name?: string;
 }
 
 export interface ProjectDocument {
@@ -262,6 +264,8 @@ export interface Task {
   
   // Relations mapped by API (optional)
   deliverable?: Deliverable;
+  project_name?: string;
+  project_code?: string;
 }
 
 export interface ResourceAllocation {

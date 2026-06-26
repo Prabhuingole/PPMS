@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.task_comment import TaskComment
@@ -8,6 +8,8 @@ from app.schemas.task_comment import TaskCommentCreate, TaskCommentResponse, Tas
 from app.core.deps import get_current_user
 from app.core.tenant import verify_tenant_access
 from app.services.task_visibility import TaskVisibilityService
+from app.models.notification import Notification
+from app.core.websockets import manager
 import logging
 
 router = APIRouter(prefix="/task-comments", tags=["task-comments"], dependencies=[Depends(verify_tenant_access)])
@@ -16,6 +18,7 @@ logger = logging.getLogger(__name__)
 @router.post("/", response_model=TaskCommentResponse, status_code=201)
 def create_comment(
     comment_in: TaskCommentCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -32,6 +35,20 @@ def create_comment(
     db.add(new_comment)
     db.commit()
     db.refresh(new_comment)
+    
+    if task.assignee_id and task.assignee_id != current_user.id:
+        notification = Notification(
+            user_id=task.assignee_id,
+            title="New Comment on Task",
+            message=f"{current_user.full_name} commented on: {task.title}",
+            type="info",
+            priority="LOW",
+            category="SYSTEM",
+            action_url=f"/employee/projects/{task.project_id}"
+        )
+        db.add(notification)
+        db.commit()
+        background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
     
     return new_comment
 

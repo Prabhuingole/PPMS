@@ -211,8 +211,8 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
             <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
               <div className="relative group">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-pink-500 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
-                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-white shadow-md rounded-full relative z-10 transform group-hover:scale-105 transition-transform duration-500">
-                  <AvatarFallback className="bg-gradient-to-br from-slate-900 to-slate-800 text-white text-2xl font-bold rounded-full">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 ring-4 ring-background shadow-md rounded-full relative z-10 transform group-hover:scale-105 transition-transform duration-500">
+                  <AvatarFallback className="bg-gradient-to-br from-slate-800 to-slate-900 text-white text-2xl font-bold rounded-full">
                     {employee.full_name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)}
                   </AvatarFallback>
                 </Avatar>
@@ -220,7 +220,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
 
               <div className="flex-1 space-y-3">
                 <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-xl sm:text-3xl font-bold text-foreground tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">{employee.full_name}</h1>
+                  <h1 className="text-xl sm:text-3xl font-bold text-foreground tracking-tight">{employee.full_name}</h1>
                   <Badge className={cn(
                     "rounded-full px-2.5 py-0.5 text-[8px] font-bold tracking-wider border-none shadow-md",
                     employee.is_active ? "bg-emerald-400 text-white shadow-emerald-400/30" : "bg-rose-500 text-white shadow-rose-500/30"
@@ -229,12 +229,12 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                   </Badge>
                 </div>
 
-                <div className="flex flex-wrap gap-3.5 text-slate-600 bg-muted/30 w-fit p-1 rounded-xl border border-border shadow-sm">
+                <div className="flex flex-wrap gap-3.5 text-muted-foreground bg-muted/30 w-fit p-1 rounded-xl border border-border shadow-sm">
                   <div className="flex items-center gap-1.5 px-2.5">
                     <Briefcase className="h-3.5 w-3.5 text-indigo-500" />
                     <span className="text-xs font-bold tracking-wider">{employee.designation}</span>
                   </div>
-                  <div className="w-px h-3.5 bg-slate-200 self-center"></div>
+                  <div className="w-px h-3.5 bg-border self-center"></div>
                   <div className="flex items-center gap-1.5 px-2.5">
                     <Shield className="h-3.5 w-3.5 text-pink-500" />
                     <span className="text-xs font-bold tracking-wider uppercase">
@@ -247,14 +247,14 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                                   : employee.role}
                     </span>
                   </div>
-                  <div className="w-px h-3.5 bg-slate-200 self-center"></div>
+                  <div className="w-px h-3.5 bg-border self-center"></div>
                   <div className="flex items-center gap-1.5 px-2.5">
                     <Fingerprint className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs font-bold tracking-wider">ID: {employee.employee_id}</span>
                   </div>
                   {employee.company_name && (
                     <>
-                      <div className="w-px h-3.5 bg-slate-200 self-center"></div>
+                      <div className="w-px h-3.5 bg-border self-center"></div>
                       <div className="flex items-center gap-1.5 px-2.5">
                         <Building2 className="h-3.5 w-3.5 text-blue-500" />
                         <span className="text-xs font-bold tracking-wider">{employee.company_name}</span>
@@ -265,13 +265,13 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
               </div>
 
               <div className="flex w-full md:w-auto md:flex-col gap-2.5 shrink-0">
-                <div className="flex-1 text-center p-2.5 bg-gradient-to-br from-indigo-50 to-blue-50/50 rounded-xl border border-indigo-100/50 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 min-w-[120px]">
+                <div className="flex-1 text-center p-2.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 min-w-[120px]">
                   <div className="text-[9px] font-bold text-indigo-400 tracking-wider mb-0.5 flex justify-center items-center gap-1"><FolderKanban className="h-3 w-3" /> Projects</div>
-                  <div className="text-lg font-bold text-indigo-700">{(employee.projects?.length || 0) + managedProjects.length}</div>
+                  <div className="text-lg font-bold text-indigo-500">{(employee.projects?.length || 0) + managedProjects.length}</div>
                 </div>
-                <div className="flex-1 text-center p-2.5 bg-gradient-to-br from-pink-50 to-rose-50/50 rounded-xl border border-pink-100/50 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 min-w-[120px]">
+                <div className="flex-1 text-center p-2.5 bg-pink-500/10 rounded-xl border border-pink-500/20 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 min-w-[120px]">
                   <div className="text-[9px] font-bold text-pink-400 tracking-wider mb-0.5 flex justify-center items-center gap-1"><Clock className="h-3 w-3" /> Total Logs</div>
-                  <div className="text-lg font-bold text-pink-700">{employee.timesheets?.length || 0}</div>
+                  <div className="text-lg font-bold text-pink-500">{employee.timesheets?.length || 0}</div>
                 </div>
               </div>
             </div>
@@ -285,24 +285,24 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
         <div className="space-y-6">
           <Card className="border border-border shadow-sm rounded-xl overflow-hidden bg-background">
             <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 to-pink-500"></div>
-            <CardHeader className="py-4 px-6 border-b border-border bg-slate-50/30">
+            <CardHeader className="py-4 px-6 border-b border-border bg-muted/30">
               <CardTitle className="text-xs font-bold tracking-[0.2em] text-foreground flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-50 rounded-xl text-primary"><UserIcon className="h-3.5 w-3.5" /></div>
+                <div className="p-1.5 bg-indigo-500/10 rounded-xl text-primary"><UserIcon className="h-3.5 w-3.5" /></div>
                 Personal Identity
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-3.5 group">
-                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-indigo-50 group-hover:text-primary group-hover:border-indigo-100 transition-all">
+                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-indigo-500/10 group-hover:text-primary group-hover:border-indigo-500/20 transition-all">
                   <AtSign className="h-4 w-4" />
                 </div>
                 <div>
-                  <span className="text-sm font-bold text-slate-800 tracking-tight">{employee.full_name}</span>
+                  <span className="text-sm font-bold text-foreground tracking-tight">{employee.full_name}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-3.5 group">
-                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-pink-50 group-hover:text-pink-600 group-hover:border-pink-100 transition-all">
+                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-pink-500/10 group-hover:text-pink-600 group-hover:border-pink-500/20 transition-all">
                   <Mail className="h-4 w-4" />
                 </div>
                 <div>
@@ -312,7 +312,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
               </div>
 
               <div className="flex items-center gap-3.5 group">
-                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-emerald-50 group-hover:text-emerald-600 group-hover:border-emerald-100 transition-all">
+                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-emerald-500/10 group-hover:text-emerald-600 group-hover:border-emerald-500/20 transition-all">
                   <Phone className="h-4 w-4" />
                 </div>
                 <div>
@@ -322,7 +322,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
               </div>
 
               <div className="flex items-center gap-3.5 group">
-                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-amber-50 group-hover:text-amber-600 group-hover:border-amber-100 transition-all">
+                <div className="h-9 w-9 rounded-xl bg-muted/30 border border-border flex items-center justify-center text-muted-foreground group-hover:bg-amber-500/10 group-hover:text-amber-600 group-hover:border-amber-500/20 transition-all">
                   <Calendar className="h-4 w-4" />
                 </div>
                 <div>
@@ -340,9 +340,9 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
         <div className="lg:col-span-2 space-y-6">
           {/* Managed Projects List */}
           {managedProjects.length > 0 && (
-            <Card className="border border-indigo-100/50 shadow-sm rounded-xl overflow-hidden bg-background relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/30 to-blue-50/10 pointer-events-none" />
-              <CardHeader className="bg-indigo-50/50 py-4 px-6 border-b border-indigo-100/50 flex flex-row items-center justify-between relative z-10">
+            <Card className="border border-indigo-500/20 shadow-sm rounded-xl overflow-hidden bg-background relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-blue-500/5 pointer-events-none" />
+              <CardHeader className="bg-indigo-500/5 py-4 px-6 border-b border-indigo-500/20 flex flex-row items-center justify-between relative z-10">
                 <div>
                   <CardTitle className="text-sm font-bold text-indigo-800 tracking-wider flex items-center gap-2">
                     <FolderKanban className="h-4.5 w-4.5 text-indigo-500" /> Managed Projects
@@ -361,19 +361,19 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                       className="cursor-pointer p-4 rounded-xl bg-background border border-indigo-100 shadow-sm hover:shadow-md hover:border-indigo-300 hover:bg-indigo-50/30 transition-all duration-300 group"
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="h-9 w-9 bg-gradient-to-br from-indigo-100 to-indigo-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                          <Briefcase className="h-4 w-4 text-indigo-600" />
+                        <div className="h-9 w-9 bg-gradient-to-br from-indigo-500/20 to-indigo-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                          <Briefcase className="h-4 w-4 text-indigo-500" />
                         </div>
                         <Badge className={cn(
                           "rounded-md px-2 py-0.5 text-[8px] font-bold tracking-wider shadow-none border-none",
-                          proj.status === 'active' ? "bg-emerald-50 text-emerald-600" : "bg-muted/30 text-muted-foreground"
+                          proj.status === 'active' ? "bg-emerald-500/10 text-emerald-600" : "bg-muted/30 text-muted-foreground"
                         )}>
-                          <span className={cn("h-1 w-1 rounded-full mr-1 inline-block", proj.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')}></span>
+                          <span className={cn("h-1 w-1 rounded-full mr-1 inline-block", proj.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground')}></span>
                           {proj.status}
                         </Badge>
                       </div>
                       <div className="space-y-0.5">
-                        <div className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-indigo-700 transition-colors">{proj.name}</div>
+                        <div className="text-xs font-bold text-foreground line-clamp-1 group-hover:text-indigo-500 transition-colors">{proj.name}</div>
                         <div className="text-[9px] font-bold text-muted-foreground tracking-wider line-clamp-1">{proj.code || 'NO-CODE'} &bull; {proj.client_name}</div>
                       </div>
                     </div>
@@ -385,7 +385,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
 
           {/* Active Projects List */}
           <Card className="border border-border shadow-sm rounded-xl overflow-hidden bg-background">
-            <CardHeader className="bg-slate-50/50 py-4 px-6 border-b border-border flex flex-row items-center justify-between">
+            <CardHeader className="bg-muted/50 py-4 px-6 border-b border-border flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-bold text-foreground tracking-wider flex items-center gap-2">
                   <FolderKanban className="h-4.5 w-4.5 text-indigo-500" /> Assigned Projects
@@ -397,9 +397,9 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
             </CardHeader>
             <CardContent className="p-6">
               {!employee.projects || employee.projects.length === 0 ? (
-                <div className="py-12 px-4 text-center bg-slate-50/50 rounded-xl border border-dashed border-border">
+                <div className="py-12 px-4 text-center bg-muted/50 rounded-xl border border-dashed border-border">
                   <div className="h-10 w-10 bg-background rounded-xl shadow-sm border border-border flex items-center justify-center mx-auto mb-3">
-                    <AlertCircle className="h-5 w-5 text-slate-300" />
+                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <p className="text-xs font-bold text-muted-foreground tracking-wider">No active assignments found</p>
                 </div>
@@ -412,19 +412,19 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                       className="cursor-pointer p-4 rounded-xl bg-background border border-border shadow-sm hover:shadow-md hover:border-indigo-100 transition-all duration-300 group"
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <div className="h-9 w-9 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                        <div className="h-9 w-9 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                           <Briefcase className="h-4 w-4 text-primary" />
                         </div>
                         <Badge className={cn(
                           "rounded-md px-2 py-0.5 text-[8px] font-bold tracking-wider shadow-none border-none",
-                          proj.status === 'active' ? "bg-emerald-50 text-emerald-600" : "bg-muted/30 text-muted-foreground"
+                          proj.status === 'active' ? "bg-emerald-500/10 text-emerald-600" : "bg-muted/30 text-muted-foreground"
                         )}>
-                          <span className={cn("h-1 w-1 rounded-full mr-1 inline-block", proj.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400')}></span>
+                          <span className={cn("h-1 w-1 rounded-full mr-1 inline-block", proj.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground')}></span>
                           {proj.status}
                         </Badge>
                       </div>
                       <div className="space-y-0.5">
-                        <div className="text-xs font-bold text-slate-800 line-clamp-1">{proj.name}</div>
+                        <div className="text-xs font-bold text-foreground line-clamp-1">{proj.name}</div>
                         <div className="text-[9px] font-bold text-muted-foreground tracking-wider line-clamp-1">{proj.code || 'NO-CODE'} &bull; {proj.client_name}</div>
                       </div>
                     </div>
@@ -436,7 +436,7 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
 
           {/* Recent Timesheets Table */}
           <Card className="border border-border shadow-sm rounded-xl overflow-hidden bg-background">
-            <CardHeader className="bg-slate-50/50 py-4 px-6 border-b border-border flex flex-row items-center justify-between">
+            <CardHeader className="bg-muted/50 py-4 px-6 border-b border-border flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-bold text-foreground tracking-wider flex items-center gap-2">
                   <Activity className="h-4.5 w-4.5 text-pink-500" /> Recent Activity Logs
@@ -445,27 +445,27 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
             </CardHeader>
             <CardContent className="p-0">
               {!employee.timesheets || employee.timesheets.length === 0 ? (
-                <div className="py-12 text-center bg-slate-50/30">
-                  <FileText className="h-7 w-7 text-slate-200 mx-auto mb-3" />
+                <div className="py-12 text-center bg-muted/30">
+                  <FileText className="h-7 w-7 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="text-xs font-bold text-muted-foreground tracking-wider">No activity logs recorded yet</p>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-50">
+                <div className="divide-y divide-border">
                   {employee.timesheets.slice(0, visibleLogsCount).map((log: any) => (
                     <div
                       key={log.id}
                       onClick={() => handleViewTimesheetDetails(log)}
-                      className="flex items-center justify-between p-3 px-6 hover:bg-slate-50/80 cursor-pointer transition-colors group"
+                      className="flex items-center justify-between p-3 px-6 hover:bg-muted/80 cursor-pointer transition-colors group"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 bg-muted rounded-lg flex items-center justify-center group-hover:bg-pink-100 group-hover:text-pink-600 transition-colors text-muted-foreground">
+                        <div className="h-9 w-9 bg-muted rounded-lg flex items-center justify-center group-hover:bg-pink-500/10 group-hover:text-pink-600 transition-colors text-muted-foreground">
                           <Calendar className="h-3.5 w-3.5" />
                         </div>
                         <div className="space-y-0.5">
-                          <div className="text-xs font-bold text-slate-800 group-hover:text-pink-600 transition-colors flex items-center gap-2">
+                          <div className="text-xs font-bold text-foreground group-hover:text-pink-600 transition-colors flex items-center gap-2">
                             {log.project_name || 'System Task'}
                             {log.is_unassigned_project && (
-                              <Badge variant="outline" className="text-[8px] font-bold text-amber-600 bg-amber-50 border-amber-200 uppercase tracking-widest px-1 py-0 shadow-none h-4">
+                              <Badge variant="outline" className="text-[8px] font-bold text-amber-600 bg-amber-500/10 border-amber-500/20 uppercase tracking-widest px-1 py-0 shadow-none h-4">
                                 Unassigned
                               </Badge>
                             )}
@@ -480,19 +480,19 @@ export default function EmployeeDetailsPage({ params }: { params: Promise<{ id: 
                           <div className="text-xs font-bold font-mono text-primary">{log.hours.toFixed(1)}h</div>
                           <div className="text-[8px] font-bold text-muted-foreground tracking-wider mt-0.5">{log.status}</div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-pink-500 transition-colors" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-pink-500 transition-colors" />
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               {employee.timesheets?.length > 5 && (
-                <div className="p-3 flex gap-2 border-t border-border bg-slate-50/50">
+                <div className="p-3 flex gap-2 border-t border-border bg-muted/50">
                   {visibleLogsCount < employee.timesheets.length && (
                     <Button
                       variant="ghost"
                       onClick={() => setVisibleLogsCount(prev => Math.min(prev + 5, employee.timesheets.length))}
-                      className="flex-1 text-[9px] font-bold tracking-wider text-muted-foreground hover:text-primary hover:bg-indigo-50 rounded-xl h-9"
+                      className="flex-1 text-[9px] font-bold tracking-wider text-muted-foreground hover:text-primary hover:bg-indigo-500/10 rounded-xl h-9"
                     >
                       Load More <ChevronDown className="ml-1.5 h-3 w-3" />
                     </Button>

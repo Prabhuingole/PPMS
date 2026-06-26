@@ -7,6 +7,7 @@ from app.database.session import get_db
 from app.models.project import Project
 from app.models.user import User
 from app.models.company import Company
+from app.models.notification import Notification
 
 from app.models.timesheet import Timesheet
 from app.schemas.project import (
@@ -44,6 +45,9 @@ def create_project(
         if not rm.is_active:
             raise HTTPException(status_code=400, detail="Selected Reporting Manager is not active")
 
+    if admin.role == "admin":
+        payload.owner_company_id = admin.company_id
+
     new_project = Project(
         name=payload.name,
         code=project_code,
@@ -54,6 +58,7 @@ def create_project(
         end_date=payload.end_date,
         total_hours=payload.total_hours,
         reporting_manager_id=payload.reporting_manager_id,
+        owner_company_id=payload.owner_company_id,
         client_company_id=payload.client_company_id
     )
 
@@ -88,7 +93,26 @@ def create_project(
         request=request
     )
     
+    # Generate Notifications for team members
+    notifications = []
+    if payload.member_ids:
+        for m_id in payload.member_ids:
+            notifications.append(
+                Notification(
+                    user_id=m_id,
+                    title="New Project Assignment",
+                    message=f"You have been added to the project: {new_project.name}.",
+                    type="info",
+                    priority="HIGH",
+                    category="PROJECT"
+                )
+            )
+        if notifications:
+            db.add_all(notifications)
+            db.commit()
+
     background_tasks.add_task(manager.broadcast, {"event": "PROJECTS_UPDATED"})
+    background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
     return new_project
 
 @router.get("/", response_model=ProjectListResponse)
@@ -185,16 +209,22 @@ def get_projects(
             item.total_hours_remaining = (item.total_hours or 0.0) - worked
             item.my_hours_worked = my_worked_dict.get(item.id, 0.0)
 
+    from app.models.associations import user_projects
+    user_project_ids = set()
+    if items and current_user.role not in ["superadmin", "admin"]:
+        project_ids = [item.id for item in items]
+        assigned_query = db.query(user_projects.c.project_id).filter(
+            user_projects.c.user_id == current_user.id,
+            user_projects.c.project_id.in_(project_ids)
+        ).all()
+        user_project_ids = {row[0] for row in assigned_query}
+
     # Calculate assigned status for all items
     for item in items:
         if current_user.role in ["superadmin", "admin"]:
             item.assigned = True
         else:
-            try:
-                item.assigned = any(member.id == current_user.id for member in item.members)
-            except Exception:
-                # Fallback if members are not loaded
-                item.assigned = False
+            item.assigned = item.id in user_project_ids
 
     return {
         "items": items,
@@ -339,8 +369,52 @@ def update_project(
             new_values=new_values,
             request=request
         )
+        
+        # Calculate what changed
+        changes = []
+        for key in ["name", "status", "reporting_manager"]:
+            if old_values.get(key) != new_values.get(key):
+                changes.append(f"{key.replace('_', ' ').title()} changed to '{new_values.get(key)}'")
+                
+        # Handle member changes separately
+        old_m_set = set(old_values.get("members", []))
+        new_m_set = set(new_values.get("members", []))
+        added_members = new_m_set - old_m_set
+        removed_members = old_m_set - new_m_set
+        
+        if added_members:
+            changes.append(f"Added members: {', '.join(added_members)}")
+        if removed_members:
+            changes.append(f"Removed members: {', '.join(removed_members)}")
+
+        change_msg = " Changes: " + "; ".join(changes) + "." if changes else ""
+
+        # Notify current members
+        notifications = []
+        for m in project.members:
+            if m.full_name in added_members:
+                msg = f"You have been added to the project: {project.name}."
+                title = "New Project Assignment"
+            else:
+                msg = f"Project '{project.name}' was updated.{change_msg}"
+                title = f"Project Update: {project.name}"
+                
+            notifications.append(
+                Notification(
+                    user_id=m.id,
+                    title=title,
+                    message=msg,
+                    type="info",
+                    priority="MEDIUM",
+                    category="PROJECT"
+                )
+            )
+        if notifications:
+            db.add_all(notifications)
+            db.commit()
     
     background_tasks.add_task(manager.broadcast, {"event": "PROJECTS_UPDATED"})
+    background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
 
     from sqlalchemy import func
     from app.models.timesheet import Timesheet

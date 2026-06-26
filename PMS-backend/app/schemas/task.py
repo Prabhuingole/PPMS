@@ -37,6 +37,7 @@ class TaskResponse(TaskBase):
     creator_id: int
     created_at: datetime
     updated_at: datetime
+    project_name: Optional[str] = None
 
     class Config:
         from_attributes = True

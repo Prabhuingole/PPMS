@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, backref
-from datetime import datetime, timezone
+from datetime import datetime
 from app.database.session import Base
 
 class Notification(Base):
@@ -15,6 +15,6 @@ class Notification(Base):
     category = Column(String(50), default="SYSTEM") 
     action_url = Column(String(255), nullable=True)
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", backref=backref("notifications", cascade="all, delete-orphan"))

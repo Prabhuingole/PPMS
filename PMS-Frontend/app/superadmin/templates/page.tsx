@@ -271,9 +271,9 @@ export default function TemplateManagementPage() {
                   </Label>
                   {selectedFile ? (
                     <div className="flex items-center justify-between p-3 rounded-lg border border-indigo-100 bg-indigo-50/50">
-                      <div className="flex items-center">
-                        <FileCode className="h-4 w-4 text-primary mr-2" />
-                        <span className="text-sm font-medium text-indigo-900">{selectedFile.name}</span>
+                      <div className="flex items-center min-w-0 pr-4">
+                        <FileCode className="h-4 w-4 text-primary mr-2 shrink-0" />
+                        <span className="text-sm font-medium text-indigo-900 truncate">{selectedFile.name}</span>
                       </div>
                       <Button
                         variant="ghost"
@@ -383,7 +383,7 @@ export default function TemplateManagementPage() {
                 </div>
               </CardContent>
 
-              <div className="px-4 py-3 border-t border-border bg-slate-50/50 flex items-center justify-end gap-1">
+              <div className="px-4 py-3 border-t border-border bg-muted/50 flex items-center justify-end gap-1">
                 {template?.filename && (
                   <Button
                     variant="ghost"
@@ -442,9 +442,9 @@ export default function TemplateManagementPage() {
                         </Label>
                         {template?.filename && !removeFile ? (
                           <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-border bg-muted/30">
-                            <div className="flex items-center">
-                              <FileCode className="h-4 w-4 text-emerald-600 mr-2" />
-                              <span className="text-sm font-medium text-muted-foreground">{template.filename}</span>
+                            <div className="flex items-center min-w-0 pr-4">
+                              <FileCode className="h-4 w-4 text-emerald-600 mr-2 shrink-0" />
+                              <span className="text-sm font-medium text-muted-foreground truncate">{template.filename}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Button
@@ -478,9 +478,9 @@ export default function TemplateManagementPage() {
                           </div>
                         ) : selectedFile ? (
                           <div className="flex items-center justify-between p-3 rounded-lg border border-indigo-100 bg-indigo-50/50">
-                            <div className="flex items-center">
-                              <FileCode className="h-4 w-4 text-primary mr-2" />
-                              <span className="text-sm font-medium text-indigo-900">{selectedFile.name}</span>
+                            <div className="flex items-center min-w-0 pr-4">
+                              <FileCode className="h-4 w-4 text-primary mr-2 shrink-0" />
+                              <span className="text-sm font-medium text-indigo-900 truncate">{selectedFile.name}</span>
                             </div>
                             <Button
                               variant="ghost"

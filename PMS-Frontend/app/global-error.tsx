@@ -32,7 +32,7 @@ export default function GlobalError({
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
             <Button 
-              onClick={() => reset()}
+              onClick={() => typeof reset === 'function' ? reset() : window.location.reload()}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 px-6 rounded-xl shadow-xl shadow-blue-200"
             >
               <RefreshCw className="mr-2 h-4 w-4" />

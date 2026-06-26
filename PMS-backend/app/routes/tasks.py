@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, BackgroundTasks
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import math
 
@@ -8,17 +8,20 @@ from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.project import Project
 from app.models.deliverable import Deliverable
 from app.models.user import User
+from app.models.notification import Notification
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskListResponse
 from app.core.deps import get_current_user
 from app.core.tenant import verify_tenant_access, current_tenant_ctx
 from app.services.task_visibility import TaskVisibilityService
 from app.core.audit import create_audit_log
+from app.core.websockets import manager
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 @router.post("/", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
     payload: TaskCreate,
+    background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -76,6 +79,20 @@ def create_task(
     db.commit()
     db.refresh(new_task)
 
+    if payload.assignee_id and payload.assignee_id != current_user.id:
+        notification = Notification(
+            user_id=payload.assignee_id,
+            title="New Task Assigned",
+            message=f"You have been assigned to a new task: {payload.title}",
+            type="info",
+            priority="MEDIUM",
+            category="SYSTEM",
+            action_url=f"/employee/projects/{payload.project_id}"
+        )
+        db.add(notification)
+        db.commit()
+        background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
+
     create_audit_log(
         db=db,
         action="TASK_CREATED",
@@ -98,7 +115,7 @@ def list_tasks(
     current_user: User = Depends(get_current_user),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
-    query = db.query(Task)
+    query = db.query(Task).options(joinedload(Task.project))
     query = TaskVisibilityService.get_visible_query(current_user, db, query)
 
     if project_id:
@@ -128,7 +145,7 @@ def list_my_tasks(
     current_user: User = Depends(get_current_user),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
-    query = db.query(Task).filter(Task.assignee_id == current_user.id)
+    query = db.query(Task).options(joinedload(Task.project)).filter(Task.assignee_id == current_user.id)
 
     if filterType == 'active':
         query = query.filter(Task.status != TaskStatus.DONE)
@@ -167,6 +184,7 @@ def get_task(
 def update_task(
     id: int,
     payload: TaskUpdate,
+    background_tasks: BackgroundTasks,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -222,11 +240,71 @@ def update_task(
         if not deliv or deliv.project_id != target_project_id:
             raise HTTPException(status_code=400, detail="Deliverable must belong to the selected project")
 
+    old_assignee = task.assignee_id
+
     for key, val in update_data.items():
         setattr(task, key, val)
 
     db.commit()
     db.refresh(task)
+
+    new_assignee = task.assignee_id
+
+    if old_assignee != new_assignee:
+        if new_assignee and new_assignee != current_user.id:
+            notification = Notification(
+                user_id=new_assignee,
+                title="Task Assigned",
+                message=f"You have been assigned to the task: {task.title}",
+                type="info",
+                priority="MEDIUM",
+                category="SYSTEM",
+                action_url=f"/employee/projects/{task.project_id}"
+            )
+            db.add(notification)
+        if old_assignee and old_assignee != current_user.id:
+            notification = Notification(
+                user_id=old_assignee,
+                title="Task Unassigned",
+                message=f"You have been unassigned from the task: {task.title}",
+                type="info",
+                priority="LOW",
+                category="SYSTEM",
+                action_url=f"/employee/projects/{task.project_id}"
+            )
+            db.add(notification)
+        db.commit()
+        background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
+    elif update_data and new_assignee and new_assignee != current_user.id:
+        notification = Notification(
+            user_id=new_assignee,
+            title="Task Updated",
+            message=f"A task assigned to you was updated: {task.title}",
+            type="info",
+            priority="LOW",
+            category="SYSTEM",
+            action_url=f"/employee/projects/{task.project_id}"
+        )
+        db.add(notification)
+        db.commit()
+        background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
+
+    if update_data and current_user.role in ["employee", "intern", "consultant"]:
+        admins = db.query(User).filter(User.role.in_(["admin", "superadmin"])).all()
+        for admin in admins:
+            if admin.id != current_user.id:
+                notif = Notification(
+                    user_id=admin.id,
+                    title="Task Updated",
+                    message=f"Task '{task.title}' was updated by {current_user.full_name}.",
+                    type="info",
+                    priority="LOW",
+                    category="SYSTEM",
+                    action_url=f"/superadmin/projects/{task.project_id}" if admin.role == "superadmin" else f"/admin/projects/{task.project_id}"
+                )
+                db.add(notif)
+        db.commit()
+        background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
 
     create_audit_log(
         db=db,

@@ -327,13 +327,18 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
                   height: '40px',
                   borderRadius: '0.375rem',
                   borderColor: errors.phone ? 'red' : '#e2e8f0',
-                  backgroundColor: 'transparent'
+                  backgroundColor: 'transparent',
+                  color: 'inherit'
                 }}
                 buttonStyle={{
                   borderColor: errors.phone ? 'red' : '#e2e8f0',
                   backgroundColor: 'transparent',
                   borderTopLeftRadius: '0.375rem',
                   borderBottomLeftRadius: '0.375rem'
+                }}
+                dropdownStyle={{
+                  backgroundColor: 'var(--card)',
+                  color: 'var(--foreground)'
                 }}
                 containerStyle={{ width: '100%' }}
                 searchPlaceholder="Search country..."
@@ -391,7 +396,7 @@ export function InHouseCompanyFormModal({ open, onOpenChange, company, defaultCo
             </div>
 
             {formData.restrict_clockin_to_office_ip && (
-              <div className="p-4 border rounded-lg bg-slate-50 dark:bg-muted/30 space-y-4">
+              <div className="p-4 border border-border/50 rounded-lg bg-muted/30 space-y-4">
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <Label className={errors.office_ip_addresses ? "text-red-500" : ""}>Allowed Public IP Addresses</Label>

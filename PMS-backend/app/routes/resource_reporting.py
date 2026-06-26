@@ -4,7 +4,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.database.session import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, get_superadmin
 from app.models.user import User
 from app.core.tenant import verify_tenant_access
 from app.services.resource_reporting_service import ResourceReportingService
@@ -42,7 +42,7 @@ class ProjectHealthResponse(BaseModel):
 def get_resource_summary(
     company_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     cid = company_id if company_id else tenant_id
@@ -54,7 +54,7 @@ def get_resource_summary(
 def get_utilization(
     company_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     cid = company_id if company_id else tenant_id
@@ -66,7 +66,7 @@ def get_utilization(
 def get_project_health(
     company_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_superadmin),
     tenant_id: Optional[int] = Depends(verify_tenant_access)
 ):
     cid = company_id if company_id else tenant_id

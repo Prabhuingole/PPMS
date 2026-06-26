@@ -141,7 +141,7 @@ export default function MyTasksPage() {
                         </Badge>
                         {task.project_id && (
                           <span className="text-[9px] text-muted-foreground font-bold tracking-wider uppercase px-2 py-0.5 bg-muted/30 border border-border rounded-md shadow-sm">
-                            Project #{task.project_id}
+                            {task.project_name || `Project #${task.project_id}`}
                           </span>
                         )}
                       </div>

@@ -44,7 +44,9 @@ export function Navbar() {
         const pA = priorityScore[a.priority || 'LOW'] || 0;
         const pB = priorityScore[b.priority || 'LOW'] || 0;
         if (pA !== pB) return pB - pA;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        const dateA = new Date(a.created_at + (!a.created_at.endsWith('Z') ? 'Z' : '')).getTime();
+        const dateB = new Date(b.created_at + (!b.created_at.endsWith('Z') ? 'Z' : '')).getTime();
+        return dateB - dateA;
       });
       setNotifications(sorted);
     } catch (error: any) {
@@ -232,7 +234,7 @@ export function Navbar() {
                         </p>
                         <p className="text-[10px] font-medium text-muted-foreground mt-2 flex items-center">
                           <Clock className="mr-1 h-3 w-3" />
-                          {new Date(notif.created_at).toLocaleDateString()} {new Date(notif.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          {new Date(notif.created_at + (!notif.created_at.endsWith('Z') ? 'Z' : '')).toLocaleDateString()} {new Date(notif.created_at + (!notif.created_at.endsWith('Z') ? 'Z' : '')).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                         </p>
                       </div>
 

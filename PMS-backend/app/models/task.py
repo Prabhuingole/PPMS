@@ -49,3 +49,7 @@ class Task(Base):
     comments = relationship("TaskComment", back_populates="task", cascade="all, delete-orphan")
     assignee = relationship("User", foreign_keys=[assignee_id], backref="assigned_tasks")
     creator = relationship("User", foreign_keys=[creator_id], backref="created_tasks")
+
+    @property
+    def project_name(self):
+        return self.project.name if self.project else None

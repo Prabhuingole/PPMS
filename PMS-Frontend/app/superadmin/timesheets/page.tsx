@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Check, 
   X, 
@@ -40,11 +40,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import api from '@/services/api';
 import { handleApiError } from '@/utils/handleApiError';
 import { ErrorState } from '@/components/ui/error-state';
 import { useAuthStore } from '@/store/authStore';
 import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
+import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
 
 type TaskDetail = {
   id: number;
@@ -84,6 +92,8 @@ export default function TimesheetApprovalPage() {
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState<number | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -92,6 +102,18 @@ export default function TimesheetApprovalPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const pageSize = 10;
+
+  const [yearFilter, setYearFilter] = useState<string>('All Years');
+  const [monthFilter, setMonthFilter] = useState<string>('All Months');
+  const [dateFilter, setDateFilter] = useState<string>('All Dates');
+
+  useEffect(() => {
+    setDateFilter('All Dates');
+  }, [yearFilter, monthFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, yearFilter, monthFilter, dateFilter]);
 
   useWebSocketEvent('TIMESHEETS_UPDATED', () => setRefreshTrigger(prev => prev + 1));
 
@@ -115,7 +137,15 @@ export default function TimesheetApprovalPage() {
       setIsLoading(true);
       api.get(`/timesheets/grouped/paginated`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { page: currentPage, size: pageSize, status: statusFilter, search: debouncedSearch }
+        params: { 
+          page: currentPage, 
+          size: pageSize, 
+          status: statusFilter, 
+          search: debouncedSearch,
+          ...(yearFilter !== 'All Years' && { year: yearFilter }),
+          ...(monthFilter !== 'All Months' && { month: monthFilter }),
+          ...(dateFilter !== 'All Dates' && { date: dateFilter })
+        }
       })
       .then(res => {
         setTableGroups(res.data.items || []);
@@ -124,7 +154,7 @@ export default function TimesheetApprovalPage() {
       .catch(console.error)
       .finally(() => setIsLoading(false));
     }
-  }, [token, refreshTrigger, currentPage, debouncedSearch, statusFilter]);
+  }, [token, refreshTrigger, currentPage, debouncedSearch, statusFilter, yearFilter, monthFilter, dateFilter]);
 
   const formatDuration = (decimal: number) => {
     const h = Math.floor(decimal);
@@ -195,6 +225,49 @@ export default function TimesheetApprovalPage() {
     }
   };
 
+  // Generate Options for Date/Month/Year
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+  }, []);
+
+  const monthOptions = useMemo(() => [
+    { value: '1', label: 'January' }, { value: '2', label: 'February' },
+    { value: '3', label: 'March' }, { value: '4', label: 'April' },
+    { value: '5', label: 'May' }, { value: '6', label: 'June' },
+    { value: '7', label: 'July' }, { value: '8', label: 'August' },
+    { value: '9', label: 'September' }, { value: '10', label: 'October' },
+    { value: '11', label: 'November' }, { value: '12', label: 'December' }
+  ], []);
+
+  const dateOptions = useMemo(() => {
+    const options = [];
+    const today = new Date();
+    
+    if (yearFilter !== 'All Years' && monthFilter !== 'All Months') {
+      const y = parseInt(yearFilter);
+      const m = parseInt(monthFilter);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      for (let i = daysInMonth; i >= 1; i--) {
+        const d = new Date(y, m - 1, i);
+        options.push({
+          value: d.toISOString().split('T')[0],
+          label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        });
+      }
+    } else {
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        options.push({
+          value: d.toISOString().split('T')[0],
+          label: i === 0 ? `Today, ${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        });
+      }
+    }
+    return options;
+  }, [yearFilter, monthFilter]);
+
   return (
     <>
       <AnalyticsLayout
@@ -238,21 +311,61 @@ export default function TimesheetApprovalPage() {
               searchValue={searchTerm}
               onSearchChange={(value) => setSearchTerm(value)}
               filters={
-                <FilterGroup
-                  options={[
-                    { label: 'All', value: 'all' },
-                    { label: 'Pending', value: 'pending' },
-                    { label: 'Approved', value: 'approved' },
-                    { label: 'Rejected', value: 'rejected' }
-                  ]}
-                  value={statusFilter}
-                  onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
-                />
+                <div className="flex flex-col sm:flex-row flex-wrap items-center gap-3">
+                  <FilterGroup
+                    options={[
+                      { label: 'All', value: 'all' },
+                      { label: 'Pending', value: 'pending' },
+                      { label: 'Approved', value: 'approved' },
+                      { label: 'Rejected', value: 'rejected' }
+                    ]}
+                    value={statusFilter}
+                    onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
+                  />
+
+                  <div className="flex items-center gap-2">
+                    <Select value={yearFilter} onValueChange={setYearFilter}>
+                      <SelectTrigger className="w-[110px] h-9 rounded-xl border-border bg-muted/30 text-xs font-medium text-foreground">
+                        <SelectValue placeholder="All Years" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl">
+                        <SelectItem value="All Years" className="text-xs font-medium">All Years</SelectItem>
+                        {yearOptions.map(y => (
+                          <SelectItem key={y} value={y} className="text-xs font-medium">{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={monthFilter} onValueChange={setMonthFilter}>
+                      <SelectTrigger className="w-[120px] h-9 rounded-xl border-border bg-muted/30 text-xs font-medium text-foreground">
+                        <SelectValue placeholder="All Months" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px]">
+                        <SelectItem value="All Months" className="text-xs font-medium">All Months</SelectItem>
+                        {monthOptions.map(m => (
+                          <SelectItem key={m.value} value={m.value} className="text-xs font-medium">{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger className="w-[140px] h-9 rounded-xl border-border bg-muted/30 text-xs font-medium text-foreground">
+                        <SelectValue placeholder="All Dates" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px]">
+                        <SelectItem value="All Dates" className="text-xs font-medium">All Dates</SelectItem>
+                        {dateOptions.map(d => (
+                          <SelectItem key={d.value} value={d.value} className="text-xs font-medium">{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               }
               toolbarActions={
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">All Timesheets</span>
-                  <Badge variant="secondary" className="bg-slate-200 text-muted-foreground rounded-md px-2 font-medium">
+                  <Badge variant="secondary" className="bg-slate-200 dark:bg-slate-800 text-muted-foreground rounded-md px-2 font-medium">
                     {totalItems}
                   </Badge>
                 </div>
@@ -290,7 +403,7 @@ export default function TimesheetApprovalPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-muted-foreground">{group.user_designation || group.user_email}</span>
                           {group.user_company_name && (
-                            <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-indigo-500 border-indigo-200 bg-indigo-50/50 px-1 py-0">
+                            <Badge variant="outline" className="text-[9px] uppercase tracking-wider text-indigo-500 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-900/30 px-1 py-0">
                               {group.user_company_name}
                             </Badge>
                           )}
@@ -389,7 +502,7 @@ export default function TimesheetApprovalPage() {
   }
 />
 
-      {/* ── Detail Modal ── */}
+      {/* â”€â”€ Detail Modal â”€â”€ */}
       <AnimatePresence>
         {selectedGroup && (
           <div 
@@ -416,9 +529,9 @@ export default function TimesheetApprovalPage() {
                     <div>
                       <h3 className="text-lg font-semibold text-foreground">{selectedGroup.user_name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-muted-foreground">{selectedGroup.user_designation || selectedGroup.user_email}</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-sm text-slate-500 dark:text-slate-300">{selectedGroup.user_designation || selectedGroup.user_email}</span>
+                        <span className="text-slate-300 dark:text-slate-500">•</span>
+                        <span className="text-sm text-slate-500 dark:text-slate-300">
                           {new Date(selectedGroup.date).toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}
                         </span>
                       </div>
@@ -427,7 +540,7 @@ export default function TimesheetApprovalPage() {
                   <div className="flex items-center gap-4">
                     <div className="flex flex-col items-end">
                       <div className="text-2xl font-bold text-foreground leading-none">{formatDuration(selectedGroup.total_hours)}</div>
-                      <div className="text-xs text-muted-foreground font-medium mt-1">Total Hours</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-300 font-medium mt-1">Total Hours</div>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)} className="h-8 w-8 text-muted-foreground hover:text-slate-600">
                       <X className="h-5 w-5" />
@@ -437,10 +550,10 @@ export default function TimesheetApprovalPage() {
               </div>
 
               {/* Task Cards (Scrollable) */}
-              <div className="p-6 overflow-y-auto bg-slate-50/50 flex-grow">
+              <div className="p-6 overflow-y-auto bg-slate-50/50 dark:bg-transparent flex-grow">
                 <div className="flex items-center gap-2 mb-4">
                   <h4 className="text-sm font-semibold text-foreground">Task Details</h4>
-                  <Badge variant="secondary" className="bg-slate-200 text-slate-600 rounded-md px-1.5 py-0.5 text-xs font-medium">
+                  <Badge variant="secondary" className="bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md px-1.5 py-0.5 text-xs font-medium">
                     {selectedGroup.task_count}
                   </Badge>
                 </div>
@@ -457,7 +570,7 @@ export default function TimesheetApprovalPage() {
                             <div className="min-w-0 space-y-1">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-sm font-semibold text-foreground">{task.task_title || '—'}</span>
-                                <Badge variant="outline" className="bg-muted/30 text-slate-600 text-xs font-medium px-2 py-0">
+                                <Badge variant="outline" className="bg-muted/30 text-slate-600 dark:text-slate-100 text-xs font-medium px-2 py-0">
                                   {task.project_code ? `[${task.project_code}]` : ''} {task.project_name}
                                 </Badge>
                                 {task.is_unassigned_project && (
@@ -467,12 +580,12 @@ export default function TimesheetApprovalPage() {
                                 )}
                                 <Badge variant="secondary" className={cn(
                                   "text-xs font-medium px-2 py-0 capitalize",
-                                  task.task_status === 'Completed' ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"
+                                  task.task_status === 'Completed' ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400" : "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                                 )}>
                                   {task.task_status}
                                 </Badge>
                               </div>
-                              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap break-words">
+                              <p className="text-sm text-slate-600 dark:text-slate-200 leading-relaxed whitespace-pre-wrap break-words">
                                 {task.description || '—'}
                               </p>
                             </div>
@@ -483,23 +596,23 @@ export default function TimesheetApprovalPage() {
 
                           {task.attachment_path && (
                             <div className="mt-3 flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-md border border-border w-fit">
-                                <Paperclip className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-xs text-slate-500 dark:text-slate-300 flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-md border border-border w-fit">
+                                <Paperclip className="h-3.5 w-3.5 text-slate-400 dark:text-slate-300" />
                                 <span className="truncate max-w-[150px]">{task.attachment_name || 'Attachment'}</span>
                               </span>
                               <div className="flex gap-1">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-7 px-2 border-border text-slate-600 hover:text-primary bg-background"
-                                  onClick={(e) => { e.stopPropagation(); window.open(`/superadmin/timesheets/view-doc?id=${task.id}`, '_blank'); }}
+                                  className="h-7 px-2 border-border text-slate-600 dark:text-slate-300 hover:text-primary bg-background"
+                                  onClick={(e) => { e.stopPropagation(); setViewerDocId(task.id); setViewerOpen(true); }}
                                 >
                                   <Eye className="h-3.5 w-3.5 mr-1" /> View
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-7 px-2 border-border text-slate-600 hover:text-primary bg-background"
+                                  className="h-7 px-2 border-border text-slate-600 dark:text-slate-300 hover:text-primary bg-background"
                                   onClick={(e) => { e.stopPropagation(); handleDownloadAttachment(task.id, task.attachment_name || 'attachment'); }}
                                 >
                                   <Download className="h-3.5 w-3.5 mr-1" /> Download
@@ -519,7 +632,7 @@ export default function TimesheetApprovalPage() {
                 <div className="p-6 border-t border-border bg-background shrink-0">
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Feedback <span className="text-muted-foreground font-normal">(Required)</span></span>
+                      <span className="text-sm font-medium text-muted-foreground dark:text-slate-300">Feedback <span className="text-muted-foreground dark:text-slate-400 font-normal">(Required)</span></span>
                     </div>
                     <textarea
                       value={feedback}
@@ -531,7 +644,7 @@ export default function TimesheetApprovalPage() {
                       <Button
                         variant="outline"
                         onClick={() => setSelectedGroup(null)}
-                        className="h-9 px-4 rounded-md border-border text-slate-600 font-medium text-sm hover:bg-muted"
+                        className="h-9 px-4 rounded-md border-border text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-muted"
                       >
                         Cancel
                       </Button>
@@ -556,16 +669,16 @@ export default function TimesheetApprovalPage() {
                 <div className="p-6 border-t border-border bg-muted/30 shrink-0">
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-muted-foreground">Resolution Status:</span>
+                      <span className="text-sm font-medium text-muted-foreground dark:text-slate-300">Resolution Status:</span>
                       <Badge variant="secondary" className={cn(
                         "font-medium text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md",
-                        selectedGroup.tasks[0]?.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                        selectedGroup.tasks[0]?.status === 'approved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                       )}>
                         {selectedGroup.tasks[0]?.status}
                       </Badge>
                     </div>
                     {selectedGroup.tasks[0]?.feedback && (
-                      <div className="text-sm text-slate-600 bg-background p-3 rounded-md border border-border break-words whitespace-pre-wrap">
+                      <div className="text-sm text-slate-600 dark:text-slate-200 bg-background p-3 rounded-md border border-border break-words whitespace-pre-wrap">
                         <span className="font-semibold text-foreground block mb-1">Feedback Given:</span>
                         {selectedGroup.tasks[0].feedback}
                       </div>
@@ -574,7 +687,7 @@ export default function TimesheetApprovalPage() {
                       <Button
                         variant="outline"
                         onClick={() => setSelectedGroup(null)}
-                        className="h-9 px-4 rounded-md border-border text-slate-600 font-medium text-sm hover:bg-muted"
+                        className="h-9 px-4 rounded-md border-border text-slate-600 dark:text-slate-300 font-medium text-sm hover:bg-muted"
                       >
                         Close
                       </Button>
@@ -586,7 +699,8 @@ export default function TimesheetApprovalPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <DocumentViewerModal isOpen={viewerOpen} onClose={() => setViewerOpen(false)} docId={viewerDocId} docType="timesheet" />
     </>
   );
 }
-

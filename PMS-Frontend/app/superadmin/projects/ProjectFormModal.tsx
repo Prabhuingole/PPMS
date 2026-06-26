@@ -71,6 +71,7 @@ import * as z from 'zod';
 import api from '@/services/api';
 import { handleApiError } from '@/utils/handleApiError';
 import { ErrorState } from '@/components/ui/error-state';
+import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
 import { format, differenceInDays } from 'date-fns';
 import { useAuthStore } from '@/store/authStore';
 
@@ -100,20 +101,21 @@ const baseProjectSchema = z.object({
   reporting_manager_id: z.string().optional().nullable(),
   member_ids: z.array(z.number()),
   is_in_house: z.boolean().default(true),
+  owner_company_id: z.string().optional().nullable(),
   client_company_id: z.string().optional().nullable(),
   participating_company_ids: z.array(z.string()).optional(),
 });
 
 const projectSchema = baseProjectSchema.superRefine((data, ctx) => {
-  if (data.is_in_house) {
-    if (!data.participating_company_ids || data.participating_company_ids.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'This field is required',
-        path: ['participating_company_ids'],
-      });
-    }
-  } else {
+  if (!data.owner_company_id || data.owner_company_id === 'none') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Please select a managing/owner company',
+      path: ['owner_company_id'],
+    });
+  }
+
+  if (!data.is_in_house) {
     if (!data.client_company_id || data.client_company_id === 'none') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -144,6 +146,9 @@ export function ProjectFormModal({
   onSuccess
 }: ProjectFormModalProps) {
   const { token } = useAuthStore();
+  const [isDeletingDoc, setIsDeletingDoc] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [reportingManagerSearch, setReportingManagerSearch] = useState('');
@@ -190,7 +195,8 @@ export function ProjectFormModal({
       reporting_manager_id: '',
       member_ids: [],
       is_in_house: true,
-      client_company_id: '',
+      owner_company_id: 'none',
+      client_company_id: 'none',
       participating_company_ids: [],
     }
   });
@@ -217,6 +223,7 @@ export function ProjectFormModal({
           reporting_manager_id: editingProject.reporting_manager_id?.toString() || '',
           member_ids: editingProject.members?.map(m => m.id) || [],
           is_in_house: !editingProject.client_company_id,
+          owner_company_id: editingProject.owner_company_id?.toString() || 'none',
           client_company_id: editingProject.client_company_id?.toString() || 'none',
           participating_company_ids: editingProject.participating_companies?.map(c => c.id.toString()) || [],
         });
@@ -237,6 +244,7 @@ export function ProjectFormModal({
           reporting_manager_id: '',
           member_ids: [],
           is_in_house: true,
+          owner_company_id: 'none',
           client_company_id: 'none',
           participating_company_ids: [],
         });
@@ -293,7 +301,8 @@ export function ProjectFormModal({
         start_date: values.start_date ? new Date(values.start_date).toISOString() : null,
         end_date: values.end_date ? new Date(values.end_date).toISOString() : null,
         client_company_id: !values.is_in_house && values.client_company_id && values.client_company_id !== 'none' ? parseInt(values.client_company_id) : null,
-        participating_company_ids: values.is_in_house && values.participating_company_ids ? values.participating_company_ids.map(id => parseInt(id)) : []
+        owner_company_id: values.owner_company_id && values.owner_company_id !== 'none' ? parseInt(values.owner_company_id) : null,
+        participating_company_ids: values.participating_company_ids ? values.participating_company_ids.map(id => parseInt(id)) : []
       };
 
       let projectId = editingProject?.id;
@@ -458,7 +467,7 @@ export function ProjectFormModal({
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="planning" className="text-blue-600">Planning</SelectItem>
+                              <SelectItem value="planning" className="text-muted-foreground">Planning</SelectItem>
                               <SelectItem value="active" className="text-emerald-600">Active</SelectItem>
                               <SelectItem value="on-hold" className="text-amber-600">On Hold</SelectItem>
                               <SelectItem value="completed" className="text-foreground">Completed</SelectItem>
@@ -606,35 +615,63 @@ export function ProjectFormModal({
                         )}
                       />
                     )}
-                    {isInHouse && (
-                      <FormField
-                        control={form.control}
-                        name="participating_company_ids"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormLabel required className="text-sm font-semibold text-foreground">In House Company</FormLabel>
-                            <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md custom-scrollbar bg-card">
+
+                    <FormField
+                      control={form.control}
+                      name="owner_company_id"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel required className="text-sm font-semibold text-foreground">{isInHouse ? 'Owner Company' : 'Managing Company'}</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || 'none'}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-10 w-full">
+                                <SelectValue placeholder={`Select ${isInHouse ? 'Owner' : 'Managing'} Company`} />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="none">None</SelectItem>
                               {companies.filter(c => c.company_type === 'in_house').map(c => (
-                                <div key={c.id} className="flex flex-row items-center space-x-3">
-                                  <Checkbox
-                                    checked={field.value?.includes(String(c.id))}
-                                    onCheckedChange={(checked) => {
-                                      if (checked) {
-                                        field.onChange([...(field.value || []), String(c.id)]);
-                                      } else {
-                                        field.onChange(field.value?.filter(id => id !== String(c.id)));
-                                      }
-                                    }}
-                                  />
-                                  <span className="text-sm">{c.name}</span>
-                                </div>
+                                <SelectItem key={c.id} value={String(c.id)}>
+                                  {c.name}
+                                </SelectItem>
                               ))}
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    )}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="participating_company_ids"
+                      render={({ field }) => (
+                        <FormItem className="col-span-2">
+                          <FormLabel className="text-sm font-semibold text-foreground">Participating Companies</FormLabel>
+                          <div className="flex flex-col gap-2 max-h-[150px] overflow-y-auto p-2 border rounded-md custom-scrollbar bg-card">
+                            {companies.filter(c => c.company_type === 'in_house').map(c => (
+                              <div key={c.id} className="flex flex-row items-center space-x-3">
+                                <Checkbox
+                                  checked={field.value?.includes(String(c.id))}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      field.onChange([...(field.value || []), String(c.id)]);
+                                    } else {
+                                      field.onChange(field.value?.filter(id => id !== String(c.id)));
+                                    }
+                                  }}
+                                />
+                                <span className="text-sm">{c.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </FormGrid>
                 </FormSection>
 
@@ -758,7 +795,7 @@ export function ProjectFormModal({
                               </FormControl>
                               <div className="flex items-center gap-3 w-full">
                                 <Avatar className="h-8 w-8">
-                                  <AvatarFallback className="bg-muted text-slate-600 text-xs font-medium border border-border">
+                                  <AvatarFallback className="bg-muted text-foreground text-xs font-medium border border-border">
                                     {employee?.full_name ? employee.full_name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'U'}
                                   </AvatarFallback>
                                 </Avatar>
@@ -818,7 +855,7 @@ export function ProjectFormModal({
                                   type="button"
                                   size="icon"
                                   variant="ghost"
-                                  onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')}
+                                  onClick={() => { setViewerDocId(doc.id); setViewerOpen(true); }}
                                   className="h-8 w-8 text-muted-foreground hover:text-primary"
                                   title="View Document"
                                 >
@@ -884,7 +921,7 @@ export function ProjectFormModal({
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         />
                         <Upload className="h-6 w-6 text-muted-foreground group-hover:text-indigo-500" />
-                        <span className="text-sm font-medium text-slate-600 group-hover:text-primary">
+                        <span className="text-sm font-medium text-foreground group-hover:text-primary">
                           Click or drag files to upload
                         </span>
                         <span className="text-xs text-muted-foreground">
@@ -912,7 +949,7 @@ export function ProjectFormModal({
                             <div className="flex items-center gap-2 pr-8">
                               <FileIcon className="h-4 w-4 text-indigo-500 shrink-0" />
                               <div className="flex flex-col min-w-0">
-                                <span className="text-xs font-medium text-slate-800 truncate" title={doc.file.name}>
+                                <span className="text-xs font-medium text-foreground truncate" title={doc.file.name}>
                                   {doc.file.name}
                                 </span>
                                 <span className="text-[10px] text-muted-foreground">
@@ -1019,6 +1056,7 @@ export function ProjectFormModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <DocumentViewerModal isOpen={viewerOpen} onClose={() => setViewerOpen(false)} docId={viewerDocId} docType="project" />
     </>
   );
 }

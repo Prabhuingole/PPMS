@@ -105,14 +105,14 @@ export default function SetupAccountPage() {
   // Prevent flashing content if we are going to redirect
   if (!isAuthenticated || !user || !user.must_change_password) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground/50" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -120,21 +120,21 @@ export default function SetupAccountPage() {
           transition={{ duration: 0.4 }}
         >
           <div className="flex flex-col items-center justify-center mb-8">
-            <div className="bg-slate-900 p-3 rounded-2xl shadow-xl shadow-slate-900/20 mb-4">
-              <ShieldCheck className="h-8 w-8 text-white" />
+            <div className="bg-primary p-3 rounded-2xl shadow-xl shadow-primary/20 mb-4">
+              <ShieldCheck className="h-8 w-8 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">Account Setup</h1>
-            <p className="text-slate-500 font-medium text-xs mt-2 tracking-wider text-center">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Account Setup</h1>
+            <p className="text-muted-foreground font-medium text-xs mt-2 tracking-wider text-center">
               Please secure your account to continue
             </p>
           </div>
 
-          <Card className="border-none shadow-2xl shadow-slate-200/50 rounded-[2rem] overflow-hidden bg-white/80 backdrop-blur-xl">
-            <CardHeader className="space-y-1 p-8 pb-4 border-b border-slate-100 bg-white">
-              <CardTitle className="text-lg font-bold tracking-tight text-slate-900">
+          <Card className="border border-border shadow-2xl dark:shadow-none rounded-[2rem] overflow-hidden bg-card/80 backdrop-blur-xl">
+            <CardHeader className="space-y-1 p-8 pb-4 border-b border-border bg-card/50">
+              <CardTitle className="text-lg font-bold tracking-tight text-foreground">
                 Welcome, {user.full_name}
               </CardTitle>
-              <CardDescription className="text-xs font-bold text-slate-500 tracking-wider">
+              <CardDescription className="text-xs font-bold text-muted-foreground tracking-wider">
                 Update your email and password
               </CardDescription>
             </CardHeader>
@@ -147,15 +147,15 @@ export default function SetupAccountPage() {
                     name="new_email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-500">Corporate Email</FormLabel>
+                        <FormLabel required className="text-xs font-bold tracking-wider text-muted-foreground">Corporate Email</FormLabel>
                         <FormControl>
                           <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/70" />
                             <Input 
                               placeholder="name@company.com" 
                               {...field} 
                               disabled
-                              className="pl-11 h-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold disabled:opacity-75 disabled:cursor-not-allowed"
+                              className="pl-11 h-12 rounded-xl bg-muted/50 border-input focus:bg-background transition-colors text-sm font-semibold disabled:opacity-75 disabled:cursor-not-allowed"
                             />
                           </div>
                         </FormControl>
@@ -169,19 +169,19 @@ export default function SetupAccountPage() {
                     name="new_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-500">New Password</FormLabel>
+                        <FormLabel required className="text-xs font-bold tracking-wider text-muted-foreground">New Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
                               type={showNewPassword ? "text" : "password"}
                               placeholder="••••••••"
                               {...field}
-                              className="h-12 pr-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
+                              className="h-12 pr-12 rounded-xl bg-muted/50 border-input focus:bg-background transition-colors text-sm font-semibold"
                             />
                             <button
                               type="button"
                               onClick={() => setShowNewPassword(!showNewPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                               {showNewPassword ? (
                                 <EyeOff className="h-4 w-4" />
@@ -201,19 +201,19 @@ export default function SetupAccountPage() {
                     name="confirm_password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel required className="text-xs font-bold tracking-wider text-slate-500">Confirm Password</FormLabel>
+                        <FormLabel required className="text-xs font-bold tracking-wider text-muted-foreground">Confirm Password</FormLabel>
                         <FormControl>
                           <div className="relative">
                             <Input
                               type={showConfirmPassword ? "text" : "password"}
                               placeholder="••••••••"
                               {...field}
-                              className="h-12 pr-12 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm font-semibold"
+                              className="h-12 pr-12 rounded-xl bg-muted/50 border-input focus:bg-background transition-colors text-sm font-semibold"
                             />
                             <button
                               type="button"
                               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             >
                               {showConfirmPassword ? (
                                 <EyeOff className="h-4 w-4" />
@@ -231,7 +231,7 @@ export default function SetupAccountPage() {
                   <Button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full h-12 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs tracking-wider shadow-xl shadow-slate-900/20 transition-all group"
+                    className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs tracking-wider shadow-xl shadow-primary/20 transition-all group"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -248,7 +248,7 @@ export default function SetupAccountPage() {
               <div className="mt-6 text-center">
                 <button 
                   onClick={handleLogout}
-                  className="text-xs font-bold tracking-wider text-slate-400 hover:text-slate-900 transition-colors"
+                  className="text-xs font-bold tracking-wider text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Cancel and Sign Out
                 </button>

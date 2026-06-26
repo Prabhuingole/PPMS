@@ -45,7 +45,7 @@ import { useWebSocketEvent } from '@/hooks/useWebSocketEvent';
 import { toast } from 'sonner';
 import { ProjectFormModal } from '../ProjectFormModal';
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
-
+import { DocumentViewerModal } from '@/components/documents/DocumentViewerModal';
 import { useTasks } from '@/services/taskService';
 import { TasksTab } from '@/components/projects/TasksTab';
 
@@ -58,7 +58,6 @@ const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, use
       try {
         setLoading(true);
         const pagesRes = await api.get(`/notes/admin/projects/${projectId}/users/${userId}/pages`);
-        
         const pagesWithTasks = pagesRes.data.filter((p: any) => p.checklist_total > 0);
         
         const taskPromises = pagesWithTasks.map((p: any) => 
@@ -100,7 +99,7 @@ const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, use
              {task.is_completed ? (
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
              ) : (
-                <Circle className="w-4 h-4 text-slate-300" />
+                <Circle className="w-4 h-4 text-muted-foreground/30" />
              )}
            </div>
            <div className="flex-1 min-w-0">
@@ -112,7 +111,6 @@ const EmployeeTaskView = ({ projectId, userId, token }: { projectId: string, use
     </div>
   );
 };
-
 export default function ProjectDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -134,6 +132,9 @@ export default function ProjectDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerDocId, setViewerDocId] = useState<number | null>(null);
+  const [viewerDocType, setViewerDocType] = useState<'project' | 'timesheet'>('project');
 
   const [taskFilters, setTaskFilters] = useState({
     status: 'all',
@@ -310,15 +311,28 @@ export default function ProjectDetailsPage() {
               {project.status.toUpperCase()}
             </Badge>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground font-medium">
-            <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground font-medium">
+            <div className="flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-md border border-border shadow-sm">
               <Briefcase className="h-4 w-4 text-blue-500" />
               <span className="font-mono text-xs">{project.code}</span>
             </div>
+            
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border shadow-sm text-xs font-semibold uppercase tracking-wider ${project.client_company ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-indigo-50 text-indigo-700 border-indigo-200'}`}>
+              <Building2 className="h-3.5 w-3.5" />
+              {project.client_company ? 'Client Project' : 'In-House Project'}
+            </div>
+
             {project.client_company?.name && (
-              <div className="flex items-center gap-1.5 bg-background px-2 py-1 rounded-md border border-border shadow-sm">
-                <Building2 className="h-4 w-4 text-emerald-500" />
-                <span>{project.client_company?.name}</span>
+              <div className="flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-md border border-border shadow-sm text-xs">
+                <span className="text-muted-foreground font-semibold uppercase tracking-widest text-[9px]">Client:</span>
+                <span className="font-semibold text-foreground">{project.client_company.name}</span>
+              </div>
+            )}
+
+            {project.owner_company_name && (
+              <div className="flex items-center gap-1.5 bg-background px-2.5 py-1 rounded-md border border-border shadow-sm text-xs">
+                <span className="text-muted-foreground font-semibold uppercase tracking-widest text-[9px]">Managed By:</span>
+                <span className="font-semibold text-foreground">{project.owner_company_name}</span>
               </div>
             )}
           </div>
@@ -327,7 +341,7 @@ export default function ProjectDetailsPage() {
           <Button 
             onClick={() => setIsEditModalOpen(true)}
             variant="outline"
-            className="border-border text-slate-600 bg-background hover:bg-muted shadow-sm shrink-0"
+            className="border-border text-foreground bg-background hover:bg-muted shadow-sm shrink-0"
           >
             Edit Project Details
           </Button>
@@ -441,7 +455,7 @@ export default function ProjectDetailsPage() {
                 Project Description
               </h3>
               {project.description ? (
-                <p className="text-slate-600 leading-relaxed whitespace-pre-wrap break-words text-sm">{project.description}</p>
+                <p className="text-foreground leading-relaxed whitespace-pre-wrap break-words text-sm">{project.description}</p>
               ) : (
                 <p className="text-muted-foreground italic text-sm">No description provided for this project.</p>
               )}
@@ -477,7 +491,7 @@ export default function ProjectDetailsPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0 ">
-                        <Button type="button" size="icon" variant="ghost" onClick={() => window.open(`/superadmin/projects/view-doc?id=${doc.id}`, '_blank')} className="h-6 w-6 rounded-md hover:bg-emerald-50 text-muted-foreground hover:text-emerald-600" title="View Document">
+                        <Button type="button" size="icon" variant="ghost" onClick={() => { setViewerDocId(doc.id); setViewerDocType('project'); setViewerOpen(true); }} className="h-6 w-6 rounded-md hover:bg-emerald-50 text-muted-foreground hover:text-emerald-600" title="View Document">
                           <Eye className="h-3 w-3" />
                         </Button>
                         <Button type="button" size="icon" variant="ghost" onClick={() => handleDownloadDoc(doc.id, doc.display_name || doc.filename)} className="h-6 w-6 rounded-md hover:bg-blue-50 text-muted-foreground hover:text-blue-600" title="Download Document">
@@ -492,7 +506,7 @@ export default function ProjectDetailsPage() {
                 </div>
               ) : (
                 <div className="p-6 text-center bg-muted/30 rounded-xl border border-dashed border-border">
-                  <File className="h-6 w-6 text-slate-300 mx-auto mb-2" />
+                  <File className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-xs font-medium text-muted-foreground">No documents uploaded yet.</p>
                 </div>
               )}
@@ -521,7 +535,7 @@ export default function ProjectDetailsPage() {
                     <h4 className="text-sm font-bold text-foreground truncate group-hover:text-blue-600 transition-colors">{project.reporting_manager.full_name}</h4>
                     <p className="text-xs font-medium text-muted-foreground truncate">{project.reporting_manager.email}</p>
                     {project.reporting_manager.designation && (
-                      <Badge variant="secondary" className="mt-1 text-[9px] bg-background border border-border text-slate-600">
+                      <Badge variant="secondary" className="mt-1 text-[9px] bg-background border border-border text-foreground">
                         {project.reporting_manager.designation}
                       </Badge>
                     )}
@@ -631,7 +645,7 @@ export default function ProjectDetailsPage() {
               </div>
             ) : (
               <div className="text-center p-8 text-muted-foreground">
-                <CheckCircle2 className="h-12 w-12 text-slate-300 mx-auto mb-3 opacity-50" />
+                <CheckCircle2 className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3 opacity-50" />
                 <p className="text-sm font-medium">No tasks assigned to team members for this project.</p>
               </div>
             )}
@@ -727,7 +741,7 @@ export default function ProjectDetailsPage() {
                           size="sm"
                           disabled={currentPage === 1}
                           onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                          className="bg-background border-border text-slate-600 hover:bg-muted"
+                          className="bg-background border-border text-foreground hover:bg-muted"
                         >
                           Previous
                         </Button>
@@ -736,7 +750,7 @@ export default function ProjectDetailsPage() {
                           size="sm"
                           disabled={currentPage === totalPages || totalPages === 0}
                           onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                          className="bg-background border-border text-slate-600 hover:bg-muted"
+                          className="bg-background border-border text-foreground hover:bg-muted"
                         >
                           Next
                         </Button>
@@ -746,7 +760,7 @@ export default function ProjectDetailsPage() {
                 </>
               ) : (
                 <div className="p-12 text-center flex flex-col items-center">
-                  <Clock className="h-12 w-12 text-slate-300 mb-4" />
+                  <Clock className="h-12 w-12 text-muted-foreground/30 mb-4" />
                   <h3 className="text-lg font-bold text-foreground">No Activity Logged</h3>
                   <p className="text-sm text-muted-foreground mt-1 max-w-md">There are no timesheets submitted for this project yet.</p>
                 </div>
@@ -760,9 +774,16 @@ export default function ProjectDetailsPage() {
           isOpen={docToDelete !== null}
           onOpenChange={(open) => !open && setDocToDelete(null)}
           onConfirm={handleDeleteDocument}
-          title="Delete Document?"
-          itemName="this document"
+          title="Delete Document"
+          description="Are you sure you want to delete this document? This action cannot be undone."
           isDeleting={isDeleting}
+        />
+
+        <DocumentViewerModal 
+          isOpen={viewerOpen} 
+          onClose={() => setViewerOpen(false)} 
+          docId={viewerDocId} 
+          docType={viewerDocType} 
         />
         
         <ProjectFormModal

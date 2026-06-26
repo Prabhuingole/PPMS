@@ -281,7 +281,10 @@ def get_my_timesheets(
     search: Optional[str] = None,
     status: Optional[str] = None,
     project_id: Optional[str] = None,
-    manager_name: Optional[str] = None
+    manager_name: Optional[str] = None,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    date: Optional[str] = None
 ):
     from app.models.user import User as UserModel
     base_query = db.query(Timesheet).options(
@@ -289,6 +292,21 @@ def get_my_timesheets(
         joinedload(Timesheet.project), joinedload(Timesheet.company)
     ).filter(Timesheet.user_id == current_user.id)
     
+    if year:
+        from sqlalchemy import extract
+        base_query = base_query.filter(extract('year', Timesheet.date) == year)
+    if month:
+        from sqlalchemy import extract
+        base_query = base_query.filter(extract('month', Timesheet.date) == month)
+    if date:
+        from sqlalchemy import cast, Date
+        from datetime import datetime
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            base_query = base_query.filter(cast(Timesheet.date, Date) == target_date)
+        except ValueError:
+            pass
+            
     # Outer join Project if needed by filters
     if search or manager_name:
         base_query = base_query.outerjoin(Project, Timesheet.project_id == Project.id)
@@ -534,6 +552,9 @@ def get_grouped_timesheets_paginated(
     size: int = 5,
     status: Optional[str] = "all",
     search: Optional[str] = None,
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    date: Optional[str] = None,
     db: Session = Depends(get_db),
     admin: User = Depends(get_superadmin)
 ):
@@ -548,6 +569,21 @@ def get_grouped_timesheets_paginated(
     if status != "all":
         subq = subq.filter(Timesheet.status == status)
         
+    if year:
+        from sqlalchemy import extract
+        subq = subq.filter(extract('year', Timesheet.date) == year)
+    if month:
+        from sqlalchemy import extract
+        subq = subq.filter(extract('month', Timesheet.date) == month)
+    if date:
+        from sqlalchemy import cast, Date
+        from datetime import datetime
+        try:
+            target_date = datetime.strptime(date, "%Y-%m-%d").date()
+            subq = subq.filter(cast(Timesheet.date, Date) == target_date)
+        except ValueError:
+            pass
+
     if search and search.strip():
         search_term = f"%{search.strip()}%"
         subq = subq.filter(

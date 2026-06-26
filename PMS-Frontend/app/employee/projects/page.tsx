@@ -124,7 +124,9 @@ export default function EmployeeProjectsPage() {
                       <div className="flex flex-col min-w-0">
                         <span className="text-xs font-semibold text-primary mb-1">{project.code}</span>
                         <h3 className="text-lg font-bold text-foreground leading-tight line-clamp-2 group-hover:text-indigo-700 transition-colors pr-2">{project.name}</h3>
-                        <p className="text-sm text-muted-foreground mt-0.5 truncate">{project.client_name || 'Internal Project'}</p>
+                        {project.client_name && (
+                          <p className="text-sm text-muted-foreground mt-0.5 truncate">{project.client_name}</p>
+                        )}
                       </div>
                     </div>
                   </CardHeader>

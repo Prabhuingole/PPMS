@@ -52,17 +52,15 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
     return map;
   }, [records]);
 
-  // Build calendar grid
-  const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0=Sun
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-
-  const calendarDays: (number | null)[] = [];
-  // Pad start (Mon=0 index)
-  const startPad = (firstDayOfMonth + 6) % 7; // Convert Sunday=0 to Monday=0
-  for (let i = 0; i < startPad; i++) calendarDays.push(null);
-  for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
+  const calendarDaysList = useMemo(() => {
+    const calendarDays: (number | null)[] = [];
+    const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0=Sun
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const startPad = (firstDayOfMonth + 6) % 7; // Convert Sunday=0 to Monday=0
+    for (let i = 0; i < startPad; i++) calendarDays.push(null);
+    for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
+    return calendarDays;
+  }, [year, month]);
 
   const getColorClasses = (color: string) => {
     switch (color) {
@@ -100,7 +98,11 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
 
       {/* Calendar grid */}
       <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((day, idx) => {
+        {useMemo(() => {
+          const today = new Date();
+          const todayStr = today.toISOString().split('T')[0];
+          
+          return calendarDaysList.map((day, idx) => {
           if (day === null) return <div key={`pad-${idx}`} />;
           
           const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
@@ -136,7 +138,7 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
               {day}
             </div>
           );
-        })}
+        })}, [calendarDaysList, year, month, dateStatusMap, onDayClick])}
       </div>
 
       {/* Legend */}

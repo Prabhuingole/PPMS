@@ -81,8 +81,8 @@ export default function DashboardPage() {
 
   // Derived stats from API
   const pendingCount = stats?.pendingCount || 0;
-  const approvedCount = stats?.approvedCount || 0;
-  const rejectedCount = stats?.rejectedCount || 0;
+  const activeProjects = stats?.activeProjects || 0;
+  const activeEmployees = stats?.activeEmployees || 0;
   const totalCount = stats?.totalCount || 0;
 
   // Weekly trend data
@@ -123,14 +123,7 @@ export default function DashboardPage() {
     <AnalyticsLayout
       title="Dashboard"
       description="Monitor workspace activity, approvals, attendance and operational metrics."
-      headerActions={
-        <Link href="/superadmin/timesheets">
-          <Button className="bg-primary text-white hover:bg-indigo-700 rounded-lg h-10 px-5 text-sm font-semibold shadow-sm transition-all">
-            <Clock className="mr-2 h-4 w-4" />
-            {pendingCount} Pending Reviews
-          </Button>
-        </Link>
-      }
+      headerActions={null}
       kpiSection={
         <>
           <KPIStatCard
@@ -139,34 +132,19 @@ export default function DashboardPage() {
             icon={Layers}
           />
           <KPIStatCard
-            title="Approved"
-            value={isLoading ? 0 : approvedCount}
-            icon={CheckCircle2}
-            trend={{
-              value: totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0,
-              label: 'of total',
-              direction: 'up'
-            }}
-          />
-          <KPIStatCard
-            title="Pending"
+            title="Timesheets Review Pending"
             value={isLoading ? 0 : pendingCount}
             icon={Clock}
-            trend={{
-              value: totalCount > 0 ? Math.round((pendingCount / totalCount) * 100) : 0,
-              label: 'of total',
-              direction: 'neutral'
-            }}
           />
           <KPIStatCard
-            title="Rejected"
-            value={isLoading ? 0 : rejectedCount}
-            icon={XCircle}
-            trend={{
-              value: totalCount > 0 ? Math.round((rejectedCount / totalCount) * 100) : 0,
-              label: 'of total',
-              direction: 'down'
-            }}
+            title="Active Projects"
+            value={isLoading ? 0 : activeProjects}
+            icon={FolderKanban}
+          />
+          <KPIStatCard
+            title="Active Employees"
+            value={isLoading ? 0 : activeEmployees}
+            icon={Users}
           />
         </>
       }

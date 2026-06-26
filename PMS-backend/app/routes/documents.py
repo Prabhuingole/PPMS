@@ -10,6 +10,7 @@ from app.database.session import get_db
 from app.models.document import ProjectDocument
 from app.models.project import Project
 from app.models.user import User
+from app.models.notification import Notification
 from app.schemas.document import ProjectDocumentResponse
 from app.core.deps import get_current_user
 from app.core.tenant import current_tenant_ctx
@@ -99,6 +100,25 @@ async def upload_document(
     db.commit()
     db.refresh(new_doc)
     
+    from sqlalchemy.orm import joinedload
+    project_with_members = db.query(Project).options(joinedload(Project.members)).filter(Project.id == project_id).first()
+    if project_with_members:
+        for member in project_with_members.members:
+            if member.id != current_user.id:
+                notification = Notification(
+                    user_id=member.id,
+                    title="New Project Document",
+                    message=f"{current_user.full_name} uploaded '{new_doc.display_name}' to {project_with_members.name}",
+                    type="info",
+                    priority="LOW",
+                    category="SYSTEM",
+                    action_url=f"/employee/projects/{project_id}"
+                )
+                db.add(notification)
+        db.commit()
+        if background_tasks:
+            background_tasks.add_task(manager.broadcast, {"event": "NOTIFICATIONS_UPDATED"})
+    
     create_audit_log(
         db=db,
         action="DOCUMENT_UPLOADED",
@@ -137,7 +157,11 @@ def download_document(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    doc = db.query(ProjectDocument).filter(ProjectDocument.id == document_id).first()
+    from sqlalchemy.orm import joinedload, selectinload
+    doc = db.query(ProjectDocument).options(
+        joinedload(ProjectDocument.project).selectinload(Project.members),
+        joinedload(ProjectDocument.project).selectinload(Project.participating_companies)
+    ).filter(ProjectDocument.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
         

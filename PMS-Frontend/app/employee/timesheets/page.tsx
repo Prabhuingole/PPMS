@@ -97,6 +97,14 @@ export default function MyTimesheetsPage() {
   const [activeManagerFilter, setActiveManagerFilter] = useState<string>('All Manager');
   const [dbProjects, setDbProjects] = useState<any[]>([]);
 
+  const [yearFilter, setYearFilter] = useState<string>('All Years');
+  const [monthFilter, setMonthFilter] = useState<string>('All Months');
+  const [dateFilter, setDateFilter] = useState<string>('All Dates');
+
+  useEffect(() => {
+    setDateFilter('All Dates');
+  }, [yearFilter, monthFilter]);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -128,6 +136,9 @@ export default function MyTimesheetsPage() {
       if (activeManagerFilter !== 'All Manager') {
         params.append('manager_name', activeManagerFilter);
       }
+      if (yearFilter !== 'All Years') params.append('year', yearFilter);
+      if (monthFilter !== 'All Months') params.append('month', monthFilter);
+      if (dateFilter !== 'All Dates') params.append('date', dateFilter);
 
       api.get(`/timesheets/me?${params.toString()}`).then(res => {
         setTimesheets(res.data.items || []);
@@ -135,7 +146,7 @@ export default function MyTimesheetsPage() {
         if (res.data.counts) setCounts(res.data.counts);
       }).catch(console.error);
     }
-  }, [token, refreshTrigger, currentPage, searchTerm, activeFilter, activeProjectFilter, activeManagerFilter, dbProjects]);
+  }, [token, refreshTrigger, currentPage, searchTerm, activeFilter, activeProjectFilter, activeManagerFilter, dbProjects, yearFilter, monthFilter, dateFilter]);
 
   useEffect(() => {
     // Load active projects for timesheet dropdown
@@ -150,7 +161,7 @@ export default function MyTimesheetsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeFilter, activeProjectFilter, activeManagerFilter]);
+  }, [searchTerm, activeFilter, activeProjectFilter, activeManagerFilter, yearFilter, monthFilter, dateFilter]);
 
   const formatDuration = (decimal: number) => {
     const h = Math.floor(decimal);
@@ -227,7 +238,7 @@ export default function MyTimesheetsPage() {
   const visibleDays = dateOrder;
 
   const filterTabs: { key: FilterStatus; label: string; count: number; color: string; activeColor: string }[] = [
-    { key: 'all', label: 'All', count: counts.all, color: 'text-muted-foreground', activeColor: 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' },
+    { key: 'all', label: 'All', count: counts.all, color: 'text-muted-foreground', activeColor: 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-lg shadow-slate-900/20 dark:shadow-slate-100/20' },
     { key: 'approved', label: 'Approved', count: approvedCount, color: 'text-emerald-600', activeColor: 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' },
     { key: 'pending', label: 'Yet to be reviewed', count: pendingCount, color: 'text-amber-600', activeColor: 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' },
     { key: 'rejected', label: 'Timesheets rejected', count: rejectedCount, color: 'text-red-600', activeColor: 'bg-red-500 text-white shadow-lg shadow-red-500/20' },
@@ -254,6 +265,49 @@ export default function MyTimesheetsPage() {
       default: return 'bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-sm shadow-amber-400/25';
     }
   };
+
+  // Generate Options for Date/Month/Year
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => (currentYear - i).toString());
+  }, []);
+
+  const monthOptions = useMemo(() => [
+    { value: '1', label: 'January' }, { value: '2', label: 'February' },
+    { value: '3', label: 'March' }, { value: '4', label: 'April' },
+    { value: '5', label: 'May' }, { value: '6', label: 'June' },
+    { value: '7', label: 'July' }, { value: '8', label: 'August' },
+    { value: '9', label: 'September' }, { value: '10', label: 'October' },
+    { value: '11', label: 'November' }, { value: '12', label: 'December' }
+  ], []);
+
+  const dateOptions = useMemo(() => {
+    const options = [];
+    const today = new Date();
+    
+    if (yearFilter !== 'All Years' && monthFilter !== 'All Months') {
+      const y = parseInt(yearFilter);
+      const m = parseInt(monthFilter);
+      const daysInMonth = new Date(y, m, 0).getDate();
+      for (let i = daysInMonth; i >= 1; i--) {
+        const d = new Date(y, m - 1, i);
+        options.push({
+          value: d.toISOString().split('T')[0],
+          label: d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        });
+      }
+    } else {
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        options.push({
+          value: d.toISOString().split('T')[0],
+          label: i === 0 ? `Today, ${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}` : d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+        });
+      }
+    }
+    return options;
+  }, [yearFilter, monthFilter]);
 
   return (
     <div className="space-y-5 md:space-y-8">
@@ -388,8 +442,8 @@ export default function MyTimesheetsPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 w-full sm:flex sm:flex-row sm:w-auto">
-                  <div className="w-full sm:w-[160px] lg:w-[200px] shrink-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:flex sm:flex-row sm:w-auto">
+                  <div className="w-full sm:w-[120px] lg:w-[140px] shrink-0">
                     <Select value={activeManagerFilter} onValueChange={(v: any) => setActiveManagerFilter(v)}>
                       <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
                         <SelectValue placeholder="All Manager" className="truncate" />
@@ -405,7 +459,7 @@ export default function MyTimesheetsPage() {
                     </Select>
                   </div>
 
-                  <div className="w-full sm:w-[240px] lg:w-[280px] shrink-0">
+                  <div className="w-full sm:w-[160px] lg:w-[180px] shrink-0">
                     <Select value={activeProjectFilter} onValueChange={(v: any) => setActiveProjectFilter(v)}>
                       <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground text-left min-w-0 overflow-hidden">
                         <SelectValue placeholder="All Projects" className="truncate" />
@@ -421,10 +475,55 @@ export default function MyTimesheetsPage() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Date/Month/Year filters */}
+                <div className="grid grid-cols-3 gap-3 w-full sm:flex sm:flex-row sm:w-auto">
+                  <div className="w-full sm:w-[100px] shrink-0">
+                    <Select value={yearFilter} onValueChange={setYearFilter}>
+                      <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground">
+                        <SelectValue placeholder="All Years" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl">
+                        <SelectItem value="All Years" className="text-xs font-medium">All Years</SelectItem>
+                        {yearOptions.map(y => (
+                          <SelectItem key={y} value={y} className="text-xs font-medium">{y}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="w-full sm:w-[120px] shrink-0">
+                    <Select value={monthFilter} onValueChange={setMonthFilter}>
+                      <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground">
+                        <SelectValue placeholder="All Months" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px]">
+                        <SelectItem value="All Months" className="text-xs font-medium">All Months</SelectItem>
+                        {monthOptions.map(m => (
+                          <SelectItem key={m.value} value={m.value} className="text-xs font-medium">{m.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="w-full sm:w-[140px] shrink-0">
+                    <Select value={dateFilter} onValueChange={setDateFilter}>
+                      <SelectTrigger className="w-full h-10 rounded-xl border-border bg-muted/30 text-[10px] sm:text-xs font-bold text-foreground">
+                        <SelectValue placeholder="All Dates" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-border shadow-xl max-h-[300px]">
+                        <SelectItem value="All Dates" className="text-xs font-medium">All Dates</SelectItem>
+                        {dateOptions.map(d => (
+                          <SelectItem key={d.value} value={d.value} className="text-xs font-medium">{d.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* Filter tabs */}
-              <div className="flex items-center gap-1 bg-slate-100/80 p-0.5 rounded-lg overflow-x-auto scrollbar-hide border border-border/50 shadow-sm shrink-0">
+              <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg overflow-x-auto scrollbar-hide border border-border/50 shadow-sm shrink-0">
                 {filterTabs.map(tab => (
                   <button
                     key={tab.key}
@@ -439,7 +538,7 @@ export default function MyTimesheetsPage() {
                     {tab.label}
                     <span className={cn(
                       "text-[8px] font-black px-1 py-0.5 rounded transition-colors",
-                      activeFilter === tab.key ? "bg-white/20" : "bg-slate-200/80"
+                      activeFilter === tab.key ? "bg-white/20 dark:bg-black/20" : "bg-slate-200/80 dark:bg-slate-700"
                     )}>
                       {tab.count}
                     </span>
@@ -513,8 +612,8 @@ export default function MyTimesheetsPage() {
                           className={cn(
                             "group border-b border-border/80 transition-all duration-200 cursor-pointer",
                             isExpanded
-                              ? "bg-indigo-50/30 border-l-[3px] border-l-indigo-500"
-                              : "hover:bg-slate-50/60 border-l-[3px] border-l-transparent hover:border-l-slate-300"
+                              ? "bg-indigo-50/30 dark:bg-indigo-900/20 border-l-[3px] border-l-indigo-500"
+                              : "hover:bg-slate-50/60 dark:hover:bg-slate-800/60 border-l-[3px] border-l-transparent hover:border-l-slate-300 dark:hover:border-l-slate-700"
                           )}
                           onClick={() => setExpandedDays(prev => ({ ...prev, [d]: !prev[d] }))}
                         >
@@ -541,7 +640,7 @@ export default function MyTimesheetsPage() {
                                 {new Date(d).getDate()}
                               </div>
                               <div className="flex flex-col">
-                                <span className="text-xs font-black text-slate-800">
+                                <span className="text-xs font-black text-slate-800 dark:text-slate-200">
                                   {new Date(d).toLocaleDateString('en-IN', { weekday: 'short', month: 'short' })}
                                 </span>
                                 <span className="text-[10px] font-bold text-muted-foreground">
@@ -652,14 +751,14 @@ export default function MyTimesheetsPage() {
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0, y: -8 }}
                                   transition={{ duration: 0.25 }}
-                                  className="px-6 py-5 bg-gradient-to-b from-slate-50/80 to-white"
+                                  className="px-6 py-5 bg-gradient-to-b from-slate-50/80 to-white dark:from-slate-900/50 dark:to-slate-900"
                                 >
                                   <div className="bg-background rounded-xl border border-border/80 shadow-sm overflow-hidden">
                                     {/* Details header */}
-                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-3 md:px-5 bg-slate-50/60 border-b border-border">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 py-3 md:px-5 bg-slate-50/60 dark:bg-slate-800/60 border-b border-border">
                                       <div className="flex items-center gap-2">
                                         <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-300">
                                           Task Breakdown
                                         </span>
                                         {firstTask?.feedback && (
@@ -703,14 +802,14 @@ export default function MyTimesheetsPage() {
                                     </div>
 
                                     {/* Task cards */}
-                                    <div className="divide-y divide-slate-100">
+                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
                                       {dayTasks.map((task, taskIdx) => (
                                         <motion.div
                                           key={task.id}
                                           initial={{ opacity: 0, x: -6 }}
                                           animate={{ opacity: 1, x: 0 }}
                                           transition={{ duration: 0.2, delay: taskIdx * 0.05 }}
-                                          className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 px-4 py-3 md:px-5 md:py-4 hover:bg-slate-50/40 transition-colors group/task"
+                                          className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 px-4 py-3 md:px-5 md:py-4 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition-colors group/task"
                                         >
                                           {/* Task number indicator */}
                                           <div className={cn(
@@ -740,7 +839,7 @@ export default function MyTimesheetsPage() {
                                                 </div>
                                                   <ExpandableText text={task.description} />
                                               </div>
-                                              <span className="text-xs font-black text-slate-800 shrink-0 bg-muted/30 px-2.5 py-1 rounded-lg ring-1 ring-slate-100">
+                                              <span className="text-xs font-black text-slate-800 dark:text-slate-200 shrink-0 bg-muted/30 px-2.5 py-1 rounded-lg ring-1 ring-slate-100 dark:ring-slate-800">
                                                 {formatDuration(task.hours || 0)}
                                               </span>
                                             </div>

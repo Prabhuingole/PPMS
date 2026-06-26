@@ -285,14 +285,22 @@ export default function ProjectListPage() {
             accessorKey: 'name',
             sortable: true,
             cell: (project) => (
-              <div className="flex items-center gap-3">
-                <div className={cn("h-2.5 w-2.5 rounded-full shrink-0 shadow-sm", 
-                  project.status === 'active' ? "bg-emerald-500" :
-                  project.status === 'planning' ? "bg-indigo-500" :
-                  project.status === 'on-hold' ? "bg-amber-500" :
-                  "bg-muted/300"
-                )} title={project.status.toUpperCase()} />
-                <span className="text-sm font-black text-foreground group-hover:text-primary transition-colors">{project.name}</span>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                  <div className={cn("h-2.5 w-2.5 rounded-full shrink-0 shadow-sm", 
+                    project.status === 'active' ? "bg-emerald-500" :
+                    project.status === 'planning' ? "bg-indigo-500" :
+                    project.status === 'on-hold' ? "bg-amber-500" :
+                    "bg-muted/300"
+                  )} title={project.status.toUpperCase()} />
+                  <span className="text-sm font-black text-foreground group-hover:text-primary transition-colors">{project.name}</span>
+                </div>
+                {project.owner_company_name && (
+                  <div className="flex items-center gap-1.5 ml-5 text-[10px] text-muted-foreground font-semibold">
+                    <Building2 className="w-3 h-3 text-indigo-400" />
+                    <span className="uppercase tracking-wider">Managed by: {project.owner_company_name}</span>
+                  </div>
+                )}
               </div>
             )
           },
@@ -302,7 +310,7 @@ export default function ProjectListPage() {
             sortable: true,
             hideOnMobile: true,
             cell: (project) => (
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <UserCheck className="h-3.5 w-3.5 text-muted-foreground" /> 
                 {project.reporting_manager?.full_name.split(' ')[0] || 'Unassigned'}
               </div>
@@ -314,7 +322,7 @@ export default function ProjectListPage() {
             sortable: true,
             hideOnMobile: true,
             cell: (project) => (
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+              <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
                 <span>
                   {project.members?.length || 0} {(project.members?.length === 1) ? 'Member' : 'Members'}
@@ -350,12 +358,12 @@ export default function ProjectListPage() {
             hideOnMobile: true,
             cell: (project) => (
               <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-600">
+                <div className="flex items-center gap-2 text-[10px] font-semibold text-foreground">
                    <Calendar className="h-3 w-3 text-muted-foreground" />
                    {project.start_date ? format(new Date(project.start_date), 'dd MMM yy') : 'TBD'}
                 </div>
                 <div className="flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
-                   <Clock className="h-3 w-3 text-slate-300" />
+                   <Clock className="h-3 w-3 text-muted-foreground/50" />
                    {project.end_date ? format(new Date(project.end_date), 'dd MMM yy') : 'Ongoing'}
                 </div>
               </div>

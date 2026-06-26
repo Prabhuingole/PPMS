@@ -11,14 +11,17 @@ class ResourceReportingService:
     @staticmethod
     def get_resource_summary(db: Session, company_id: int = None):
         # Active consultants
-        ac_query = db.query(User).filter(User.role == UserRole.CONSULTANT, User.is_active == True)
+        ac_query = db.query(User).filter(
+            User.role.in_([UserRole.EMPLOYEE, UserRole.CONSULTANT, UserRole.INTERN, UserRole.TEAM_MEMBER]), 
+            User.is_active == True
+        )
         if company_id:
             ac_query = ac_query.filter(User.company_id == company_id)
         active_consultants = ac_query.count()
 
         # Assigned consultants
         asc_query = db.query(User).join(ResourceAllocation).filter(
-            User.role == UserRole.CONSULTANT, 
+            User.role.in_([UserRole.EMPLOYEE, UserRole.CONSULTANT, UserRole.INTERN, UserRole.TEAM_MEMBER]), 
             User.is_active == True,
             ResourceAllocation.is_active == True
         ).distinct()
@@ -35,14 +38,17 @@ class ResourceReportingService:
         open_projects = op_query.count()
 
         # Total Capacity
-        cap_query = db.query(func.sum(User.weekly_capacity_hours)).filter(User.role == UserRole.CONSULTANT, User.is_active == True)
+        cap_query = db.query(func.sum(User.weekly_capacity_hours)).filter(
+            User.role.in_([UserRole.EMPLOYEE, UserRole.CONSULTANT, UserRole.INTERN, UserRole.TEAM_MEMBER]),
+            User.is_active == True
+        )
         if company_id:
             cap_query = cap_query.filter(User.company_id == company_id)
         total_capacity_hours = cap_query.scalar() or 0.0
 
         # Total Allocated Hours
         alloc_query = db.query(func.sum(ResourceAllocation.allocated_hours_per_week)).join(User).filter(
-            User.role == UserRole.CONSULTANT,
+            User.role.in_([UserRole.EMPLOYEE, UserRole.CONSULTANT, UserRole.INTERN, UserRole.TEAM_MEMBER]),
             User.is_active == True,
             ResourceAllocation.is_active == True
         )
@@ -72,7 +78,10 @@ class ResourceReportingService:
         # The prompt says "Logged Hours". I'll use a subquery or join for recent logged hours, but given scope reduction, all-time logged hours might be skewed. Let's assume total or we can just fetch total allocations and timesheets.
         
         # Get active consultants
-        consultants_query = db.query(User).filter(User.role == UserRole.CONSULTANT, User.is_active == True)
+        consultants_query = db.query(User).filter(
+            User.role.in_([UserRole.EMPLOYEE, UserRole.CONSULTANT, UserRole.INTERN, UserRole.TEAM_MEMBER]), 
+            User.is_active == True
+        )
         if company_id:
             consultants_query = consultants_query.filter(User.company_id == company_id)
         consultants = consultants_query.all()

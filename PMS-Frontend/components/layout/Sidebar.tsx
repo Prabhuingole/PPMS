@@ -38,7 +38,6 @@ const menuItems = [
   { icon: UserCheck, label: 'Reporting Managers', href: '/superadmin/reporting-managers' },
   { icon: Briefcase, label: 'Projects', href: '/superadmin/projects' },
   { icon: ClipboardList, label: 'Timesheets', href: '/superadmin/timesheets' },
-  { icon: Zap, label: 'Consultant Utilization', href: '/superadmin/utilization' },
   { icon: Fingerprint, label: 'Attendance', href: '/superadmin/attendance' },
   { icon: BookOpen, label: 'Templates', href: '/superadmin/templates' },
   { icon: Sparkles, label: 'Activity Logs', href: '/superadmin/logs' },

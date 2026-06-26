@@ -53,6 +53,7 @@ export default function LoginPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showEmail, setShowEmail] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -149,7 +150,7 @@ export default function LoginPage() {
           localStorage.setItem('rememberMe', 'false');
         }
       }
-      
+
       const sanitizedPassword = values.password.replace(/[\u200B-\u200D\uFEFF]/g, '');
 
       // Connect to your FastAPI endpoint
@@ -195,7 +196,7 @@ export default function LoginPage() {
       toast.error("Please enter a valid 6-digit OTP.");
       return;
     }
-    
+
     setIsVerifyingMfa(true);
     setLoginError(null);
     try {
@@ -229,7 +230,7 @@ export default function LoginPage() {
       toast.error('Please enter your corporate email address');
       return;
     }
-    
+
     setIsForgotLoading(true);
     try {
       await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/forgot-password`, {
@@ -282,7 +283,7 @@ export default function LoginPage() {
   // Prevent UI flickering while checking hydration or auth status
   if (!isMounted || !_hasHydrated || (isAuthenticated && !requiresPasswordChange)) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-background">
+      <div suppressHydrationWarning className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
       </div>
     );
@@ -319,11 +320,11 @@ export default function LoginPage() {
         <Card className="border-slate-200 dark:border-border shadow-2xl shadow-slate-200/50 dark:shadow-none rounded-3xl overflow-hidden bg-white/80 dark:bg-card/80 backdrop-blur-sm">
           <CardHeader className="space-y-1 pb-4 sm:pb-8">
             <CardTitle className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-foreground">
-              {viewMode === 'forgot' 
-                ? 'Recover Password' 
-                : requiresPasswordChange 
-                  ? 'Set New Password' 
-                  : 'Secure Sign In'}
+              {viewMode === 'forgot'
+                ? 'Recover Password'
+                : requiresPasswordChange
+                  ? 'Set New Password'
+                  : 'Sign In'}
             </CardTitle>
             <CardDescription className="text-slate-500 dark:text-muted-foreground">
               {viewMode === 'forgot'
@@ -332,7 +333,7 @@ export default function LoginPage() {
                   ? 'Please set a new secure password to continue.'
                   : mfaRequired
                     ? 'Enter the 6-digit code sent to your email.'
-                    : 'Enter your Sambhav credentials to continue'}
+                    : 'Enter your credentials to continue'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -360,7 +361,7 @@ export default function LoginPage() {
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
                               type={showPassword ? 'text' : 'password'}
-                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                             <button
@@ -389,7 +390,7 @@ export default function LoginPage() {
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
                               type={showConfirmPassword ? 'text' : 'password'}
-                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                             <button
@@ -429,19 +430,19 @@ export default function LoginPage() {
                   <label className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                     Corporate Email
                   </label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground" />
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                     <Input
                       type="email"
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
                       placeholder="Enter your email"
                       required
-                      className="h-12 pl-11 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                      className="h-12 pl-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col space-y-3">
                   <Button
                     type="submit"
@@ -457,9 +458,9 @@ export default function LoginPage() {
                       "Send Reset Link"
                     )}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     onClick={() => setViewMode('login')}
                     className="w-full h-12 font-bold text-xs text-slate-500 hover:text-slate-700 rounded-xl"
                   >
@@ -473,8 +474,8 @@ export default function LoginPage() {
                   <label className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
                     Verification Code (OTP)
                   </label>
-                  <div className="relative">
-                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground" />
+                  <div className="relative group">
+                    <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                     <Input
                       type="text"
                       maxLength={6}
@@ -482,11 +483,11 @@ export default function LoginPage() {
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                       placeholder="Enter 6-digit code"
                       required
-                      className="h-12 pl-11 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all tracking-[0.5em] font-mono text-center"
+                      className="h-12 pl-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all tracking-[0.5em] font-mono text-center"
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col space-y-3">
                   <Button
                     type="submit"
@@ -502,9 +503,9 @@ export default function LoginPage() {
                       "Verify OTP"
                     )}
                   </Button>
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
+                  <Button
+                    type="button"
+                    variant="ghost"
                     onClick={() => { setMfaRequired(false); setOtp(''); setLoginError(null); }}
                     className="w-full h-12 font-bold text-xs text-slate-500 hover:text-slate-700 rounded-xl"
                   >
@@ -526,13 +527,21 @@ export default function LoginPage() {
                           Corporate Email
                         </FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground" />
+                          <div className="relative group">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
+                              type={showEmail ? 'text' : 'password'}
                               placeholder="Enter your email"
-                              className="h-12 pl-11 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
+                            <button
+                              type="button"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 dark:text-muted-foreground hover:text-slate-600 focus:outline-none transition-colors"
+                              onClick={() => setShowEmail(!showEmail)}
+                            >
+                              {showEmail ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
                           </div>
                         </FormControl>
                         <FormMessage className="text-xs" />
@@ -547,14 +556,14 @@ export default function LoginPage() {
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <FormLabel required className="text-xs font-bold tracking-wider text-slate-400 dark:text-muted-foreground">
-                          Access Password
+                          Password
                         </FormLabel>
                         <FormControl>
                           <div className="relative group">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
                             <Input
                               type={showPassword ? 'text' : 'password'}
-                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-border bg-slate-50/50 dark:bg-background focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
+                              className="h-12 pl-11 pr-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:ring-blue-500/20 focus-visible:ring-offset-0 focus-visible:border-blue-500 transition-all"
                               {...field}
                             />
                             <button
@@ -593,9 +602,9 @@ export default function LoginPage() {
                         </div>
                       )}
                     />
-                    <Button 
-                      type="button" 
-                      variant="link" 
+                    <Button
+                      type="button"
+                      variant="link"
                       onClick={() => setViewMode('forgot')}
                       className="text-xs font-bold text-blue-600 px-0 h-auto hover:text-blue-700"
                     >

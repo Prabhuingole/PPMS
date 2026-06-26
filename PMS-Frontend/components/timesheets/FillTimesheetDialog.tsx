@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plus, 
@@ -269,7 +269,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   // Load projects
   useEffect(() => {
     if (token && isOpen) {
-      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/?limit=1000&include_unassigned=true`, {
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/projects/?limit=1000&include_unassigned=true&dropdown=true`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => {
         let items = res.data.items || res.data;
@@ -278,6 +278,9 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
       }).catch(console.error);
     }
   }, [token, isOpen]);
+
+  const assignedProjects = useMemo(() => projects.filter((p: any) => p.assigned), [projects]);
+  const unassignedProjects = useMemo(() => projects.filter((p: any) => !p.assigned), [projects]);
 
   const totalHours = entries.reduce((acc, curr) => acc + (Number(curr.entryHours) || 0) + ((Number(curr.entryMinutes) || 0) / 60), 0);
   const isLeaveOrHoliday = attendance === 'leave' || attendance === 'public-holiday';
@@ -681,6 +684,8 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
   entriesCount: number;
 }) => {
   const isLocked = entry.billingStatus === 'INVOICED' || entry.billingStatus === 'PAID';
+  const assignedProjects = projects.filter((p: any) => p.assigned);
+  const unassignedProjects = projects.filter((p: any) => !p.assigned);
 
   return (
     <motion.div
@@ -703,20 +708,20 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                   <SelectValue placeholder="Select Project" className="truncate" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl max-w-[400px]">
-                  {projects.filter((p: any) => p.assigned).length > 0 && (
+                  {assignedProjects.length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground">Assigned Projects</SelectLabel>
-                      {projects.filter((p: any) => p.assigned).map((p: any) => (
+                      {assignedProjects.map((p: any) => (
                         <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
                           {p.code ? `[${p.code}] — ${p.name}` : p.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>
                   )}
-                  {projects.filter((p: any) => !p.assigned).length > 0 && (
+                  {unassignedProjects.length > 0 && (
                     <SelectGroup>
-                      <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground mt-2">Other Active Projects</SelectLabel>
-                      {projects.filter((p: any) => !p.assigned).map((p: any) => (
+                      <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground mt-2">Unassigned Projects</SelectLabel>
+                      {unassignedProjects.map((p: any) => (
                         <SelectItem key={p.id} value={p.id.toString()} className="text-xs font-bold py-2.5 pr-8 truncate">
                           {p.code ? `[${p.code}] — ${p.name}` : p.name}
                         </SelectItem>

@@ -51,13 +51,14 @@ async def update_template(
     if remove_file:
         template.filename = None
         template.file_path = None
-    elif file:
+    if file:
         ALLOWED_MIMES = [
             "application/pdf", 
             "image/jpeg", 
             "image/png", 
             "text/csv", 
             "text/plain",
+            "text/html",
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document", 
             "application/zip",
