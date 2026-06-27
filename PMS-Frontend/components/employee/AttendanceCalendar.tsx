@@ -129,7 +129,7 @@ export function AttendanceCalendar({ records, month, year, onMonthChange, onDayC
                 "aspect-square flex items-center justify-center rounded-xl text-xs font-bold transition-all relative",
                 isClickable ? "cursor-pointer hover:scale-105" : "",
                 color ? `${getColorClasses(color)} ring-2` : '',
-                showRed ? 'bg-red-100 text-red-600 ring-2 ring-red-300/30' : '',
+                showRed ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 ring-2 ring-red-300/30 dark:ring-red-400/30' : '',
                 !color && !showRed ? 'text-muted-foreground hover:bg-muted' : '',
                 isToday && !color ? 'ring-2 ring-indigo-500 text-primary font-black' : '',
                 isToday && color ? 'ring-offset-2 ring-offset-background' : ''

@@ -43,27 +43,46 @@ export default function AdminAttendancePage() {
   const [year, setYear] = useState(now.getFullYear());
   const [statusFilter, setStatusFilter] = useState('');
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [date, setDate] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailRecord, setDetailRecord] = useState<AttendanceRecord | null>(null);
-  
-  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { month, year, limit: 200 };
+      const params: any = { page: currentPage, limit: pageSize };
+      if (date) {
+        params.date = date;
+      } else {
+        params.month = month;
+        params.year = year;
+      }
       if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
       const res = await api.get(`/attendance/all`, {
         headers: { Authorization: `Bearer ${token}` },
         params
       });
       setRecords(res.data?.items || []);
+      setTotalPages(res.data?.pages || 1);
+      setTotalItems(res.data?.total || 0);
     } catch {
       setRecords([]);
+      setTotalPages(1);
+      setTotalItems(0);
     } finally {
       setLoading(false);
     }
-  }, [token, month, year, statusFilter, api]);
+  }, [token, date, month, year, statusFilter, currentPage, pageSize]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [date, month, year, statusFilter, pageSize]);
 
   useEffect(() => {
     if (token) fetchData();
@@ -106,30 +125,40 @@ export default function AdminAttendancePage() {
           onSearchChange={setSearchTerm}
           filters={
             <div className="flex flex-wrap items-center gap-3">
-                <Select value={month.toString()} onValueChange={(val) => setMonth(Number(val))}>
-                  <SelectTrigger className="w-[140px] h-10 bg-background text-sm font-medium text-muted-foreground border-border">
-                    <SelectValue placeholder="Select Month" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <SelectItem key={i + 1} value={(i + 1).toString()}>
-                        {monthNames[i + 1]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={year.toString()} onValueChange={(val) => setYear(Number(val))}>
-                  <SelectTrigger className="w-[100px] h-10 bg-background text-sm font-medium text-muted-foreground border-border">
-                    <SelectValue placeholder="Select Year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[2024, 2025, 2026, 2027].map((y) => (
-                      <SelectItem key={y} value={y.toString()}>
-                        {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input 
+                  type="date" 
+                  value={date} 
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-[140px] h-10 bg-background text-sm font-medium text-muted-foreground border-border"
+                />
+                {!date && (
+                  <>
+                    <Select value={month.toString()} onValueChange={(val) => setMonth(Number(val))}>
+                      <SelectTrigger className="w-[140px] h-10 bg-background text-sm font-medium text-muted-foreground border-border">
+                        <SelectValue placeholder="Select Month" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 12 }, (_, i) => (
+                          <SelectItem key={i + 1} value={(i + 1).toString()}>
+                            {monthNames[i + 1]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={year.toString()} onValueChange={(val) => setYear(Number(val))}>
+                      <SelectTrigger className="w-[100px] h-10 bg-background text-sm font-medium text-muted-foreground border-border">
+                        <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[2024, 2025, 2026, 2027].map((y) => (
+                          <SelectItem key={y} value={y.toString()}>
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
               <FilterGroup 
                 options={[
                   { label: 'All', value: 'all' },
@@ -142,10 +171,18 @@ export default function AdminAttendancePage() {
             </div>
           }
           toolbarActions={
-            <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-slate-200 rounded-md px-2 py-1 font-medium">
-              {filteredRecords.length} records
+            <Badge variant="secondary" className="bg-muted text-muted-foreground hover:bg-foreground rounded-md px-2 py-1 font-medium">
+              {totalItems} records
             </Badge>
           }
+          pagination={{
+            currentPage: currentPage,
+            totalPages: totalPages,
+            onPageChange: setCurrentPage,
+            pageSize: pageSize,
+            onPageSizeChange: setPageSize,
+            totalItems: totalItems
+          }}
           emptyState={
             <EmptyState 
               icon={Calendar}
@@ -161,7 +198,7 @@ export default function AdminAttendancePage() {
               cell: (rec) => (
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs bg-muted text-slate-600 font-medium border border-border">
+                    <AvatarFallback className="text-xs bg-muted text-muted-foreground font-medium border border-border">
                       {rec.user_name?.charAt(0) || '?'}
                     </AvatarFallback>
                   </Avatar>
@@ -181,14 +218,14 @@ export default function AdminAttendancePage() {
             {
               header: 'Clock In',
               accessorKey: 'clock_in_time',
-              cell: (rec) => <span className="text-sm text-slate-600">{formatTime(rec.clock_in_time)}</span>
+              cell: (rec) => <span className="text-sm text-muted-foreground">{formatTime(rec.clock_in_time)}</span>
             },
             {
               header: 'Clock Out',
               accessorKey: 'clock_out_time',
               hideOnMobile: true,
               cell: (rec) => rec.clock_out_time ? (
-                <span className="text-sm text-slate-600">{formatTime(rec.clock_out_time)}</span>
+                <span className="text-sm text-muted-foreground">{formatTime(rec.clock_out_time)}</span>
               ) : (
                 <span className="text-sm text-muted-foreground italic">Pending</span>
               )

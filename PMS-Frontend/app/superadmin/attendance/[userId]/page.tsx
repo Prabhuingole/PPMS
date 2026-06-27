@@ -153,11 +153,11 @@ export default function EmployeeCalendarViewPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-muted/30"><Mail className="h-4 w-4 text-muted-foreground" /></div>
-                  <span className="text-sm font-medium text-slate-600">{employeeInfo?.email || 'N/A'}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{employeeInfo?.email || 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-muted/30"><Shield className="h-4 w-4 text-muted-foreground" /></div>
-                  <span className="text-sm font-medium text-slate-600 capitalize">{employeeInfo?.role || 'N/A'}</span>
+                  <span className="text-sm font-medium text-muted-foreground capitalize">{employeeInfo?.role || 'N/A'}</span>
                 </div>
               </div>
             </Card>

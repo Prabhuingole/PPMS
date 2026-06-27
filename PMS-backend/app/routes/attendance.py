@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Request, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import desc, func
 from typing import List, Optional
 from datetime import datetime, date
@@ -214,7 +214,7 @@ def get_my_attendance(
 ):
     from sqlalchemy import extract
     
-    query = db.query(Attendance).filter(Attendance.user_id == current_user.id)
+    query = db.query(Attendance).options(joinedload(Attendance.user)).filter(Attendance.user_id == current_user.id)
     
     if month:
         query = query.filter(extract('month', Attendance.date) == month)
@@ -224,8 +224,19 @@ def get_my_attendance(
     total = query.count()
     items = query.order_by(desc(Attendance.date)).offset((page - 1) * limit).limit(limit).all()
     
+    if items:
+        from sqlalchemy import cast, Date
+        dates = list({item.date for item in items})
+        ts_records = db.query(cast(Timesheet.date, Date).label('d')).filter(
+            Timesheet.user_id == current_user.id,
+            cast(Timesheet.date, Date).in_(dates)
+        ).all()
+        submitted_dates = {ts.d for ts in ts_records}
+    else:
+        submitted_dates = set()
+
     for item in items:
-        setattr(item, "timesheet_status", get_timesheet_status(db, current_user.id, item.date))
+        setattr(item, "timesheet_status", "submitted" if item.date in submitted_dates else "pending")
         
     return {
         "items": items,
@@ -238,10 +249,11 @@ def get_my_attendance(
 def get_all_attendance(
     month: Optional[int] = Query(None, ge=1, le=12),
     year: Optional[int] = Query(None, ge=2020),
+    date: Optional[str] = Query(None, description="Format YYYY-MM-DD"),
     user_id: Optional[int] = None,
     status: Optional[str] = None,
     page: int = 1,
-    limit: int = 50,
+    limit: int = 20,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -250,15 +262,24 @@ def get_all_attendance(
         
     from sqlalchemy import extract
     
-    query = db.query(Attendance)
+    query = db.query(Attendance).options(joinedload(Attendance.user))
     
     if current_user.role == "admin":
         query = query.join(Attendance.user).filter(User.company_id == current_tenant_ctx.get())
     
-    if month:
-        query = query.filter(extract('month', Attendance.date) == month)
-    if year:
-        query = query.filter(extract('year', Attendance.date) == year)
+    if date:
+        from datetime import datetime
+        try:
+            parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+            query = query.filter(Attendance.date == parsed_date)
+        except ValueError:
+            pass # ignore invalid dates
+    else:
+        if month:
+            query = query.filter(extract('month', Attendance.date) == month)
+        if year:
+            query = query.filter(extract('year', Attendance.date) == year)
+            
     if user_id:
         query = query.filter(Attendance.user_id == user_id)
     if status:
@@ -267,12 +288,24 @@ def get_all_attendance(
     total = query.count()
     items = query.order_by(desc(Attendance.date)).offset((page - 1) * limit).limit(limit).all()
     
+    if items:
+        from sqlalchemy import cast, Date
+        user_ids = list({item.user_id for item in items})
+        dates = list({item.date for item in items})
+        ts_records = db.query(Timesheet.user_id, cast(Timesheet.date, Date).label('d')).filter(
+            Timesheet.user_id.in_(user_ids),
+            cast(Timesheet.date, Date).in_(dates)
+        ).all()
+        submitted_pairs = {(ts.user_id, ts.d) for ts in ts_records}
+    else:
+        submitted_pairs = set()
+
     for item in items:
         if item.user:
             setattr(item, "user_name", item.user.full_name)
             setattr(item, "user_email", item.user.email)
             setattr(item, "user_role", item.user.role)
-        setattr(item, "timesheet_status", get_timesheet_status(db, item.user_id, item.date))
+        setattr(item, "timesheet_status", "submitted" if (item.user_id, item.date) in submitted_pairs else "pending")
         
     return {
         "items": items,

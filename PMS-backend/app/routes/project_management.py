@@ -133,12 +133,18 @@ def get_projects(
     if not dropdown:
         query = query.options(
             joinedload(Project.reporting_manager),
-            selectinload(Project.members)
+            selectinload(Project.members),
+            joinedload(Project.owner_company),
+            joinedload(Project.client_company),
+            selectinload(Project.participating_companies)
         )
     else:
         query = query.options(
             noload(Project.reporting_manager),
-            noload(Project.members)
+            noload(Project.members),
+            noload(Project.owner_company),
+            noload(Project.client_company),
+            noload(Project.participating_companies)
         )
 
     if current_user.role == "admin":
