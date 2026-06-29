@@ -289,7 +289,7 @@ export default function EmployeeNotesPage() {
             {projects.map(proj => (
               <button
                 key={proj.id}
-                onClick={() => setSelectedProjectId(proj.id)}
+                onClick={() => { setSelectedProjectId(proj.id); setActivePageId(null); setMobileMenuOpen(false); }}
                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-left hover:bg-slate-200/50 text-muted-foreground"
               >
                 <div className="flex items-center flex-1 min-w-0">
@@ -309,7 +309,7 @@ export default function EmployeeNotesPage() {
           <Button 
             variant="ghost" 
             size="sm" 
-            onClick={() => setSelectedProjectId(null)}
+            onClick={() => { setSelectedProjectId(null); setActivePageId(null); }}
             className="text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground -ml-2 h-7"
           >
             ← Back to Projects
@@ -518,6 +518,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
   };
 
   useEffect(() => {
+    setActivePage(null);
     loadPageContent(pageId);
   }, [pageId]);
 
@@ -601,7 +602,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
       <WorkspaceHeader
         left={
           <>
-            <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+            <div className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-200 dark:ring-emerald-500/20">
               ✓ Task Workspace
             </div>
             <div className="flex items-center text-[10px] font-bold text-muted-foreground">
@@ -618,7 +619,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="flex items-center text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2.5 py-1 rounded-full"
+                  className="flex items-center text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-full"
                 >
                   <Loader2 className="h-3 w-3 animate-spin mr-1.5" /> Saving
                 </motion.div>
@@ -639,17 +640,17 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
             initialValue={activePage.title}
             onChange={(val: string) => handleContentChange('title', val)}
             placeholder="Untitled To Do List"
-            className="w-full text-4xl font-black tracking-tight text-foreground border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0"
+            className="w-full text-4xl font-black tracking-tight text-foreground border-none outline-none bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-0 p-0"
           />
 
           <LocalTextarea 
             initialValue={activePage.content || ''}
             onChange={(val: string) => handleContentChange('content', val)}
             placeholder="Add a brief description..."
-            className="w-full min-h-[60px] text-base leading-relaxed text-muted-foreground border-none outline-none bg-transparent placeholder:text-slate-300 focus:ring-0 p-0 resize-none font-medium"
+            className="w-full min-h-[60px] text-base leading-relaxed text-foreground dark:text-slate-300 border-none outline-none bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-0 p-0 resize-none font-medium"
           />
 
-          <div className="pt-6 border-t border-border mt-6">
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 mt-6">
             <h3 className="text-sm font-semibold text-foreground flex items-center mb-6">
               <CheckSquare className="h-4 w-4 mr-2 text-primary" /> Task List
             </h3>
@@ -659,7 +660,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
                 <div key={item.id} className="flex items-start group">
                   <button 
                     onClick={() => handleToggleChecklist(item.id)}
-                    className="mt-0.5 mr-3 shrink-0 text-slate-300 hover:text-primary transition-colors"
+                    className="mt-0.5 mr-3 shrink-0 text-slate-400 dark:text-slate-600 hover:text-primary transition-colors"
                   >
                     {item.is_completed ? (
                       <CheckSquare2 className="h-5 w-5 text-primary" />
@@ -669,7 +670,7 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
                   </button>
                   <span className={cn(
                     "flex-1 text-sm font-medium pt-0.5 outline-none transition-all",
-                    item.is_completed ? "text-muted-foreground line-through decoration-slate-300" : "text-muted-foreground"
+                    item.is_completed ? "text-slate-400 dark:text-slate-500 line-through decoration-slate-400 dark:decoration-slate-600" : "text-foreground dark:text-slate-200"
                   )}>
                     {item.text}
                   </span>
@@ -689,12 +690,12 @@ function MainEditor({ pageId, onPageUpdated }: { pageId: number, onPageUpdated: 
             </div>
 
             <div className="flex items-center">
-              <Plus className="h-4 w-4 mr-3 text-slate-300" />
+              <Plus className="h-4 w-4 mr-3 text-slate-400 dark:text-slate-600" />
               <input 
                 type="text"
                 placeholder="Add a new task... (Press Enter)"
                 onKeyDown={handleAddChecklist}
-                className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-slate-300 focus:ring-0 p-0 font-medium"
+                className="flex-1 text-sm text-foreground dark:text-slate-200 bg-transparent border-none outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:ring-0 p-0 font-medium"
               />
             </div>
           </div>

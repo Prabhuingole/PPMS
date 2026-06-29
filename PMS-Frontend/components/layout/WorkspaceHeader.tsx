@@ -11,7 +11,7 @@ export const WorkspaceHeader = memo(function WorkspaceHeader({ left, right, clas
   return (
     <div
       className={cn(
-        'h-14 border-b border-border flex items-center justify-between px-6 shrink-0 bg-white/80 backdrop-blur-sm sticky top-0 z-10',
+        'h-14 border-b border-border flex items-center justify-between px-6 shrink-0 bg-white/80 dark:bg-background/80 backdrop-blur-sm sticky top-0 z-10',
         className
       )}
     >

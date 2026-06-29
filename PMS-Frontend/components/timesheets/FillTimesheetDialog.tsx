@@ -43,6 +43,7 @@ const otherWorkCategories = [
   { id: 'meeting', name: 'Meeting', sub: ['Internal Meeting', 'External Meeting'] },
   { id: 'kt', name: 'Knowledge Transfer (KT)', sub: ['KT Taken', 'KT Given'] },
   { id: 'learning', name: 'Learning', sub: ['Learning Activities', 'Training', 'Research'] },
+  { id: 'add_work', name: 'Add Work', sub: [] }
 ];
 
 type Entry = {
@@ -707,7 +708,7 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                 <SelectTrigger className="h-10 rounded-lg border-border text-xs font-bold w-full min-w-0 overflow-hidden">
                   <SelectValue placeholder="Select Project" className="truncate" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl max-w-[400px]">
+                <SelectContent className="rounded-xl max-w-[400px] max-h-[300px] overflow-y-auto">
                   {assignedProjects.length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="text-[10px] font-black uppercase text-muted-foreground">Assigned Projects</SelectLabel>
@@ -767,8 +768,13 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                       ))}
                     </SelectContent>
                   </Select>
-                  {entry.categoryId && (
-                    <Select value={entry.subcategory} onValueChange={(v) => v && updateEntry(entry.id, 'subcategory', v)}>
+                  {entry.categoryId && entry.categoryId !== 'add_work' && (
+                    <Select value={entry.subcategory} onValueChange={(v) => {
+                      if (v) {
+                        updateEntry(entry.id, 'subcategory', v);
+                        updateEntry(entry.id, 'taskTitle', v);
+                      }
+                    }}>
                       <SelectTrigger className="h-9 rounded-lg border-border text-[10px] font-bold flex-1">
                         <SelectValue placeholder="Sub-category" />
                       </SelectTrigger>
@@ -847,7 +853,7 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
           <div className="space-y-1.5">
             <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Name</Label>
             <Input 
-              disabled={isLocked}
+              disabled={isLocked || (entry.projectId === 'other' && entry.categoryId !== 'add_work')}
               value={entry.taskTitle}
               onChange={(e) => updateEntry(entry.id, 'taskTitle', e.target.value)}
               placeholder="e.g. API Integration, UI Design, Bug Fix..."

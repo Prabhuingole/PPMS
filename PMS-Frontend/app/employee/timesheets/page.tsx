@@ -349,10 +349,10 @@ export default function MyTimesheetsPage() {
       {/* ── Stats Grid ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-5">
         {[
-          { label: 'Approved', value: approvedCount, icon: CheckCircle2, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', iconColor: 'text-emerald-600', ring: 'ring-emerald-100' },
-          { label: 'Yet to be reviewed', value: pendingCount, icon: Clock, gradient: 'from-amber-400 to-orange-500', bg: 'bg-amber-50', iconColor: 'text-amber-600', ring: 'ring-amber-100' },
-          { label: 'Timesheets rejected', value: rejectedCount, icon: XCircle, gradient: 'from-red-500 to-rose-600', bg: 'bg-red-50', iconColor: 'text-red-600', ring: 'ring-red-100' },
-          { label: 'Total Hours', value: formatDuration(totalHours), icon: Timer, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50', iconColor: 'text-primary', ring: 'ring-indigo-100' },
+          { label: 'Approved', value: approvedCount, icon: CheckCircle2, gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50 dark:bg-emerald-500/10', iconColor: 'text-emerald-600 dark:text-emerald-400', ring: 'ring-emerald-100 dark:ring-emerald-500/20' },
+          { label: 'Yet to be reviewed', value: pendingCount, icon: Clock, gradient: 'from-amber-400 to-orange-500', bg: 'bg-amber-50 dark:bg-amber-500/10', iconColor: 'text-amber-600 dark:text-amber-400', ring: 'ring-amber-100 dark:ring-amber-500/20' },
+          { label: 'Timesheets rejected', value: rejectedCount, icon: XCircle, gradient: 'from-red-500 to-rose-600', bg: 'bg-red-50 dark:bg-red-500/10', iconColor: 'text-red-600 dark:text-red-400', ring: 'ring-red-100 dark:ring-red-500/20' },
+          { label: 'Total Hours', value: formatDuration(totalHours), icon: Timer, gradient: 'from-indigo-500 to-purple-600', bg: 'bg-indigo-50 dark:bg-indigo-500/10', iconColor: 'text-primary dark:text-indigo-400', ring: 'ring-indigo-100 dark:ring-indigo-500/20' },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -365,14 +365,14 @@ export default function MyTimesheetsPage() {
               <div className={cn("absolute top-0 left-0 right-0 h-1 bg-gradient-to-r opacity-80", stat.gradient)} />
               <div className="p-3 pt-4 md:p-5 md:pt-6">
                 <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{stat.label}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-300">{stat.label}</span>
                   <div className={cn("p-2 rounded-xl ring-1 transition-transform group-hover:scale-110", stat.bg, stat.ring)}>
                     <stat.icon className={cn("h-4 w-4", stat.iconColor)} />
                   </div>
                 </div>
                 <div className="text-2xl md:text-3xl font-black text-foreground tracking-tight">{stat.value}</div>
                 {stat.label === 'Total Hours' && (
-                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{timesheets.length} entries logged</p>
+                  <p className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">{timesheets.length} entries logged</p>
                 )}
               </div>
             </Card>
@@ -389,12 +389,12 @@ export default function MyTimesheetsPage() {
         <Card className="border-border/80 rounded-xl bg-background shadow-sm overflow-hidden">
           <div className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 ring-1 ring-indigo-100">
-                <TrendingUp className="h-4 w-4 text-primary" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-500/10 ring-1 ring-indigo-100 dark:ring-indigo-500/20">
+                <TrendingUp className="h-4 w-4 text-primary dark:text-indigo-400" />
               </div>
               <div>
-                <p className="text-xs font-black text-slate-800 uppercase tracking-wide">This Week</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mon – Today</p>
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wide">This Week</p>
+                <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Mon – Today</p>
               </div>
             </div>
             <div className="flex items-center gap-3 md:gap-4 flex-1 max-w-md">
@@ -413,7 +413,7 @@ export default function MyTimesheetsPage() {
               </div>
               <div className="text-right shrink-0">
                 <span className="text-sm font-black text-foreground">{formatDuration(thisWeekHours)}</span>
-                <span className="text-[10px] font-bold text-muted-foreground ml-1">/ 48h</span>
+                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 ml-1">/ 48h</span>
               </div>
             </div>
           </div>
