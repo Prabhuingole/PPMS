@@ -123,6 +123,7 @@ export default function ProjectDetailsPage() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [timesheets, setTimesheets] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [reportingManagers, setReportingManagers] = useState<any[]>([]);
   const [userTasks, setUserTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -172,10 +173,11 @@ export default function ProjectDetailsPage() {
     if (!token || !projectId) return;
     try {
       setLoading(true);
-      const [projRes, docRes, empRes, userTasksRes] = await Promise.all([
+      const [projRes, docRes, empRes, rmRes, userTasksRes] = await Promise.all([
         api.get(`/projects/${projectId}`),
         api.get(`/documents/project/${projectId}`),
         api.get(`/employees/?status_filter=true`),
+        api.get(`/employees/?is_reporting_manager=true&status_filter=true`),
         api.get(`/notes/admin/projects/${projectId}/users`).catch(() => ({ data: [] }))
       ]);
 
@@ -185,6 +187,9 @@ export default function ProjectDetailsPage() {
       setDocuments(docRes.data);
       if (empRes.data.items) {
         setEmployees(empRes.data.items);
+      }
+      if (rmRes.data.items) {
+        setReportingManagers(rmRes.data.items);
       }
       setUserTasks(userTasksRes.data);
     } catch (error: any) {
@@ -791,7 +796,7 @@ export default function ProjectDetailsPage() {
           onClose={() => setIsEditModalOpen(false)}
           editingProject={project}
           employees={employees}
-          reportingManagers={employees.filter(e => e.role === 'reporting_manager' || e.role === 'admin' || e.role === 'superadmin')}
+          reportingManagers={reportingManagers}
           onSuccess={() => {
             fetchData();
           }}
