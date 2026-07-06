@@ -41,6 +41,7 @@ import { EnterpriseModalFooter } from '@/components/ui/enterprise-modal-footer';
 
 const otherWorkCategories = [
   { id: 'meeting', name: 'Meeting', sub: ['Internal Meeting', 'External Meeting'] },
+  { id: 'joint_discussions', name: 'Joint Discussions', sub: [] },
   { id: 'kt', name: 'Knowledge Transfer (KT)', sub: ['KT Taken', 'KT Given'] },
   { id: 'learning', name: 'Learning', sub: ['Learning Activities', 'Training', 'Research'] },
   { id: 'add_work', name: 'Add Work', sub: [] }
@@ -92,6 +93,26 @@ const blankEntry = (): Entry => ({
   meetingConducted: false,
 });
 
+const getTaskNameLabel = (entry: any) => {
+  if (entry.projectId === 'other') {
+    if (entry.categoryId === 'joint_discussions') return 'Discussion Topic';
+    if (entry.categoryId === 'meeting') return 'Meeting Topic';
+    if (entry.categoryId === 'learning') return "Today's Learning";
+    if (entry.categoryId === 'kt') return 'KT Topic';
+  }
+  return 'Task Name';
+};
+
+const getTaskDescLabel = (entry: any) => {
+  if (entry.projectId === 'other') {
+    if (entry.categoryId === 'joint_discussions') return 'Discussion Description';
+    if (entry.categoryId === 'meeting') return 'Minutes of Meeting';
+    if (entry.categoryId === 'learning') return 'What did you learn today';
+    if (entry.categoryId === 'kt') return 'KT Details';
+  }
+  return 'Task Description';
+};
+
 export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: FillTimesheetDialogProps) {
   const { token, user } = useAuthStore();
   const isEditMode = Boolean(editDate);
@@ -102,6 +123,8 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   const [isWfh, setIsWfh] = useState(false);
   const [arrivalTime, setArrivalTime] = useState('');
   const [halfDayPeriod, setHalfDayPeriod] = useState('');
+  const [breakHours, setBreakHours] = useState('');
+  const [breakMinutes, setBreakMinutes] = useState('');
   const [entries, setEntries] = useState<Entry[]>([{ ...blankEntry(), id: 'initial-row-0' }]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -179,6 +202,18 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             setHalfDayPeriod('');
           }
 
+          if (raw[0]?.break_hours !== undefined && raw[0]?.break_hours !== null) {
+            setBreakHours(raw[0].break_hours.toString());
+          } else {
+            setBreakHours('');
+          }
+
+          if (raw[0]?.break_minutes !== undefined && raw[0]?.break_minutes !== null) {
+            setBreakMinutes(raw[0].break_minutes.toString());
+          } else {
+            setBreakMinutes('');
+          }
+
           // Day detection
           const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
           setDay(days[new Date(editDate).getDay()]);
@@ -202,6 +237,8 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
           }
           setArrivalTime(parsed.arrivalTime || '');
           setHalfDayPeriod(parsed.halfDayPeriod || '');
+          setBreakHours(parsed.breakHours || '');
+          setBreakMinutes(parsed.breakMinutes || '');
           setEntries(parsed.entries?.length ? parsed.entries : [{ ...blankEntry(), id: 'initial-row-0' }]);
           
           const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -220,6 +257,8 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
       setAttendance('full-day');
       setArrivalTime('');
       setHalfDayPeriod('');
+      setBreakHours('');
+      setBreakMinutes('');
     }
   }, [isOpen, isEditMode, editDate]);
 
@@ -383,7 +422,9 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             attachment_name: e.attachmentName || null,
             attendance: isWfh ? `wfh-${attendance}` : attendance,
             arrival_time: (attendance === 'late-arrival' || attendance === 'early-arrival') ? arrivalTime : null,
-            half_day_period: attendance === 'half-day' ? halfDayPeriod : null
+            half_day_period: attendance === 'half-day' ? halfDayPeriod : null,
+            break_hours: breakHours ? parseInt(breakHours) : 0,
+            break_minutes: breakMinutes ? parseInt(breakMinutes) : 0
           }));
 
       const formattedDate = new Date(date).toISOString().split('T')[0];
@@ -424,6 +465,8 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
       attendance,
       arrivalTime,
       halfDayPeriod,
+      breakHours,
+      breakMinutes,
       entries: entries.map(e => ({ ...e, isUploading: false }))
     };
     localStorage.setItem(`timesheet_draft_${user?.id}`, JSON.stringify(draftData));
@@ -460,7 +503,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
           <div className="flex-1 p-6 space-y-8 overflow-y-auto bg-muted/10 custom-scrollbar">
             {/* Day Info Bar */}
             <Card className="rounded-xl border border-border bg-card shadow-sm p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
                 {/* Date */}
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Date</Label>
@@ -541,6 +584,34 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
                       </motion.div>
                     )}
                   </AnimatePresence>
+                </div>
+
+                {/* Break Duration */}
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Break Time</Label>
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative flex-1">
+                      <Input 
+                        type="number" min="0" max="10"
+                        value={breakHours}
+                        onChange={(e) => setBreakHours(e.target.value)}
+                        className="h-10 rounded-xl border-border text-center font-bold pr-5 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                        placeholder="0"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">h</span>
+                    </div>
+                    <span className="text-muted-foreground/50 font-bold">:</span>
+                    <div className="relative flex-1">
+                      <Input 
+                        type="number" min="0" max="59"
+                        value={breakMinutes}
+                        onChange={(e) => setBreakMinutes(e.target.value)}
+                        className="h-10 rounded-xl border-border text-center font-bold pr-6 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                        placeholder="0"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-muted-foreground">m</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Threshold & OT/DT */}
@@ -768,7 +839,7 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                       ))}
                     </SelectContent>
                   </Select>
-                  {entry.categoryId && entry.categoryId !== 'add_work' && (
+                  {entry.categoryId && entry.categoryId !== 'add_work' && entry.categoryId !== 'joint_discussions' && (
                     <Select value={entry.subcategory} onValueChange={(v) => {
                       if (v) {
                         updateEntry(entry.id, 'subcategory', v);
@@ -851,9 +922,11 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
           </div>
 
           <div className="space-y-1.5">
-            <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Name</Label>
+            <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+              {getTaskNameLabel(entry)}
+            </Label>
             <Input 
-              disabled={isLocked || (entry.projectId === 'other' && entry.categoryId !== 'add_work')}
+              disabled={isLocked || (entry.projectId === 'other' && entry.categoryId !== 'add_work' && entry.categoryId !== 'joint_discussions')}
               value={entry.taskTitle}
               onChange={(e) => updateEntry(entry.id, 'taskTitle', e.target.value)}
               placeholder="e.g. API Integration, UI Design, Bug Fix..."
@@ -871,7 +944,9 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
 
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-start">
             <div className="sm:col-span-8 space-y-1.5">
-              <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Task Description</Label>
+              <Label required className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                {getTaskDescLabel(entry)}
+              </Label>
               <textarea 
                 disabled={isLocked}
                 value={entry.description}

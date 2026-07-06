@@ -33,6 +33,8 @@ class Timesheet(Base):
     attendance = Column(String, default="full-day")
     arrival_time = Column(String, nullable=True)
     half_day_period = Column(String, nullable=True)
+    break_hours = Column(Integer, default=0, nullable=True)
+    break_minutes = Column(Integer, default=0, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_unassigned_project = Column(Boolean, default=False)

@@ -19,6 +19,8 @@ class TimesheetBase(BaseModel):
     arrival_time: Optional[str] = None
     half_day_period: Optional[str] = None
     company_id: Optional[int] = None
+    break_hours: Optional[int] = 0
+    break_minutes: Optional[int] = 0
 
 class TimesheetCreate(TimesheetBase):
     pass
