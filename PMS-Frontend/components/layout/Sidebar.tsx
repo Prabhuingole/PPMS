@@ -21,7 +21,8 @@ import {
   Building2,
   ActivitySquare,
   Activity,
-  Zap
+  Zap,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -42,6 +43,7 @@ const menuItems = [
   { icon: BookOpen, label: 'Templates', href: '/superadmin/templates' },
   { icon: Sparkles, label: 'Activity Logs', href: '/superadmin/logs' },
   { icon: StickyNote, label: 'Team Member To Do List', href: '/superadmin/notes' },
+  { icon: Mail, label: 'Mail', href: 'https://mail-automation.sambhavaintech.com/auth/login', external: true },
   { icon: Settings, label: 'Settings', href: '/superadmin/settings' },
 ];
 
@@ -107,6 +109,8 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
                   title={collapsed ? item.label : undefined}
+                  target={(item as any).external ? "_blank" : undefined}
+                  rel={(item as any).external ? "noopener noreferrer" : undefined}
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 relative",
                     collapsed && "justify-center px-0",

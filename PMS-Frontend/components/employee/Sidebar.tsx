@@ -12,7 +12,8 @@ import {
   User,
   FileText,
   Fingerprint,
-  CheckSquare
+  CheckSquare,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const menuItems = [
   { icon: ClipboardList, label: 'My Timesheets', href: '/employee/timesheets' },
   { icon: Fingerprint, label: 'Attendance', href: '/employee/attendance' },
   { icon: FileText, label: 'To Do List', href: '/employee/notes' },
+  { icon: Mail, label: 'Mail', href: 'https://mail-automation.sambhavaintech.com/auth/login', external: true },
   { icon: User, label: 'Profile', href: '/employee/profile' },
 ];
 
@@ -91,6 +93,8 @@ export function Sidebar() {
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
                   title={collapsed ? item.label : undefined}
+                  target={(item as any).external ? "_blank" : undefined}
+                  rel={(item as any).external ? "noopener noreferrer" : undefined}
                   className={cn(
                     "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 relative",
                     collapsed && "justify-center px-0",
