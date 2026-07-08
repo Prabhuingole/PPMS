@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, Text, ForeignKey, Float, Boolean, Index
+from sqlalchemy import Column, String, Integer, DateTime, Text, ForeignKey, Float, Boolean, Index, JSON
 from sqlalchemy.orm import relationship, backref
 from app.database.session import Base
 from datetime import datetime
@@ -30,6 +30,7 @@ class Timesheet(Base):
     feedback = Column(Text, nullable=True)
     attachment_path = Column(String, nullable=True)
     attachment_name = Column(String, nullable=True)
+    attachments = Column(JSON, nullable=True)
     attendance = Column(String, default="full-day")
     arrival_time = Column(String, nullable=True)
     half_day_period = Column(String, nullable=True)

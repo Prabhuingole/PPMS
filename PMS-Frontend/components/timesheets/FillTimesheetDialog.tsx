@@ -9,7 +9,8 @@ import {
   Clock,
   Pencil,
   Calendar,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -62,6 +63,7 @@ type Entry = {
   billedRate?: number;
   attachmentPath?: string | null;
   attachmentName?: string | null;
+  attachments?: {path: string, name: string}[];
   isUploading?: boolean;
   meetingConducted?: boolean;
 };
@@ -89,6 +91,7 @@ const blankEntry = (): Entry => ({
   billedRate: 0,
   attachmentPath: null,
   attachmentName: null,
+  attachments: [],
   isUploading: false,
   meetingConducted: false,
 });
@@ -168,8 +171,9 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
               billedRate: ts.billed_rate || 0,
               attachmentPath: ts.attachment_path || null,
               attachmentName: ts.attachment_name || null,
+              attachments: ts.attachments || (ts.attachment_path ? [{path: ts.attachment_path, name: ts.attachment_name}] : []),
               isUploading: false,
-              meetingConducted: !!ts.attachment_path,
+              meetingConducted: !!ts.attachment_path || (ts.attachments && ts.attachments.length > 0),
             };
           });
 
@@ -263,38 +267,69 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   }, [isOpen, isEditMode, editDate]);
 
   const handleTaskFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, entryId: string) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
     setEntries(entries.map(ent => ent.id === entryId ? { ...ent, isUploading: true } : ent));
-    const formData = new FormData();
-    formData.append('file', file);
+    
+    const newAttachments: {path: string, name: string}[] = [];
+    let hasError = false;
 
-    try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/upload-attachment`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/upload-attachment`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
           }
-        }
-      );
-      setEntries(entries.map(ent => 
-        ent.id === entryId ? { 
-          ...ent, 
-          attachmentPath: response.data.file_path,
-          attachmentName: response.data.filename,
-          isUploading: false 
-        } : ent
-      ));
-      toast.success('Document uploaded successfully!');
-    } catch (error: any) {
-      console.error(error);
-      toast.error('Failed to upload document.');
-      setEntries(entries.map(ent => ent.id === entryId ? { ...ent, isUploading: false } : ent));
+        );
+        newAttachments.push({
+          path: response.data.file_path,
+          name: response.data.filename
+        });
+      } catch (error: any) {
+        console.error(error);
+        hasError = true;
+      }
     }
+
+    if (hasError) {
+      toast.error('Failed to upload some documents.');
+    } else {
+      toast.success('Documents uploaded successfully!');
+    }
+
+    setEntries(prev => prev.map(ent => {
+      if (ent.id === entryId) {
+        return { 
+          ...ent, 
+          attachments: [...(ent.attachments || []), ...newAttachments],
+          isUploading: false 
+        };
+      }
+      return ent;
+    }));
+    
+    // Clear input so same files can be selected again
+    e.target.value = '';
+  };
+
+  const removeAttachment = (entryId: string, index: number) => {
+    setEntries(prev => prev.map(ent => {
+      if (ent.id === entryId && ent.attachments) {
+        const newAtt = [...ent.attachments];
+        newAtt.splice(index, 1);
+        return { ...ent, attachments: newAtt };
+      }
+      return ent;
+    }));
   };
 
   // Auto-detect day from selected date
@@ -378,7 +413,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
           return;
         }
         const isAssignedProject = projects.some((p: any) => p.id.toString() === e.projectId && p.assigned);
-        if (isAssignedProject && e.meetingConducted && !e.attachmentPath) {
+        if (isAssignedProject && e.meetingConducted && (!e.attachmentPath && (!e.attachments || e.attachments.length === 0))) {
           toast.error('Please upload JDR document for the conducted meeting.');
           return;
         }
@@ -401,6 +436,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
               day: day,
               attachment_path: null,
               attachment_name: null,
+              attachments: [],
               attendance: isWfh ? `wfh-${attendance}` : attendance,
               arrival_time: null,
               half_day_period: null
@@ -420,6 +456,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
             billed_rate: e.billedRate || 0,
             attachment_path: e.attachmentPath || null,
             attachment_name: e.attachmentName || null,
+            attachments: e.attachments || [],
             attendance: isWfh ? `wfh-${attendance}` : attendance,
             arrival_time: (attendance === 'late-arrival' || attendance === 'early-arrival') ? arrivalTime : null,
             half_day_period: attendance === 'half-day' ? halfDayPeriod : null,
@@ -686,6 +723,7 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
                     updateEntry={updateEntry} 
                     removeRow={removeRow} 
                     handleTaskFileUpload={handleTaskFileUpload} 
+                    removeAttachment={removeAttachment}
                     entriesCount={entries.length} 
                   />
                 ))}
@@ -747,12 +785,13 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
   );
 }
 
-const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow, handleTaskFileUpload, entriesCount }: {
+const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow, handleTaskFileUpload, removeAttachment, entriesCount }: {
   entry: any;
   projects: any[];
   updateEntry: (id: string, field: any, value: any) => void;
   removeRow: (id: string) => void;
   handleTaskFileUpload: (e: React.ChangeEvent<HTMLInputElement>, entryId: string) => void;
+  removeAttachment: (entryId: string, index: number) => void;
   entriesCount: number;
 }) => {
   const isLocked = entry.billingStatus === 'INVOICED' || entry.billingStatus === 'PAID';
@@ -960,41 +999,49 @@ const TimesheetEntryRow = React.memo(({ entry, projects, updateEntry, removeRow,
                <Label required={projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned) && entry.meetingConducted} className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                  {projects.find((p: any) => p.id.toString() === entry.projectId && p.assigned) && entry.meetingConducted ? 'Upload JDR (Mandatory)' : 'Attachment (Optional)'}
                </Label>
-               <div className="mt-1 h-[90px]">
-                 {!entry.attachmentPath ? (
-                  <div className="relative border border-dashed border-border hover:border-indigo-400 rounded-xl px-4 py-2 h-full flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-muted hover:bg-indigo-50/30 group">
-                    <input 
-                      type="file" 
-                      onChange={(e) => handleTaskFileUpload(e, entry.id)} 
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      disabled={entry.isUploading}
-                    />
-                    {entry.isUploading ? (
-                      <>
-                        <Clock className="h-4 w-4 text-primary animate-spin mb-1" />
-                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors mb-1" />
-                        <span className="text-[9px] font-black text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">Upload File</span>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full bg-muted border border-border rounded-xl px-3 py-2 text-center relative group">
-                    <span className="text-[10px] font-bold text-muted-foreground w-full truncate mb-1" title={entry.attachmentName || ''}>{entry.attachmentName}</span>
-                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border-emerald-100">Uploaded</Badge>
-                    <Button 
-                      onClick={() => updateEntry(entry.id, 'attachmentPath', null)}
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute top-1 right-1 h-6 w-6 text-muted-foreground hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
+               <div className="mt-1 flex flex-col gap-2">
+                 <div className="relative border border-dashed border-border hover:border-indigo-400 rounded-xl px-4 py-2 h-[45px] flex flex-col items-center justify-center text-center cursor-pointer transition-all bg-muted hover:bg-indigo-50/30 group">
+                   <input 
+                     type="file" 
+                     multiple
+                     onChange={(e) => handleTaskFileUpload(e, entry.id)} 
+                     className="absolute inset-0 opacity-0 cursor-pointer"
+                     disabled={entry.isUploading || isLocked}
+                   />
+                   {entry.isUploading ? (
+                     <div className="flex items-center gap-2">
+                       <Clock className="h-3 w-3 text-primary animate-spin" />
+                       <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Uploading...</span>
+                     </div>
+                   ) : (
+                     <div className="flex items-center gap-2">
+                       <Plus className="h-3 w-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                       <span className="text-[9px] font-black text-muted-foreground group-hover:text-primary transition-colors uppercase tracking-widest">Upload File(s)</span>
+                     </div>
+                   )}
+                 </div>
+
+                 {entry.attachments && entry.attachments.length > 0 && (
+                   <div className="flex flex-col gap-1.5 max-h-[100px] overflow-y-auto pr-1 custom-scrollbar">
+                     {entry.attachments.map((att: any, idx: number) => (
+                       <div key={idx} className="flex items-center justify-between bg-muted border border-border rounded-lg px-2.5 py-1.5 text-left relative group">
+                         <div className="flex items-center gap-2 min-w-0 flex-1">
+                           <FileText className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                           <span className="text-[10px] font-bold text-foreground truncate">{att.name}</span>
+                         </div>
+                         <Button 
+                           disabled={isLocked}
+                           onClick={(e) => { e.preventDefault(); removeAttachment(entry.id, idx); }}
+                           variant="ghost" 
+                           size="icon" 
+                           className="h-5 w-5 ml-2 text-muted-foreground hover:text-red-500 rounded flex-shrink-0"
+                         >
+                           <Trash2 className="h-2.5 w-2.5" />
+                         </Button>
+                       </div>
+                     ))}
+                   </div>
+                 )}
                </div>
             </div>
           </div>

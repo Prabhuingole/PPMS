@@ -15,6 +15,7 @@ class TimesheetBase(BaseModel):
     day: Optional[str] = None
     attachment_path: Optional[str] = None
     attachment_name: Optional[str] = None
+    attachments: Optional[list] = None
     attendance: Optional[str] = "full-day"
     arrival_time: Optional[str] = None
     half_day_period: Optional[str] = None

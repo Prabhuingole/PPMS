@@ -68,19 +68,48 @@ def download_timesheet_attachment(
     timesheet_id: int,
     request: Request,
     inline: bool = False,
+    file_path: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     ts = db.query(Timesheet).filter(Timesheet.id == timesheet_id).first()
-    if not ts or not ts.attachment_path:
-        raise HTTPException(status_code=404, detail="Attachment not found")
+    if not ts:
+        raise HTTPException(status_code=404, detail="Timesheet not found")
         
     # Check access: superadmin/admin can view all, employee can only view their own
     if current_user.role not in ["superadmin", "admin"] and ts.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to download this attachment")
             
-    # Return presigned URL as JSON so the frontend can open it (avoids auth header issues)
-    presigned_url = storage.get_download_url(ts.attachment_path, ts.attachment_name or "attachment", inline=inline)
+    target_path = None
+    target_name = "attachment"
+
+    if file_path:
+        found = False
+        if ts.attachments:
+            for att in ts.attachments:
+                if att.get('path') == file_path:
+                    target_path = file_path
+                    target_name = att.get('name', 'attachment')
+                    found = True
+                    break
+        if not found and ts.attachment_path == file_path:
+            target_path = ts.attachment_path
+            target_name = ts.attachment_name or "attachment"
+            
+        if not target_path:
+            raise HTTPException(status_code=404, detail="Specific attachment not found in timesheet")
+    else:
+        if not ts.attachment_path:
+            if ts.attachments and len(ts.attachments) > 0:
+                target_path = ts.attachments[0].get('path')
+                target_name = ts.attachments[0].get('name', 'attachment')
+            else:
+                raise HTTPException(status_code=404, detail="Attachment not found")
+        else:
+            target_path = ts.attachment_path
+            target_name = ts.attachment_name or "attachment"
+
+    presigned_url = storage.get_download_url(target_path, target_name, inline=inline)
     
     create_audit_log(
         db=db,
@@ -91,7 +120,7 @@ def download_timesheet_attachment(
         request=request
     )
     
-    return {"url": presigned_url, "filename": ts.attachment_name or "attachment"}
+    return {"url": presigned_url, "filename": target_name}
 
 @router.post("/", response_model=List[TimesheetResponse])
 def create_timesheets(
@@ -155,6 +184,7 @@ def create_timesheets(
             day=ts.day,
             attachment_path=ts.attachment_path,
             attachment_name=ts.attachment_name,
+            attachments=ts.attachments,
             attendance=ts.attendance,
             arrival_time=ts.arrival_time,
             half_day_period=ts.half_day_period,
@@ -901,6 +931,7 @@ def update_timesheets_for_day(
             day=ts_data.day,
             attachment_path=ts_data.attachment_path,
             attachment_name=ts_data.attachment_name,
+            attachments=ts_data.attachments,
             attendance=ts_data.attendance,
             arrival_time=ts_data.arrival_time,
             half_day_period=ts_data.half_day_period,
