@@ -35,7 +35,7 @@ export function Navbar() {
     if (!isAuthenticated || !token) return;
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const res = await axios.get(`${api}/notifications/me`, {
+      const res = await axios.get(`${api}/inbox/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -86,7 +86,7 @@ export function Navbar() {
     if (!token) return;
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      await axios.put(`${api}/notifications/${id}/read`, {}, {
+      await axios.put(`${api}/inbox/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(prev => prev.filter(n => n.id !== id));
@@ -106,7 +106,7 @@ export function Navbar() {
     if (!token) return;
     try {
       const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      await axios.put(`${api}/notifications/read-all`, {}, {
+      await axios.put(`${api}/inbox/read-all`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications([]);

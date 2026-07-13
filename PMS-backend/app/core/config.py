@@ -30,8 +30,13 @@ class Settings(BaseSettings):
     EMAILS_FROM_NAME: str | None = None
 
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002"
-    FRONTEND_URL: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://localhost:3002,http://127.0.0.1:3002,http://192.168.1.9:3000"
+    FRONTEND_URL: str = "http://192.168.1.9:3000"
+
+    # Mail Automation SSO & Sync
+    MAIL_AUTOMATION_URL: str = "http://192.168.1.6:3004"
+    MAIL_SSO_SECRET: str = "mail_sso_secret_key"
+    MAIL_INTERNAL_SECRET: str = "mail_sso_secret_key"
 
     model_config = SettingsConfigDict(
         env_file=".env",

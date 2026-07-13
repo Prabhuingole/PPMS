@@ -118,10 +118,15 @@ export function AttendanceWidget() {
                 <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Clock In</div>
                 <div className="text-sm font-black text-foreground">{formatTime(todayAttendance.clock_in_time)}</div>
               </div>
-              <div className="bg-muted rounded-xl p-3">
+              <div className="bg-muted rounded-xl p-3 relative">
                 <div className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Clock Out</div>
-                <div className="text-sm font-black text-foreground">
-                  {todayAttendance.clock_out_time ? formatTime(todayAttendance.clock_out_time) : 'Pending'}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-black text-foreground">
+                    {todayAttendance.clock_out_time ? formatTime(todayAttendance.clock_out_time) : 'Pending'}
+                  </span>
+                  {todayAttendance.is_auto_clock_out && (
+                    <Badge variant="outline" className="text-[7px] px-1 py-0 h-4 bg-orange-100 text-orange-600 border-orange-200 uppercase tracking-widest font-black">Auto</Badge>
+                  )}
                 </div>
               </div>
               <div className="bg-muted rounded-xl p-3">

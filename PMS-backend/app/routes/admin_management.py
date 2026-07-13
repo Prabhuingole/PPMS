@@ -16,6 +16,7 @@ from app.core.audit import create_audit_log
 from fastapi import BackgroundTasks
 from app.core.websockets import manager
 from app.core.email import send_temporary_password_email
+from app.services.mail_sync_service import sync_user_to_mail
 
 router = APIRouter(prefix="/admins", tags=["admin-management"])
 
@@ -84,6 +85,8 @@ def create_admin(
         employee_name=payload.full_name,
         temp_password=temp_password
     )
+    
+    background_tasks.add_task(sync_user_to_mail, {"email": new_user.email, "full_name": new_user.full_name, "role": new_user.role})
     
     create_audit_log(
         db=db,

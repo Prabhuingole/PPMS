@@ -28,15 +28,39 @@ const menuItems = [
   { icon: ClipboardList, label: 'My Timesheets', href: '/employee/timesheets' },
   { icon: Fingerprint, label: 'Attendance', href: '/employee/attendance' },
   { icon: FileText, label: 'To Do List', href: '/employee/notes' },
-  { icon: Mail, label: 'Mail', href: 'https://mail-automation.sambhavaintech.com/auth/login', external: true },
+  { icon: Mail, label: 'Mail', href: '#', isSSO: true },
   { icon: User, label: 'Profile', href: '/employee/profile' },
 ];
+
+import { useState } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
   const { sidebarCollapsed, toggleSidebarCollapse, sidebarOpen, setSidebarOpen } = useUIStore();
   const collapsed = sidebarCollapsed;
+  const [isMailLoading, setIsMailLoading] = useState(false);
+  const { token } = useAuthStore();
+
+  const handleMailSSO = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isMailLoading) return;
+    setIsMailLoading(true);
+    try {
+      const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const res = await axios.post(`${api}/integrations/mail/sso`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      window.open(res.data.redirect_url, "_blank");
+    } catch (error) {
+      console.error("SSO Error:", error);
+      toast.error("Failed to authenticate with Mail Automation");
+    } finally {
+      setIsMailLoading(false);
+    }
+  };
 
   return (
     <>
@@ -86,12 +110,18 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className={cn("flex-1 px-3 space-y-0.5 relative z-10 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full", collapsed ? "pt-4" : "pt-1")}>
           {menuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/employee/dashboard' && pathname.startsWith(item.href));
+            const isActive = item.href !== '#' && (pathname === item.href || (item.href !== '/employee/dashboard' && pathname.startsWith(item.href)));
             return (
-              <div key={item.href} className="relative group">
+              <div key={item.label} className="relative group">
                 <Link
                   href={item.href}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={(e) => {
+                    if ((item as any).isSSO) {
+                      handleMailSSO(e);
+                    } else {
+                      setSidebarOpen(false);
+                    }
+                  }}
                   title={collapsed ? item.label : undefined}
                   target={(item as any).external ? "_blank" : undefined}
                   rel={(item as any).external ? "noopener noreferrer" : undefined}
@@ -115,7 +145,10 @@ export function Sidebar() {
                       {item.label}
                     </span>
                   )}
-                  {isActive && !collapsed && (
+                  {(item as any).isSSO && isMailLoading && !collapsed && (
+                    <div className="ml-auto w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  )}
+                  {isActive && !collapsed && !(item as any).isSSO && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary/60" />
                   )}
                 </Link>

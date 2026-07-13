@@ -22,6 +22,7 @@ export interface AttendanceRecord {
   user_email?: string | null;
   user_role?: string | null;
   timesheet_status?: string | null;
+  is_auto_clock_out?: boolean;
 }
 
 interface AttendanceDetailModalProps {
@@ -128,6 +129,9 @@ export function AttendanceDetailModal({ record, onClose }: AttendanceDetailModal
                       <Clock className="h-4 w-4 text-amber-500" />
                       <span className="text-sm font-medium text-muted-foreground">Clock Out:</span>
                       <span className="text-sm font-bold text-foreground">{formatTime(record.clock_out_time)}</span>
+                      {record.is_auto_clock_out && (
+                        <Badge variant="outline" className="ml-1 text-[7px] px-1 py-0 h-4 bg-orange-100 text-orange-600 border-orange-200 uppercase tracking-widest font-black">Auto</Badge>
+                      )}
                     </div>
                     {photoLoading ? (
                       <div className="bg-muted rounded-md border border-border h-40 flex items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>

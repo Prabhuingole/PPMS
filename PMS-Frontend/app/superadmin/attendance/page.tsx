@@ -225,7 +225,12 @@ export default function AdminAttendancePage() {
               accessorKey: 'clock_out_time',
               hideOnMobile: true,
               cell: (rec) => rec.clock_out_time ? (
-                <span className="text-sm text-muted-foreground">{formatTime(rec.clock_out_time)}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{formatTime(rec.clock_out_time)}</span>
+                  {(rec as any).is_auto_clock_out && (
+                    <Badge variant="outline" className="text-[7px] px-1 py-0 h-4 bg-orange-100 text-orange-600 border-orange-200 uppercase tracking-widest font-black">Auto</Badge>
+                  )}
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground italic">Pending</span>
               )

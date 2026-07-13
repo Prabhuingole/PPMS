@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, Date, Boolean
 from sqlalchemy.orm import relationship, backref
 from datetime import datetime
 from app.database.session import Base
@@ -23,6 +23,7 @@ class Attendance(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     location_accuracy = Column(Float, nullable=True)
+    is_auto_clock_out = Column(Boolean, default=False, nullable=True)
     
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

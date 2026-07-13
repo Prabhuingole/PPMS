@@ -24,6 +24,7 @@ class AttendanceResponse(BaseModel):
     user_email: Optional[str] = None
     user_role: Optional[str] = None
     timesheet_status: Optional[str] = None
+    is_auto_clock_out: Optional[bool] = False
 
     class Config:
         orm_mode = True

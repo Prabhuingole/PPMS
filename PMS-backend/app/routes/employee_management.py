@@ -19,6 +19,7 @@ from app.core.websockets import manager
 import secrets
 import string
 from app.core.email import send_temporary_password_email
+from app.services.mail_sync_service import sync_user_to_mail
 
 router = APIRouter(prefix="/employees", tags=["employee-management"])
 
@@ -95,6 +96,7 @@ def create_employee(
     )
     
     background_tasks.add_task(manager.broadcast, {"event": "EMPLOYEES_UPDATED"})
+    background_tasks.add_task(sync_user_to_mail, {"email": new_user.email, "full_name": new_user.full_name, "role": new_user.role})
 
     user_data = EmployeeResponse.model_validate(new_user).model_dump()
     return EmployeeCreateResponse(**user_data)

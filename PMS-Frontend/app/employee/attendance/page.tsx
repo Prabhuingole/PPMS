@@ -196,7 +196,14 @@ export default function EmployeeAttendancePage() {
                           <td className="px-6 text-sm font-medium text-foreground">{formatDate(rec.date)}</td>
                           <td className="px-4 text-sm font-medium text-slate-600">{formatTime(rec.clock_in_time)}</td>
                           <td className="px-4 text-sm font-medium text-slate-600">
-                            {rec.clock_out_time ? formatTime(rec.clock_out_time) : <span className="text-muted-foreground">Pending</span>}
+                            {rec.clock_out_time ? (
+                              <div className="flex items-center gap-2">
+                                <span>{formatTime(rec.clock_out_time)}</span>
+                                {(rec as any).is_auto_clock_out && (
+                                  <Badge variant="outline" className="text-[7px] px-1 py-0 h-4 bg-orange-100 text-orange-600 border-orange-200 uppercase tracking-widest font-black">Auto</Badge>
+                                )}
+                              </div>
+                            ) : <span className="text-muted-foreground">Pending</span>}
                           </td>
                           <td className="px-4 text-sm font-medium text-foreground">
                             {rec.working_hours ? `${rec.working_hours}h` : '—'}
