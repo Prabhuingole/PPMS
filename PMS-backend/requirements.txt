@@ -68,3 +68,4 @@ apscheduler
 
 python-magic-bin==0.4.14 ; sys_platform == 'win32'
 python-magic ; sys_platform != 'win32'
+requests
