@@ -40,6 +40,7 @@ const menuItems = [
   { icon: Briefcase, label: 'Projects', href: '/superadmin/projects' },
   { icon: ClipboardList, label: 'Timesheets', href: '/superadmin/timesheets' },
   { icon: Fingerprint, label: 'Attendance', href: '/superadmin/attendance' },
+  { icon: ActivitySquare, label: 'Reports', href: '/superadmin/reports' },
   { icon: BookOpen, label: 'Templates', href: '/superadmin/templates' },
   { icon: Sparkles, label: 'Activity Logs', href: '/superadmin/logs' },
   { icon: StickyNote, label: 'Team Member To Do List', href: '/superadmin/notes' },

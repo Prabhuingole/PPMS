@@ -178,6 +178,44 @@ export interface ReportingManagerListResponse {
   pages: number;
 }
 
+export interface AttendanceSummaryRecord {
+  user_id: number;
+  name: string;
+  employee_id: string;
+  company: string;
+  role: string;
+
+  total_working_days: number;
+  present_days: number;
+  absent_days: number;
+  half_days: number;
+  leave_days: number;
+  missing_clock_in: number;
+  missing_clock_out: number;
+  late_arrivals: number;
+  early_leaves: number;
+  average_working_hours: number;
+  total_working_hours: number;
+  overtime_hours: number;
+  clock_in?: string | null;
+  clock_out?: string | null;
+}
+
+export interface DailyAttendanceRecord {
+  user_id: number;
+  name: string;
+  employee_id: string;
+  company: string;
+  role: string;
+  date: string;
+  clock_in?: string | null;
+  clock_out?: string | null;
+  break_time?: number;
+  total_hours?: number;
+  status: string;
+  timesheet_filled: boolean;
+}
+
 export interface DocumentTemplate {
   id: number;
   doc_type: string;
