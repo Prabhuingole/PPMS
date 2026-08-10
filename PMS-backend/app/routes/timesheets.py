@@ -963,3 +963,98 @@ def update_timesheets_for_day(
     background_tasks.add_task(manager.broadcast, {"event": "TIMESHEETS_UPDATED"})
     return created
 
+
+@router.get("/export/excel")
+def export_timesheet_excel(
+    date: str = Query(..., description="Date to export (YYYY-MM-DD)"),
+    user_id: Optional[int] = Query(None, description="Specific user ID (for admins)"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    from sqlalchemy import cast, Date
+    from datetime import datetime as dt
+    import io
+    from fastapi.responses import StreamingResponse
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill
+    from app.models.user import User as UserModel
+
+    target_date = dt.strptime(date, "%Y-%m-%d").date()
+
+    # Enforce role-based access
+    target_user_id = current_user.id
+    if current_user.role in ["superadmin", "admin", "reporting_manager"]:
+        if user_id:
+            target_user_id = user_id
+    else:
+        # Normal employees can only export their own
+        target_user_id = current_user.id
+
+    query = db.query(Timesheet).options(
+        joinedload(Timesheet.user),
+        joinedload(Timesheet.project)
+    ).filter(
+        Timesheet.user_id == target_user_id,
+        cast(Timesheet.date, Date) == target_date
+    )
+
+    timesheets = query.order_by(Timesheet.created_at.asc()).all()
+
+    # Generate Excel
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = f"Timesheet_{date}"
+
+    # Headers
+    headers = [
+        "Date", "Day", "Employee", "Project", "Task", "Description", 
+        "Hours", "Task Status", "Timesheet Status", "Billing Status"
+    ]
+    ws.append(headers)
+
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="4F46E5", end_color="4F46E5", fill_type="solid")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.font = header_font
+        cell.fill = header_fill
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 15
+    
+    ws.column_dimensions['F'].width = 40 # Description
+    ws.column_dimensions['E'].width = 25 # Task
+    ws.column_dimensions['C'].width = 20 # Employee
+    ws.column_dimensions['D'].width = 20 # Project
+
+    user_name = "Employee"
+    for ts in timesheets:
+        emp_name = ts.user.full_name if ts.user else "Unknown"
+        user_name = emp_name
+        proj_name = ts.project.name if ts.project else "Other"
+        
+        ws.append([
+            str(ts.date.date()) if hasattr(ts.date, 'date') else str(ts.date),
+            ts.day or "",
+            emp_name,
+            proj_name,
+            ts.task_title or "",
+            ts.description or "",
+            float(ts.hours) if ts.hours else 0,
+            ts.task_status or "",
+            ts.status or "",
+            ts.billing_status or ""
+        ])
+
+    file_stream = io.BytesIO()
+    wb.save(file_stream)
+    file_stream.seek(0)
+    
+    filename = f"timesheet_{user_name.replace(' ', '_')}_{date}.xlsx"
+    headers = {
+        'Content-Disposition': f'attachment; filename="{filename}"'
+    }
+    return StreamingResponse(
+        file_stream, 
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+        headers=headers
+    )

@@ -465,10 +465,11 @@ export function FillTimesheetDialog({ isOpen, onClose, onSuccess, editDate }: Fi
           }));
 
       const formattedDate = new Date(date).toISOString().split('T')[0];
+      const targetDate = isEditMode && editDate ? new Date(editDate).toISOString().split('T')[0] : formattedDate;
 
       if (isEditMode) {
         await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/day/${formattedDate}`,
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/timesheets/day/${targetDate}`,
           payload,
           { headers: { Authorization: `Bearer ${token}` } }
         );

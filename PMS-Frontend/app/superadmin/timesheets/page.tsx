@@ -181,6 +181,24 @@ export default function TimesheetApprovalPage() {
     }
   };
 
+  const handleDownloadExcel = async (date: string, userId: string | number, userName?: string) => {
+    try {
+      const res = await api.get(`/timesheets/export/excel?date=${date}&user_id=${userId}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const safeName = userName ? userName.replace(/\s+/g, '_') : 'Employee';
+      link.setAttribute('download', `timesheet_${safeName}_${date}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to download Excel file');
+    }
+  };
+
+
   const handleBulkAction = async (action: 'approved' | 'rejected') => {
     if (!selectedGroup) return;
     if (!feedback.trim()) {
@@ -491,6 +509,17 @@ export default function TimesheetApprovalPage() {
                             <Eye className="mr-2 h-4 w-4" />
                             Review
                           </DropdownMenuItem>
+                           <DropdownMenuItem 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadExcel(group.date, group.user_id, group.user_name);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download Excel
+                            </DropdownMenuItem>
+
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     MAIL_AUTOMATION_URL: str = "http://192.168.1.6:3004"
     MAIL_SSO_SECRET: str = "mail_sso_secret_key"
     MAIL_INTERNAL_SECRET: str = "mail_sso_secret_key"
+    
+    # OpenRouter API Key
+    OPENROUTER_API_KEY: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

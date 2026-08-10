@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { ReactQueryProvider } from "@/components/query-provider";
+import Chatbot from "@/components/Chatbot";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AxiosInterceptor />
             <WebSocketProvider />
             {children}
+            <Chatbot />
             <Toaster position="top-right" />
           </ReactQueryProvider>
         </ThemeProvider>

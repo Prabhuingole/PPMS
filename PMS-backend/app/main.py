@@ -26,7 +26,7 @@ from app.routes.tasks import router as tasks_router
 from app.routes.task_comments import router as task_comments_router
 from app.routes.allocations import router as allocations_router
 from app.routes.resource_reporting import router as resource_reporting_router
-from app.routes import auth, employee_management, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance, companies, integrations, reports
+from app.routes import auth, employee_management, project_management, templates, timesheets, notifications, audit_logs, notes, admin_management, documents, attendance, companies, integrations, reports, ai_assistant
 from app.core.websockets import manager
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -135,6 +135,7 @@ app.include_router(allocations_router)
 app.include_router(resource_reporting_router)
 app.include_router(reports.router)
 app.include_router(integrations.router)
+app.include_router(ai_assistant.router, prefix="/api/ai", tags=["AI Assistant"])
 
 # 4. Health Check
 @app.get("/health")

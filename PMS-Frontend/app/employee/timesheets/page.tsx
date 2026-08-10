@@ -18,7 +18,8 @@ import {
   Sparkles,
   FileText,
   Layers,
-  MoreHorizontal
+  MoreHorizontal,
+  Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -81,9 +82,25 @@ const ExpandableText = ({ text }: { text: string }) => {
 };
 
 export default function MyTimesheetsPage() {
-  const { token } = useAuthStore();
+  const { user, token } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [timesheets, setTimesheets] = useState<any[]>([]);
+
+  const handleDownloadExcel = async (date: string) => {
+    try {
+      const res = await api.get(`/timesheets/export/excel?date=${date}`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      const safeName = user?.full_name ? user.full_name.replace(/\s+/g, '_') : 'Employee';
+      link.setAttribute('download', `timesheet_${safeName}_${date}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (e) {
+      console.error(e);
+    }
+  };
   const [totalItems, setTotalItems] = useState(0);
   const [counts, setCounts] = useState({ all: 0, approved: 0, pending: 0, rejected: 0 });
   const [currentPage, setCurrentPage] = useState(1);
@@ -727,6 +744,13 @@ export default function MyTimesheetsPage() {
                                   >
                                     <Pencil className="mr-2 h-4 w-4" />
                                     Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDownloadExcel(d)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download Excel
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
