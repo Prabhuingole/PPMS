@@ -9,15 +9,15 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# Try to initialize OpenRouter client, but allow failure if key is missing during startup
+# Try to initialize Gemini client via OpenAI compatibility layer
 try:
     client = OpenAI(
-        base_url="https://openrouter.ai/api/v1",
-        api_key=settings.OPENROUTER_API_KEY,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        api_key=settings.GEMINI_API_KEY,
     )
 except Exception as e:
     client = None
-    logger.error(f"Failed to initialize OpenAI client: {e}")
+    logger.error(f"Failed to initialize OpenAI client for Gemini: {e}")
 
 # Provide enough context for the LLM to write valid SQL queries
 DB_SCHEMA = """
@@ -112,7 +112,7 @@ Rules:
 5. Use CURRENT_DATE for 'today' and CURRENT_TIMESTAMP for 'now'.
 """
     response = client.chat.completions.create(
-        model="google/gemma-2-9b-it:free",
+        model="gemini-3.5-flash",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
@@ -179,7 +179,7 @@ def draft_response(prompt: str, data: list) -> str:
     user_content = f"User Question: {prompt}\n\nDatabase Results (JSON):\n{json.dumps(data, default=str)}"
     
     response = client.chat.completions.create(
-        model="google/gemma-2-9b-it:free",
+        model="gemini-3.5-flash",
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_content}
@@ -205,7 +205,7 @@ def check_output_guardrail(prompt: str, data: list, draft: str) -> str:
     
     try:
         response = client.chat.completions.create(
-            model="google/gemma-2-9b-it:free",
+            model="gemini-3.5-flash",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
